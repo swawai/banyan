@@ -3,8 +3,6 @@ title: Primary Navigation Links Fragment
 build:
   list: never
   render: never
-slot_resources:
-  primary_nav:
 nav:
   controls:
     language: false

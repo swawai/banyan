@@ -171,7 +171,7 @@
     {{- end }}
     {{- block "styles" . -}}{{ partial "head-styles.html" (dict "ctx" .) }}{{- end -}}
     {{- block "head-extra" . -}}{{- end -}}
-    {{- partial "page-resources-head.html" . -}}
+    {{- partial "component-assets-head.html" . -}}
     {{- $prefetchConfig := site.Params.link_prefetch | default dict -}}
     {{- $prefetchLabels := slice "menu" "nav" "sort_siblings" "descendants" "post" -}}
     {{- range $label := $prefetchLabels -}}
@@ -390,7 +390,8 @@
             {{- end -}}
         </div>
     </div>
-    {{- partial "page-resources-body.html" . -}}
+    {{- block "body-extra" . -}}{{- end -}}
+    {{- partial "component-assets-body.html" . -}}
     {{- if eq (.Scratch.Get "needs_sortable_grids_runtime") true -}}
     {{- partial "sortable-grids-script.html" . -}}
     {{- end -}}

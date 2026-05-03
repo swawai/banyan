@@ -3,18 +3,6 @@
 {{ with .Get "section" }}{{ $target = $host.Site.GetPage (printf "/%s" .) }}{{ end }}
 {{ if not $target }}{{ $target = $host.Site.Home }}{{ end }}
 
-{{ $gridList := resources.Get "css/grid-list.css" }}
-{{ $gridAll := resources.Get "css/grid-all.css" }}
-{{ if not $gridList }}{{ errorf "Build failed: missing resource %q." "css/grid-list.css" }}{{ end }}
-{{ if not $gridAll }}{{ errorf "Build failed: missing resource %q." "css/grid-all.css" }}{{ end }}
-{{ $gridCss := slice $gridList $gridAll | resources.Concat "css/all-list.embed.css" }}
-{{ partial "page-resources/register.html" (dict
-  "ctx" $host
-  "key" "shortcode:all-list"
-  "descriptor" (dict
-    "css_resources" (slice $gridCss)
-  )
-) }}
 {{ $host.Scratch.Set "needs_sortable_grids_runtime" true }}
 
 {{ partial "list-all-common.html" (dict "ctx" $target "host" $host) }}

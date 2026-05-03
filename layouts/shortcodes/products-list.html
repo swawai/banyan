@@ -3,18 +3,6 @@
   {{ errorf "Build failed: products-list shortcode on page %q cannot resolve /products." $host.File.Path }}
 {{ end }}
 
-{{ $gridList := resources.Get "css/grid-list.css" }}
-{{ $gridProducts := resources.Get "css/grid-products.css" }}
-{{ if not $gridList }}{{ errorf "Build failed: missing resource %q." "css/grid-list.css" }}{{ end }}
-{{ if not $gridProducts }}{{ errorf "Build failed: missing resource %q." "css/grid-products.css" }}{{ end }}
-{{ $gridCss := slice $gridList $gridProducts | resources.Concat "css/products-list.embed.css" }}
-{{ partial "page-resources/register.html" (dict
-  "ctx" $host
-  "key" "shortcode:products-list"
-  "descriptor" (dict
-    "css_resources" (slice $gridCss)
-  )
-) }}
 {{ $host.Scratch.Set "needs_sortable_grids_runtime" true }}
 
 {{ $rows := partial "collection/rows-products.html" (dict "host" $host) }}

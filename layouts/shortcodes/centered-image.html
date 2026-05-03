@@ -1,0 +1,8 @@
+{{- $src := .Get "src" | default (.Get 0) -}}
+{{- $alt := .Get "alt" | default "" -}}
+{{- $width := .Get "width" -}}
+{{- if $src -}}
+<figure class="md-centered-image">
+  <img src="{{ $src | safeURL }}" alt="{{ $alt }}"{{ with $width }} width="{{ . }}"{{ end }} loading="lazy" decoding="async">
+</figure>
+{{- end -}}

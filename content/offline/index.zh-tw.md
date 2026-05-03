@@ -5,11 +5,10 @@ title: "離線瀏覽"
 slug: "offline"
 nav_primary: home
 type: "page"
-layout: "article-page"
+layout: "offline-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
-page_js: "offline/page.js"
 build:
   list: "never"
 ---
@@ -20,4 +19,4 @@ build:
 
 恢復連線後可以重試，或返回之前開啟過的頁面。
 
-<p><a href="/zh-tw/offline/" data-page-action="reload">重試</a> / <a href="/zh-tw/">返回首頁</a></p>
+{{< page-actions left_href="/zh-tw/offline/" left_label="重試" left_action="reload" right_href="/zh-tw/" right_label="返回首頁" >}}

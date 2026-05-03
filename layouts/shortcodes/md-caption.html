@@ -1,0 +1,4 @@
+{{- $text := trim .Inner " \r\n\t" -}}
+{{- if ne $text "" -}}
+<p class="md-caption">{{ $text }}</p>
+{{- end -}}

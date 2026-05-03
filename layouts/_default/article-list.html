@@ -1,5 +1,9 @@
 {{ define "styles" }}
-{{ partial "head-styles.html" (dict "ctx" . "variant" "list") }}
+{{ $styleVariant := "list" }}
+{{ $collectionSource := partial "entry-source/collection-source.html" (.Params.banyan_entry_source | default dict) }}
+{{ $sortVariant := printf "%v" (index $collectionSource "sort_variant" | default "") }}
+{{ if or (eq $sortVariant "all") (eq $sortVariant "products") }}{{ $styleVariant = $sortVariant }}{{ end }}
+{{ partial "head-styles.html" (dict "ctx" . "variant" $styleVariant) }}
 {{ end }}
 
 {{ define "head-extra" }}

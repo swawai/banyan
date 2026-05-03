@@ -3,12 +3,6 @@ title: Navigation Utilities Fragment
 build:
   list: never
   render: never
-slot_resources:
-  utilities:
-    page_css:
-      - fragments/nav-utilities/nav-utilities.css
-    page_js:
-      - fragments/nav-utilities/nav-utilities.js
 nav:
   labels:
     language: 語言

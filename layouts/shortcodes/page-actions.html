@@ -1,0 +1,12 @@
+{{- $leftHref := .Get "left_href" -}}
+{{- $leftLabel := .Get "left_label" -}}
+{{- $rightHref := .Get "right_href" -}}
+{{- $rightLabel := .Get "right_label" -}}
+{{- if and $leftHref $leftLabel -}}
+<p>
+  <a href="{{ $leftHref }}"{{ with .Get "left_action" }} data-page-action="{{ . }}"{{ end }}{{ if eq (.Get "left_home") "true" }} data-page-home="true"{{ end }}>{{ $leftLabel }}</a>
+  {{- if and $rightHref $rightLabel -}}
+    / <a href="{{ $rightHref }}">{{ $rightLabel }}</a>
+  {{- end -}}
+</p>
+{{- end -}}

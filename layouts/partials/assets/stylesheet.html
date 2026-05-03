@@ -1,0 +1,6 @@
+{{ $path := trim (printf "%v" (.path | default "")) " \r\n\t" }}
+{{ if eq $path "" }}{{ errorf "Build failed: assets/stylesheet.html requires a non-empty path." }}{{ end }}
+{{ $resource := resources.Get $path }}
+{{ if not $resource }}{{ errorf "Build failed: missing CSS resource %q." $path }}{{ end }}
+{{ $resource = partial "css-process.html" (dict "resource" $resource "fingerprint" true) }}
+<link rel="stylesheet" href="{{ $resource.RelPermalink }}">

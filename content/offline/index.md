@@ -5,11 +5,10 @@ title: "Offline"
 slug: "offline"
 nav_primary: home
 type: "page"
-layout: "article-page"
+layout: "offline-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
-page_js: "offline/page.js"
 build:
   list: "never"
 ---
@@ -20,4 +19,4 @@ You are offline right now, and this page has not been cached yet.
 
 Reconnect and try again, or return to a page you opened before.
 
-<p><a href="/offline/" data-page-action="reload">Try again</a> / <a href="/">Go to home</a></p>
+{{< page-actions left_href="/offline/" left_label="Try again" left_action="reload" right_href="/" right_label="Go to home" >}}

@@ -4,13 +4,12 @@ title: "我"
 slug: "me"
 nav_primary: me
 type: "me"
-layout: "article-page"
+layout: "me-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
 build:
   list: "never"
-page_js: "me/page.js"
 ---
 
 
@@ -18,4 +17,4 @@ page_js: "me/page.js"
 
 目前尚未開放。
 
-<p><a href="/zh-tw/" data-page-action="back" data-page-home="true">返回上一頁</a> / <a href="/zh-tw/">回到首頁</a></p>
+{{< page-actions left_href="/zh-tw/" left_label="返回上一頁" left_action="back" left_home="true" right_href="/zh-tw/" right_label="回到首頁" >}}

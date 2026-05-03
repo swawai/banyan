@@ -5,11 +5,10 @@ title: "离线浏览"
 slug: "offline"
 nav_primary: home
 type: "page"
-layout: "article-page"
+layout: "offline-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
-page_js: "offline/page.js"
 build:
   list: "never"
 ---
@@ -20,4 +19,4 @@ build:
 
 恢复网络后可以重试，或者返回之前打开过的页面。
 
-<p><a href="/zh/offline/" data-page-action="reload">重试</a> / <a href="/zh/">返回首页</a></p>
+{{< page-actions left_href="/zh/offline/" left_label="重试" left_action="reload" right_href="/zh/" right_label="返回首页" >}}

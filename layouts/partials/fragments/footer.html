@@ -1,0 +1,24 @@
+{{- $ctx := . }}
+{{- if reflect.IsMap . }}{{ with index . "ctx" }}{{ $ctx = . }}{{ end }}{{ end -}}
+{{- $source := .source -}}
+{{- if $source -}}
+{{- $footerConfig := $source.Params.footer | default dict -}}
+{{- $ariaLabel := index $footerConfig "aria_label" | default "Site footer shortcuts" -}}
+{{- $aboutLabel := index $footerConfig "about_label" | default "About" -}}
+{{- $githubLabel := index $footerConfig "github_label" | default "GitHub" -}}
+{{- $githubHref := index $footerConfig "github_href" | default "https://github.com/swawai" -}}
+{{- $icpPrefix := index $footerConfig "icp_prefix" | default "粤" -}}
+{{- $icpNumber := index $footerConfig "icp_number" | default "" -}}
+{{- $brandLabel := index $footerConfig "brand_label" | default "2026 人不工&middot;Swaw" -}}
+{{- $home := $ctx.Site.Home -}}
+{{- $aboutHref := "/" -}}
+{{- with $ctx.Site.GetPage "/about" -}}
+  {{- $aboutHref = .RelPermalink -}}
+{{- end -}}
+<footer class="footer-shortcuts" aria-label="{{ $ariaLabel }}">
+  <p><a href="{{ $home.RelPermalink }}">©</a><a href="{{ $home.RelPermalink }}">{{ $brandLabel | safeHTML }}</a></p>
+  <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ $icpPrefix }}</a><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ $icpNumber }}</a></p>
+  <p><a href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer">{{ partial "icon" (dict "name" "github") }}</a><a href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer">{{ $githubLabel }}</a></p>
+  <p><a href="{{ $aboutHref }}">i</a><a href="{{ $aboutHref }}">{{ $aboutLabel }}</a></p>
+</footer>
+{{- end -}}

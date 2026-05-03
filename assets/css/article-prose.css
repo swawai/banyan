@@ -72,9 +72,7 @@
 
 
 
-/* --- 自定义占位与间隙控制类 (供手写 HTML 使用，不影响 SEO) --- */
-/* 使用方法: 在 Markdown 源码中插入 <p class="md-caption">注：说明文字</p> 或 <div class="md-spacer"></div> */
-/* 微信防过滤提示: 微信编辑器常清洗 div 标签及带有负值的 margin 复合属性，请务必使用 section 标签并在该标签上下各留一个空行！ */
+/* --- 自定义占位与间隙控制类（通过 theme-owned shortcodes 输出） --- */
 .prose .md-caption {
     display: block;
     margin-top: -18px;
@@ -93,4 +91,16 @@
     padding: 0;
     overflow: hidden;
     clear: both;
+}
+
+.prose .md-centered-image {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.prose .md-centered-image img {
+    display: block;
+    max-width: 100%;
+    height: auto;
 }

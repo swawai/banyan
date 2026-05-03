@@ -1,0 +1,9 @@
+{{ $path := trim (printf "%v" (.path | default "")) " \r\n\t" }}
+{{ if eq $path "" }}{{ errorf "Build failed: assets/script.html requires a non-empty path." }}{{ end }}
+{{ $resource := resources.Get $path }}
+{{ if not $resource }}{{ errorf "Build failed: missing JS resource %q." $path }}{{ end }}
+{{ $buildParams := partialCached "js-build-params.html" site "js-build-params" }}
+{{ $resource = $resource | js.Build (dict "params" $buildParams) }}
+{{ if not hugo.IsServer }}{{ $resource = $resource | minify }}{{ end }}
+{{ $resource = $resource | fingerprint }}
+<script src="{{ $resource.RelPermalink }}" integrity="{{ $resource.Data.Integrity }}"></script>

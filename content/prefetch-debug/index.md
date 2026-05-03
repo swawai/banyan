@@ -6,35 +6,19 @@ slug: "prefetchdebug"
 nav_primary: home
 url: "prefetchdebug"
 type: "page"
-layout: "article-page"
+layout: "prefetch-debug-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
-page_js: "prefetchdebug/page.js"
 build:
   list: "never"
+prefetch_debug:
+  intro: Use this page to inspect browser capability detection, the current prefetch payload, and the resources actually injected into the page.
+  loading_label: Loading...
+  sections:
+    support: Browser Support
+    env: Chosen Env
+    actions: Chosen Actions
+    runtime: Runtime Observation
+    payload: Page Payload
 ---
-
-# Prefetch Debug
-
-Use this page to inspect browser capability detection, the current prefetch payload, and the resources actually injected into the page.
-
-## Browser Support
-
-<pre id="prefetch-debug-support">Loading...</pre>
-
-## Chosen Env
-
-<pre id="prefetch-debug-env">Loading...</pre>
-
-## Chosen Actions
-
-<pre id="prefetch-debug-actions">Loading...</pre>
-
-## Runtime Observation
-
-<pre id="prefetch-debug-runtime">Loading...</pre>
-
-## Page Payload
-
-<pre id="prefetch-debug-payload">Loading...</pre>

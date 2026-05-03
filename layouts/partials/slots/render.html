@@ -17,6 +17,8 @@
     {{- partial "breadcrumb/entry.html" (dict "ctx" $ctx "slot" "breadcrumb" "omit_lead" $omitLead) -}}
   {{- else if eq $slot "meta" -}}
     {{- partial "article/meta.html" (dict "ctx" $ctx) -}}
+  {{- else if eq $slot "footer" -}}
+    {{- partial "fragments/footer.html" (dict "ctx" $ctx "source" $source) -}}
   {{- else -}}
     {{- $source.Content -}}
   {{- end -}}

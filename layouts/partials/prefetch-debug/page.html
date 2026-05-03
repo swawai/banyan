@@ -1,0 +1,31 @@
+{{- $config := .Params.prefetch_debug | default dict -}}
+{{- $intro := index $config "intro" | default "Use this page to inspect browser capability detection, the current prefetch payload, and the resources actually injected into the page." -}}
+{{- $loadingLabel := index $config "loading_label" | default "Loading..." -}}
+{{- $sections := merge (dict
+    "support" "Browser Support"
+    "env" "Chosen Env"
+    "actions" "Chosen Actions"
+    "runtime" "Runtime Observation"
+    "payload" "Page Payload"
+) (index $config "sections" | default dict) -}}
+<article class="article">
+  <div class="prose">
+    <h1>{{ .Title }}</h1>
+    <p>{{ $intro }}</p>
+
+    <h2>{{ index $sections "support" }}</h2>
+    <pre id="prefetch-debug-support">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "env" }}</h2>
+    <pre id="prefetch-debug-env">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "actions" }}</h2>
+    <pre id="prefetch-debug-actions">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "runtime" }}</h2>
+    <pre id="prefetch-debug-runtime">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "payload" }}</h2>
+    <pre id="prefetch-debug-payload">{{ $loadingLabel }}</pre>
+  </div>
+</article>

@@ -1,0 +1,15 @@
+{{ define "styles" }}
+{{ partial "head-styles.html" (dict "ctx" .) }}
+{{ end }}
+
+{{ define "head-extra" }}
+{{ partial "article/styles.html" (dict "ctx" . "with_meta" true) }}
+{{ end }}
+
+{{ define "main" }}
+{{ partial "prefetch-debug/page.html" . }}
+{{ end }}
+
+{{ define "body-extra" }}
+{{ partial "assets/script.html" (dict "path" "js/prefetchdebug/page.js") }}
+{{ end }}

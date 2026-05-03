@@ -1,0 +1,5 @@
+{{ $ctx := . }}
+{{ if reflect.IsMap . }}{{ with index . "ctx" }}{{ $ctx = . }}{{ end }}{{ end }}
+{{ if eq ($ctx.Scratch.Get "needs_nav_utilities_assets") true }}
+{{ partial "assets/script.html" (dict "path" "js/fragments/nav-utilities/nav-utilities.js") }}
+{{ end }}

@@ -1,0 +1,10 @@
+{{- $ctx := .ctx -}}
+{{- if not $ctx -}}{{- return -}}{{- end -}}
+{{- $slot := lower (trim (printf "%v" (.slot | default "")) " \r\n\t") -}}
+{{- $sourceRef := trim (printf "%v" (.source_ref | default "")) " \r\n\t" -}}
+{{- if and (eq $slot "utilities") (eq $sourceRef "/fragments/nav-utilities") -}}
+  {{- $ctx.Scratch.Set "needs_nav_utilities_assets" true -}}
+{{- end -}}
+{{- if and (eq $slot "footer") (eq $sourceRef "/fragments/home-footer-shortcuts") -}}
+  {{- $ctx.Scratch.Set "footer_variant" "shortcuts" -}}
+{{- end -}}
