@@ -49,6 +49,33 @@ function nowIso() {
     return new Date().toISOString();
 }
 
+function normalizeScenarioOutcome(outcome) {
+    if (!outcome || typeof outcome !== 'object' || Array.isArray(outcome)) {
+        return {
+            artifacts: {},
+            details: outcome || {},
+            message: ''
+        };
+    }
+
+    const hasEnvelope = Object.prototype.hasOwnProperty.call(outcome, 'artifacts')
+        || Object.prototype.hasOwnProperty.call(outcome, 'details')
+        || Object.prototype.hasOwnProperty.call(outcome, 'message');
+    if (!hasEnvelope) {
+        return {
+            artifacts: {},
+            details: outcome,
+            message: ''
+        };
+    }
+
+    return {
+        artifacts: outcome.artifacts && typeof outcome.artifacts === 'object' ? outcome.artifacts : {},
+        details: outcome.details && typeof outcome.details === 'object' ? outcome.details : {},
+        message: typeof outcome.message === 'string' ? outcome.message : ''
+    };
+}
+
 async function runScenario(scenario, runtime) {
     const startedAt = Date.now();
     const scenarioOutputDir = path.join(runtime.outputDir, scenario.id);
@@ -101,7 +128,7 @@ async function runScenario(scenario, runtime) {
 
     try {
         console.log(`[RUN] ${scenario.id}`);
-        const details = await withTimeout(scenario.run({
+        const outcome = await withTimeout(scenario.run({
             artifactDir: scenarioOutputDir,
             baseUrl: runtime.server.getBaseUrl(),
             browser: runtime.browser,
@@ -113,8 +140,13 @@ async function runScenario(scenario, runtime) {
             server: runtime.server,
             upgradePair: runtime.upgradePair
         }), scenario.timeoutMs || 45000, scenario.id);
-        result.details = details || {};
-        result.message = 'Passed';
+        const normalized = normalizeScenarioOutcome(outcome);
+        result.details = normalized.details;
+        result.artifacts = {
+            ...result.artifacts,
+            ...normalized.artifacts
+        };
+        result.message = normalized.message || 'Passed';
         console.log(`[PASS] ${scenario.id}`);
     } catch (error) {
         result.status = 'failed';
@@ -142,6 +174,7 @@ async function runScenario(scenario, runtime) {
 export async function runBrowserRegression(options = {}) {
     const modeName = options.modeName || 'browser';
     const scenarioFilter = options.onlyScenarioIds || readScenarioFilter();
+    const scenarioList = Array.isArray(options.scenarios) ? options.scenarios : scenarios;
     const primaryBuildDir = resolvePrimaryBuildDir();
     const upgradePair = resolveUpgradeBuildPair();
     const outputDir = createOutputDir(modeName);
@@ -168,8 +201,8 @@ export async function runBrowserRegression(options = {}) {
 
     try {
         const activeScenarios = scenarioFilter.length > 0
-            ? scenarios.filter((scenario) => scenarioFilter.includes(scenario.id))
-            : scenarios;
+            ? scenarioList.filter((scenario) => scenarioFilter.includes(scenario.id))
+            : scenarioList;
         for (const scenario of activeScenarios) {
             const result = await runScenario(scenario, {
                 browser,
