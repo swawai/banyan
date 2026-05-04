@@ -17,6 +17,7 @@
 当前固定入口：
 
 - `npm run check:browser`
+- `npm run check:browser:security`
 - `npm run check:browser:headed`
 - `npm run check:browser:trace`
 - `npm run check:browser:install`
@@ -90,6 +91,8 @@
 - `breadcrumb-tags-wide-stability`
 - `sw-home-register`
 - `sw-update-anchor-multi-target-matrix`
+- `security-csp-report-only-home`
+- `security-csp-report-only-breadcrumb-wide`
 
 ### Upgrade
 
@@ -147,3 +150,25 @@ upgrade 场景会：
 一个简单原则：
 
 - 浏览器工具只收 **静态审计抓不到** 的那类风险。
+
+## 安全场景
+
+`check:browser:security` 当前专门验证：
+
+- 本地静态 server 会按构建产物 `_headers` 回放响应头
+- 关键页面响应里存在 `Content-Security-Policy-Report-Only`
+- 页面运行期间没有 `SecurityPolicyViolationEvent`
+- 页面没有出现 CSP 相关 console 噪音
+
+它当前主要覆盖：
+
+- 首页
+- wide breadcrumb 路径页
+
+原因不是它们“最重要”，而是它们已经覆盖了当前保留的 3 类 executable inline script：
+
+- theme boot
+- breadcrumb pending
+- breadcrumb skeleton
+
+更完整的 CSP 主线说明见 [security-csp.md](security-csp.md)。

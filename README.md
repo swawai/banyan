@@ -47,6 +47,13 @@ free-form fragment injection.
 See [`docs/layout-slots.md`](docs/layout-slots.md) for the current slot names,
 their semantics, and the recommended fragment naming rules.
 
+## Security
+
+The current CSP and browser-security regression path is documented in:
+
+- [`docs/security-csp.md`](docs/security-csp.md)
+- [`docs/browser-regression.md`](docs/browser-regression.md)
+
 ## Taxonomies
 
 Declare taxonomies in your site's root `hugo.toml` under `[taxonomies]`.

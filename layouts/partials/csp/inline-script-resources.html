@@ -1,0 +1,26 @@
+{{- $buildParams := partialCached "js-build-params.html" site "js-build-params" -}}
+{{- $specs := dict
+    "theme_boot" "js/inline/theme-boot.js"
+    "breadcrumb_pending" "js/inline/breadcrumb-pending.js"
+    "breadcrumb_skeleton" "js/inline/breadcrumb-skeleton.js"
+-}}
+{{- $result := dict -}}
+
+{{- range $key, $path := $specs -}}
+    {{- $source := resources.Get $path -}}
+    {{- if not $source -}}
+        {{- errorf "Build failed: missing inline JS resource %q." $path -}}
+    {{- end -}}
+    {{- $built := $source | js.Build (dict
+        "params" $buildParams
+        "targetPath" (printf "js/inline/%s.inline.js" $key)
+        "minify" (not hugo.IsServer)
+    ) -}}
+    {{- $fingerprinted := $built | fingerprint -}}
+    {{- $result = merge $result (dict $key (dict
+        "content" $built.Content
+        "integrity" $fingerprinted.Data.Integrity
+    )) -}}
+{{- end -}}
+
+{{- return $result -}}

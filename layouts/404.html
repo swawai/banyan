@@ -4,7 +4,11 @@
 
 {{ define "head-extra" }}
 {{ partial "article/styles.html" (dict "ctx" .) }}
-<meta name="swaw-not-found" content="1">
+{{ $notFoundCssPath := "css/not-found.css" }}
+{{ $notFoundCss := resources.Get $notFoundCssPath }}
+{{ if not $notFoundCss }}{{ errorf "Build failed: missing resource %q." $notFoundCssPath }}{{ end }}
+{{ $notFoundCss = partial "css-process.html" (dict "resource" $notFoundCss "fingerprint" true) }}
+<link rel="stylesheet" href="{{ $notFoundCss.RelPermalink }}">
 {{ end }}
 
 {{ define "main" }}
@@ -14,62 +18,27 @@
     <p>{{ i18n "notFoundDesc" | default "This page may not be available in the current language. You can:" }}</p>
     <ul>
         <li><a href="{{ .Site.Home.RelPermalink }}">{{ i18n "goHome" | default "Go to this language's homepage" }}</a></li>
-        <li id="try-others" hidden>
+        {{- $siteLangs := slice -}}
+        {{- range .Site.Languages -}}
+            {{- $siteLangs = $siteLangs | append .Lang -}}
+        {{- end -}}
+        {{- $defaultLang := (index (sort site.Sites "Language.Weight") 0).Language.Lang -}}
+        {{- $langHomes := dict -}}
+        {{- range sort site.Sites "Language.Weight" -}}
+            {{- $langHomes = merge $langHomes (dict .Language.Lang .Home.RelPermalink) -}}
+        {{- end -}}
+        <li id="try-others"
+            hidden
+            data-site-langs='{{ $siteLangs | jsonify }}'
+            data-default-lang="{{ $defaultLang }}"
+            data-lang-homes='{{ $langHomes | jsonify }}'>
             {{ i18n "tryOtherLangs" | default "Try other language versions:" }}
-            <span id="alt-lang-links"></span>
+            <span id="alt-lang-links" class="not-found-alt-links"></span>
         </li>
     </ul>
-
-    <script>
-    (function(){
-      try {
-        var siteLangs = [{{ range .Site.Languages }}'{{ .Lang }}',{{ end }}];
-        var defaultLang = '{{ (index (sort site.Sites "Language.Weight") 0).Language.Lang }}';
-        var langHomes = {
-          {{- range sort site.Sites "Language.Weight" }}
-          '{{ .Language.Lang }}': '{{ .Home.RelPermalink }}',
-          {{- end }}
-        };
-
-        var path = location.pathname;
-        var langPrefix = null;
-        for (var i = 0; i < siteLangs.length; i++) {
-          if (path === '/' + siteLangs[i] || path.indexOf('/' + siteLangs[i] + '/') === 0) {
-            langPrefix = siteLangs[i];
-            break;
-          }
-        }
-
-        if (!langPrefix) {
-          return;
-        }
-
-        var rest = path.slice(('/' + langPrefix).length);
-        if (rest.charAt(0) === '/') rest = rest.slice(1);
-        if (rest === '') { return; }
-
-        var links = document.getElementById('alt-lang-links');
-        var box = document.getElementById('try-others');
-        var shown = false;
-        siteLangs.forEach(function(lang){
-          if (lang === langPrefix) return;
-          var home = langHomes[lang] || (lang === defaultLang ? '/' : '/' + lang + '/');
-          var url = rest ? (home === '/' ? '/' + rest : home + rest) : home;
-          fetch(url, { method: 'HEAD', credentials: 'same-origin' })
-            .then(function(res){
-              if (res && res.ok) {
-                var a = document.createElement('a');
-                a.href = url;
-                a.textContent = lang;
-                a.style.marginRight = '0.5rem';
-                links.appendChild(a);
-                if (!shown) { box.hidden = false; shown = true; }
-              }
-            })
-            .catch(function(){});
-        });
-      } catch (e) {}
-    })();
-    </script>
 </article>
+{{ end }}
+
+{{ define "body-extra" }}
+{{ partial "assets/script.html" (dict "path" "js/not-found-alt-langs.js") }}
 {{ end }}

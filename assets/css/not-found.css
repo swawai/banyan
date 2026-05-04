@@ -1,0 +1,5 @@
+.not-found-alt-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}

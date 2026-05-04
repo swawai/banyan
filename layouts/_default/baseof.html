@@ -55,6 +55,10 @@
 {{- $entryLineageField := index $navigationStateFields "entry_lineage" | default dict -}}
 {{- $activeSortField := index $navigationStateFields "active_sort" | default dict -}}
 {{- $lineageSortsField := index $navigationStateFields "lineage_sorts" | default dict -}}
+{{- $inlineScripts := partialCached "csp/inline-script-resources.html" site (printf "csp-inline-scripts:%t" hugo.IsServer) -}}
+{{- $themeBootInline := index $inlineScripts "theme_boot" | default dict -}}
+{{- $breadcrumbPendingInline := index $inlineScripts "breadcrumb_pending" | default dict -}}
+{{- $breadcrumbSkeletonInline := index $inlineScripts "breadcrumb_skeleton" | default dict -}}
 {{- $runtimeI18nConfig := site.Params.runtime_i18n | default dict -}}
 {{- $runtimeI18nFallbacks := dict -}}
 {{- with index $runtimeI18nConfig "fallbacks" -}}
@@ -103,7 +107,13 @@
     {{- $publishEdgeone := $edgeoneResource.RelPermalink -}}
 {{- end -}}
 <!DOCTYPE html>
-<html lang="{{ .Site.Language.Lang }}">
+<html lang="{{ .Site.Language.Lang }}"
+    {{- if $hasBreadcrumbCapability }}
+    data-entry-lineage-keys='{{ (index $entryLineageField "keys" | default (slice)) | jsonify }}'
+    data-active-sort-keys='{{ (index $activeSortField "keys" | default (slice)) | jsonify }}'
+    data-lineage-sorts-keys='{{ (index $lineageSortsField "keys" | default (slice)) | jsonify }}'
+    data-can-sort-collection-breadcrumb="{{ if and (gt (len $pageCollectionSource) 0) (ne .Kind "page") }}true{{ else }}false{{ end }}"
+    {{- end }}>
 
 <head>
     {{- $faviconSvg := resources.Get "site/favicon.svg" -}}
@@ -149,25 +159,12 @@
     <meta name="wap-font-scale" content="no">
     <link rel="canonical" href="{{ .Permalink }}">
     {{/* 首屏阻塞性状态初始化：同步主题以防闪烁，并恢复 MPA 跨页导航进度条。 */}}
-    <script>(function(){try{var pref=localStorage.getItem('theme-preference');var media=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');var theme=(!pref||pref==='auto')?((media&&media.matches)?'dark':'light'):pref;document.documentElement.setAttribute('data-theme',theme);}catch(e){}})();</script>
+    {{- printf "<script>%s</script>" (index $themeBootInline "content") | safeHTML -}}
     {{/* 若当前页面启用了 breadcrumb 能力，且 URL 带 from=，先进入 entry breadcrumb 预览/补全阶段：
          1) 预览阶段先屏蔽默认 breadcrumb，避免闪出错误路径；
          2) 运行时补全阶段继续隐藏 meta path，待异步修正完成后再显示。 */}}
     {{- if $hasBreadcrumbCapability }}
-    <script>(function(){try{var params=new URLSearchParams(window.location.search);var entryLineageKeys={{ (index $entryLineageField "keys" | default (slice)) | jsonify | safeJS }};var activeSortKeys={{ (index $activeSortField "keys" | default (slice)) | jsonify | safeJS }};var lineageSortsKeys={{ (index $lineageSortsField "keys" | default (slice)) | jsonify | safeJS }};function readFirst(keys){if(!Array.isArray(keys))return'';for(var i=0;i<keys.length;i+=1){var value=params.get(keys[i]);if(typeof value==='string')return value}return''}var from=readFirst(entryLineageKeys);var sort=readFirst(activeSortKeys).trim();var sorts=readFirst(lineageSortsKeys).trim();var segments=typeof from==='string'?from.trim().split('/').filter(Boolean):[];var html=document.documentElement;var canSortCollectionBreadcrumb={{ if and (gt (len $pageCollectionSource) 0) (ne .Kind "page") }}true{{ else }}false{{ end }};if(segments.length>0){html.setAttribute('data-entry-breadcrumb-preview-pending','true');html.setAttribute('data-entry-breadcrumb-runtime-pending','true');html.setAttribute('data-entry-breadcrumb-meta-pending','true');}else if(canSortCollectionBreadcrumb&&(sort!==''||sorts!=='')){html.setAttribute('data-breadcrumb-sort-pending','true');}}catch(e){}})();</script>
-    {{/* 关键首帧遮罩必须内联在 head，而不是等外链 wide CSS 下载后才生效。
-         否则在慢设备/慢 CPU 下，默认 SSR breadcrumb 会先闪出错误路径，然后再被 preview/runtime 修正。 */}}
-    <style>
-    @media (min-width: 88rem) {
-      html[data-entry-breadcrumb-preview-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb,
-      html[data-entry-breadcrumb-preview-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .page-rail-context,
-      html[data-breadcrumb-sort-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb {
-        visibility: visible;
-        opacity: 0;
-        pointer-events: none;
-      }
-    }
-    </style>
+    {{- printf "<script>%s</script>" (index $breadcrumbPendingInline "content") | safeHTML -}}
     {{- end }}
     {{- block "styles" . -}}{{ partial "head-styles.html" (dict "ctx" .) }}{{- end -}}
     {{- block "head-extra" . -}}{{- end -}}
@@ -370,7 +367,7 @@
                   需要在 main 内容被解析前，先把 trail 容器撑成正确列数，
                   否则 main 会先按错误列数占位，再被 preview/runtime 推到右侧，产生抖动。
                   这里只做“列数骨架”预留，不负责渲染真实内容。 */ -}}
-            <script>(function(){try{var e=document.documentElement,t=e.getAttribute("data-entry-breadcrumb-preview-pending")==="true",n=e.getAttribute("data-breadcrumb-sort-pending")==="true";if(!t&&!n)return;if(!(window.matchMedia&&window.matchMedia("(min-width: 88rem)").matches))return;var r=document.body;if(!r)return;var i=document.querySelector(".slot-row-breadcrumb .slot-breadcrumb");if(!i)return;var o=r.dataset.entryBreadcrumbSources||"";if(!o)return;var a=JSON.parse(o);if(!Array.isArray(a)||a.length===0)return;var entryLineageKeys={{ (index $entryLineageField "keys" | default (slice)) | jsonify | safeJS }};var c=new URLSearchParams(window.location.search);function readFirst(keys){if(!Array.isArray(keys))return'';for(var u=0;u<keys.length;u+=1){var s=c.get(keys[u]);if(typeof s==='string')return s}return''}var l=document.querySelector(".page-shell.page-shell--has-breadcrumb-root.page-shell--has-breadcrumb-tail")!==null;function d(c){if(typeof c!=="string")return"";var u;try{u=decodeURIComponent(c.trim())}catch(_){u=c.trim()}var s=u.split("/").filter(Boolean);return s.length===0?"":"/"+s.join("/")+"/"}function f(c){if(!Array.isArray(c)||c.length===0)return 0;for(var u=0,s=0;s<c.length;s+=1){var m=c[s];if(!m||typeof m!=="object")continue;if(l&&(m.redundant_with_root_menu===true||m.redundantWithRootMenu===true))continue;u+=1}return u}function p(c){var u=Array.isArray(c&&c.levels)?c.levels:[];if(u.length>0){return f(u.map(function(s){return s&&typeof s.item==="object"?s.item:null}).filter(Boolean))}var s=Array.isArray(c&&(c.tail_items||c.tailItems))?(c.tail_items||c.tailItems):[];return f(s)}function h(c){var u=d(c);if(!u)return null;var s=a.slice().sort(function(v,b){return d(b&&(b.logical_path||b.logicalPath||"")).length-d(v&&(v.logical_path||v.logicalPath||"")).length});for(var m=0;m<s.length;m+=1){var g=s[m];if(!g||typeof g!=="object")continue;var y=d(g.logical_path||g.logicalPath||"");if(!y||u.indexOf(y)!==0)continue;var w=u.slice(y.length).split("/").filter(Boolean);if(w.length!==1)continue;var k=w[0];if(!k||k==="."||k===".."||/[/?#]/.test(k))return null;return g}return null}function T(c){var u=d(c);if(!u)return null;for(var s=0;s<a.length;s+=1){var m=a[s];if(!m||typeof m!=="object")continue;var g=d(m.logical_path||m.logicalPath||"");if(g===u)return m}return null}var x=0;if(t){var C=h(readFirst(entryLineageKeys)||"");if(C){x=p(C);var P=r.dataset.currentPageTitle||document.title||"",S=window.location.pathname+window.location.search+window.location.hash;if(P&&S)x+=1}}else if(n){var R={};try{R=JSON.parse(r.dataset.pageCollectionSource||"{}")}catch(_){R={}}var H=T(R.logical_path||R.logicalPath||"");if(H){var E=Array.isArray(H.levels)?H.levels:[];x=f(E.map(function(c){return c&&typeof c.item==="object"?c.item:null}).filter(Boolean))}}if(x<=0)return;var q=document.createElement("nav");q.className="breadcrumb-nav";q.setAttribute("aria-hidden","true");for(var j=0;j<x;j+=1){var A=document.createElement("span");A.className="breadcrumb-item-menu";q.appendChild(A)}i.replaceChildren(q)}catch(_){}})();</script>
+            {{- printf "<script>%s</script>" (index $breadcrumbSkeletonInline "content") | safeHTML -}}
             {{- end -}}
             <main id="main" class="slot slot-main" data-slot="main">
                 {{- block "main" . -}}{{- end -}}

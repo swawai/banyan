@@ -148,3 +148,10 @@ a:focus-visible {
     flex: none;
     vertical-align: 0;
 }
+
+.icon-sprite-root {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}

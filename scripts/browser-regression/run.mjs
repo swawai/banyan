@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { createOutputDir, relFromRepo, resolvePrimaryBuildDir, resolveUpgradeBuildPair } from './paths.mjs';
 import { writeReportFiles } from './report.mjs';
 import { createStaticSiteServer } from './server.mjs';
-import { recordLayoutShiftObserverScript, suppressLanguageSuggestDialogScript } from './helpers.mjs';
+import { recordLayoutShiftObserverScript, recordSecurityPolicyViolationScript, suppressLanguageSuggestDialogScript } from './helpers.mjs';
 import { scenarios } from './scenarios.mjs';
 
 function readScenarioFilter() {
@@ -111,6 +111,7 @@ async function runScenario(scenario, runtime) {
 
     const page = await context.newPage();
     await page.addInitScript(recordLayoutShiftObserverScript());
+    await page.addInitScript(recordSecurityPolicyViolationScript());
     await page.addInitScript(suppressLanguageSuggestDialogScript());
 
     const dialogs = [];

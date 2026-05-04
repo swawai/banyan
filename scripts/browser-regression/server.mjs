@@ -15,6 +15,71 @@ const MIME_TYPES = new Map([
     ['.xml', 'application/xml; charset=utf-8']
 ]);
 
+function parseHeadersFile(rootDir) {
+    const headersPath = path.join(rootDir, '_headers');
+    if (!fs.existsSync(headersPath)) {
+        return [];
+    }
+
+    const body = fs.readFileSync(headersPath, 'utf8').replace(/\r\n/g, '\n');
+    const blocks = body.split(/\n{2,}/);
+    const rules = [];
+
+    for (const block of blocks) {
+        const lines = block.split('\n').map((line) => line.trimEnd());
+        const source = (lines[0] || '').trim();
+        if (!source) {
+            continue;
+        }
+
+        const headers = {};
+        for (const line of lines.slice(1)) {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                continue;
+            }
+            const separatorIndex = trimmed.indexOf(':');
+            if (separatorIndex <= 0) {
+                continue;
+            }
+            const key = trimmed.slice(0, separatorIndex).trim();
+            const value = trimmed.slice(separatorIndex + 1).trim();
+            if (key && value) {
+                headers[key] = value;
+            }
+        }
+
+        rules.push({ source, headers });
+    }
+
+    return rules;
+}
+
+function pathMatchesRule(pathname, source) {
+    if (!source) {
+        return false;
+    }
+    if (source === pathname) {
+        return true;
+    }
+    if (source.endsWith('/*')) {
+        const prefix = source.slice(0, -1);
+        return pathname.startsWith(prefix);
+    }
+    return false;
+}
+
+function resolveRouteHeaders(pathname, rules) {
+    const resolved = {};
+    for (const rule of rules) {
+        if (!pathMatchesRule(pathname, rule.source)) {
+            continue;
+        }
+        Object.assign(resolved, rule.headers);
+    }
+    return resolved;
+}
+
 function normalizeRequestPath(urlPathname) {
     let pathname = decodeURIComponent(urlPathname || '/');
     if (!pathname.startsWith('/')) pathname = `/${pathname}`;
@@ -67,9 +132,11 @@ export async function createStaticSiteServer(options = {}) {
 
     let server = null;
     let port = null;
+    let routeHeaders = parseHeadersFile(rootDir);
 
     function setRoot(nextRootDir) {
         rootDir = nextRootDir;
+        routeHeaders = parseHeadersFile(rootDir);
     }
 
     function getBaseUrl() {
@@ -93,9 +160,11 @@ export async function createStaticSiteServer(options = {}) {
 
             try {
                 const body = fs.readFileSync(filePath);
+                const routeHeaderValues = resolveRouteHeaders(url.pathname, routeHeaders);
                 res.writeHead(200, {
                     'Cache-Control': getCacheControl(filePath),
-                    'Content-Type': getContentType(filePath)
+                    'Content-Type': getContentType(filePath),
+                    ...routeHeaderValues
                 });
                 res.end(body);
             } catch (error) {

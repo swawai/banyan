@@ -11,6 +11,7 @@ import {
     markFirstUsableUpdateAnchor,
     pollUntil,
     readFragmentRoot,
+    readSecurityPolicyViolations,
     waitForBreadcrumbSettled,
     waitForServiceWorkerActive,
     waitForUpdateReady
@@ -183,9 +184,112 @@ function createDesignAuditScenario(pageConfig, viewportConfig) {
     };
 }
 
+function readCspReportOnlyHeader(response) {
+    if (!response) {
+        return '';
+    }
+    const headers = response.headers();
+    return headers['content-security-policy-report-only'] || '';
+}
+
+function filterCspConsoleMessages(entries) {
+    return entries.filter((entry) => {
+        const text = `${entry.text || ''}`.toLowerCase();
+        return text.includes('content security policy') || text.includes('csp');
+    });
+}
+
+function createConsoleRecorder(page, entries) {
+    page.on('console', (message) => {
+        entries.push({
+            text: message.text(),
+            type: message.type()
+        });
+    });
+}
+
+function assertReportOnlyPolicy(headerValue, details = {}) {
+    if (!headerValue) {
+        fail('Response did not include Content-Security-Policy-Report-Only.', details);
+    }
+    if (!headerValue.includes("script-src 'self' 'report-sample'")) {
+        fail('Report-only policy is missing the expected script-src baseline.', {
+            ...details,
+            headerValue
+        });
+    }
+}
+
+async function collectSecurityOutcome(page, response, consoleEntries, extraDetails = {}) {
+    const cspReportOnly = readCspReportOnlyHeader(response);
+    assertReportOnlyPolicy(cspReportOnly, extraDetails);
+
+    await page.waitForTimeout(250);
+    const violations = await readSecurityPolicyViolations(page);
+    const cspConsoleMessages = filterCspConsoleMessages(consoleEntries);
+    if (violations.length > 0) {
+        fail('Page triggered SecurityPolicyViolationEvent entries under report-only CSP.', {
+            ...extraDetails,
+            cspReportOnly,
+            violations
+        });
+    }
+    if (cspConsoleMessages.length > 0) {
+        fail('Page emitted CSP-related console messages under report-only CSP.', {
+            ...extraDetails,
+            consoleMessages: cspConsoleMessages,
+            cspReportOnly
+        });
+    }
+
+    return {
+        consoleMessageCount: consoleEntries.length,
+        cspConsoleMessages,
+        cspReportOnly,
+        violations
+    };
+}
+
 export const designAuditScenarios = DESIGN_AUDIT_PAGES.flatMap((pageConfig) => (
     DESIGN_AUDIT_VIEWPORTS.map((viewportConfig) => createDesignAuditScenario(pageConfig, viewportConfig))
 ));
+
+export const securityScenarios = [
+    {
+        id: 'security-csp-report-only-home',
+        kind: 'single',
+        title: 'Security: CSP Report-Only Home',
+        viewport: { width: 1440, height: 960 },
+        async run({ page, baseUrl }) {
+            const consoleEntries = [];
+            createConsoleRecorder(page, consoleEntries);
+            const response = await gotoAndWait(page, `${baseUrl}/`);
+            await page.waitForSelector('.slot-main');
+
+            return collectSecurityOutcome(page, response, consoleEntries, {
+                path: '/'
+            });
+        }
+    },
+    {
+        id: 'security-csp-report-only-breadcrumb-wide',
+        kind: 'single',
+        title: 'Security: CSP Report-Only Breadcrumb Wide',
+        viewport: WIDE_VIEWPORT,
+        async run({ page, baseUrl }) {
+            const consoleEntries = [];
+            createConsoleRecorder(page, consoleEntries);
+            const url = `${baseUrl}/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc`;
+            const response = await gotoAndWait(page, url);
+            await page.waitForSelector('.slot-row-breadcrumb');
+            await waitForBreadcrumbSettled(page);
+
+            return collectSecurityOutcome(page, response, consoleEntries, {
+                path: '/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc'
+            });
+        }
+    }
+];
 
 export const scenarios = [
     {

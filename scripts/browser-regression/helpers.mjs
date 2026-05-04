@@ -45,9 +45,29 @@ export function recordLayoutShiftObserverScript() {
     };
 }
 
+export function recordSecurityPolicyViolationScript() {
+    return () => {
+        window.__banyanSecurityPolicyViolations = [];
+        document.addEventListener('securitypolicyviolation', (event) => {
+            try {
+                window.__banyanSecurityPolicyViolations.push({
+                    blockedURI: event.blockedURI || '',
+                    disposition: event.disposition || '',
+                    effectiveDirective: event.effectiveDirective || '',
+                    originalPolicy: event.originalPolicy || '',
+                    sample: event.sample || '',
+                    sourceFile: event.sourceFile || '',
+                    statusCode: Number(event.statusCode || 0)
+                });
+            } catch (error) { }
+        });
+    };
+}
+
 export async function gotoAndWait(page, url) {
-    await page.goto(url, { waitUntil: 'load' });
+    const response = await page.goto(url, { waitUntil: 'load' });
     await page.waitForLoadState('networkidle').catch(() => { });
+    return response;
 }
 
 export async function waitForBreadcrumbSettled(page, timeoutMs = 8000) {
@@ -71,6 +91,13 @@ export async function getMainInlineStart(page) {
 
 export async function readFragmentRoot(page) {
     return page.evaluate(() => document.body?.dataset.fragmentRoot || '');
+}
+
+export async function readSecurityPolicyViolations(page) {
+    return page.evaluate(() => {
+        const violations = window.__banyanSecurityPolicyViolations;
+        return Array.isArray(violations) ? violations.slice() : [];
+    });
 }
 
 export async function waitForServiceWorkerActive(page, timeoutMs = 10000) {
