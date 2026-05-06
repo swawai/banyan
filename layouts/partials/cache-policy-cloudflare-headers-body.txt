@@ -1,6 +1,9 @@
 {{- $routes := .routes | default slice -}}
 {{- $lines := slice -}}
 
+{{- $lines = $lines | append "# GENERATED FILE: do not edit public/_headers by hand; update themes/banyan/data/cache-policy-default.toml or the build post-processing scripts instead." -}}
+{{- $lines = $lines | append "" -}}
+
 {{- range $route := $routes -}}
     {{- $path := printf "%v" (index $route "path" | default "") -}}
     {{- if not $path -}}

@@ -9,22 +9,13 @@
 {{- if or (eq $rawValue "") (eq $rawValue "off") (eq $rawValue "<nil>") -}}
   {{- $result = dict "kind" "" "transport" "" "global_gate" false "value" $rawValue -}}
 {{- else -}}
-  {{- $match := findRE "^([a-z]+)_([smx])([fr])$" $raw -}}
+  {{- $match := findRE "^(link|sw)_([smx])f$" $raw -}}
   {{- if gt (len $match) 0 -}}
     {{- $parts := split $raw "_" -}}
     {{- if eq (len $parts) 2 -}}
-      {{- $transportCode := index $parts 0 -}}
+      {{- $transport := index $parts 0 -}}
       {{- $modeCode := index $parts 1 -}}
-      {{- $transport := "" -}}
-      {{- if eq $transportCode "spec" -}}
-        {{- $transport = "speculationrules" -}}
-      {{- else if eq $transportCode "link" -}}
-        {{- $transport = "link" -}}
-      {{- else if eq $transportCode "sw" -}}
-        {{- $transport = "sw" -}}
-      {{- end -}}
       {{- $eagernessCode := substr $modeCode 0 1 -}}
-      {{- $kindCode := substr $modeCode 1 1 -}}
       {{- $eagerness := "" -}}
       {{- if eq $eagernessCode "s" -}}
         {{- $eagerness = "conservative" -}}
@@ -33,9 +24,8 @@
       {{- else if eq $eagernessCode "x" -}}
         {{- $eagerness = "eager" -}}
       {{- end -}}
-      {{- $kind := cond (eq $kindCode "r") "prerender" "prefetch" -}}
-      {{- if and $transport $eagerness (not (and (in (slice "link" "sw") $transport) (eq $kind "prerender"))) -}}
-        {{- $result = dict "kind" $kind "eagerness" $eagerness "transport" $transport "global_gate" $globalGate "value" $rawValue -}}
+      {{- if and $transport $eagerness -}}
+        {{- $result = dict "kind" "prefetch" "eagerness" $eagerness "transport" $transport "global_gate" $globalGate "value" $rawValue -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}

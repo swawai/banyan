@@ -52,7 +52,13 @@ their semantics, and the recommended fragment naming rules.
 The current CSP and browser-security regression path is documented in:
 
 - [`docs/security-csp.md`](docs/security-csp.md)
+- [`docs/security-csp-enforce-checklist.md`](docs/security-csp-enforce-checklist.md)
 - [`docs/browser-regression.md`](docs/browser-regression.md)
+- [`docs/browser-workflows.md`](docs/browser-workflows.md)
+
+The current dual-stack prefetch model is documented in:
+
+- [`docs/prefetch-stacks.md`](docs/prefetch-stacks.md)
 
 ## Taxonomies
 

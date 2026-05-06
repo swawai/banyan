@@ -6,6 +6,9 @@ export const repoRoot = path.resolve(fileURLToPath(new URL('../../../../', impor
 export const publicDir = path.join(repoRoot, 'public');
 export const tempPublicRoot = path.join(repoRoot, 'temp_workspace', 'public');
 export const regressionRoot = path.join(repoRoot, 'temp_workspace', 'regression');
+const explicitPrimaryBuildEnv = 'BANYAN_BROWSER_BUILD_DIR';
+const explicitUpgradeFromEnv = 'BANYAN_BROWSER_UPGRADE_FROM_DIR';
+const explicitUpgradeToEnv = 'BANYAN_BROWSER_UPGRADE_TO_DIR';
 
 function hasIndexHtml(dirPath) {
     return fs.existsSync(path.join(dirPath, 'index.html'));
@@ -32,30 +35,113 @@ export function relFromRepo(absPath) {
     return path.relative(repoRoot, absPath).replace(/\\/g, '/');
 }
 
-export function resolvePrimaryBuildDir() {
-    const latestTempBuild = sortByMtimeDesc(
-        listDirectories(tempPublicRoot).filter(hasIndexHtml)
-    )[0];
-    if (latestTempBuild) {
-        return latestTempBuild;
+function toAbsoluteBuildDir(rawPath) {
+    if (!rawPath || typeof rawPath !== 'string') return '';
+    return path.isAbsolute(rawPath)
+        ? path.normalize(rawPath)
+        : path.resolve(repoRoot, rawPath);
+}
+
+function buildCandidate(dirPath, kind) {
+    return {
+        dirPath,
+        kind,
+        mtimeMs: fs.statSync(dirPath).mtimeMs
+    };
+}
+
+function listTempBuildCandidates() {
+    return listDirectories(tempPublicRoot)
+        .filter(hasIndexHtml)
+        .map((dirPath) => buildCandidate(dirPath, 'temp'));
+}
+
+function describeBuildSelection(selection) {
+    if (!selection) return '';
+    const relPath = relFromRepo(selection.dirPath);
+    const kindLabel = selection.kind === 'public' ? 'root public/' : 'temp build';
+    return `${kindLabel}: ${relPath} (${selection.reason})`;
+}
+
+export function resolvePrimaryBuild() {
+    const explicitDir = toAbsoluteBuildDir(process.env[explicitPrimaryBuildEnv] || '');
+    if (explicitDir) {
+        if (!hasIndexHtml(explicitDir)) {
+            throw new Error(`Explicit browser-regression build dir ${JSON.stringify(process.env[explicitPrimaryBuildEnv])} did not contain index.html.`);
+        }
+        return {
+            dirPath: explicitDir,
+            kind: explicitDir === publicDir ? 'public' : 'explicit',
+            reason: `${explicitPrimaryBuildEnv} override`
+        };
     }
 
+    const candidates = listTempBuildCandidates();
     if (hasIndexHtml(publicDir)) {
-        return publicDir;
+        candidates.push(buildCandidate(publicDir, 'public'));
+    }
+
+    const latest = candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+    if (latest) {
+        return {
+            dirPath: latest.dirPath,
+            kind: latest.kind,
+            reason: latest.kind === 'public'
+                ? 'newest available build'
+                : 'newest available temp build'
+        };
     }
 
     throw new Error('No browser-regression build root found. Expected public/index.html or a temp_workspace/public/<build>/index.html.');
 }
 
+export function resolvePrimaryBuildDir() {
+    return resolvePrimaryBuild().dirPath;
+}
+
+export function resolveLatestTempBuild() {
+    const latest = listTempBuildCandidates()
+        .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+    if (!latest) {
+        throw new Error('No temp browser-regression build root found. Expected temp_workspace/public/<build>/index.html.');
+    }
+    return {
+        dirPath: latest.dirPath,
+        kind: latest.kind,
+        reason: 'latest temp build'
+    };
+}
+
 export function resolveUpgradeBuildPair() {
-    const buildDirs = sortByMtimeDesc(
-        listDirectories(tempPublicRoot).filter(hasIndexHtml)
-    );
+    const explicitFromDir = toAbsoluteBuildDir(process.env[explicitUpgradeFromEnv] || '');
+    const explicitToDir = toAbsoluteBuildDir(process.env[explicitUpgradeToEnv] || '');
+
+    if (explicitFromDir || explicitToDir) {
+        if (!explicitFromDir || !explicitToDir) {
+            throw new Error(`Explicit upgrade selection requires both ${explicitUpgradeFromEnv} and ${explicitUpgradeToEnv}.`);
+        }
+        if (!hasIndexHtml(explicitFromDir) || !hasIndexHtml(explicitToDir)) {
+            throw new Error('Explicit upgrade build dirs must both contain index.html.');
+        }
+        return {
+            fromDir: explicitFromDir,
+            fromKind: explicitFromDir === publicDir ? 'public' : 'explicit',
+            toDir: explicitToDir,
+            toKind: explicitToDir === publicDir ? 'public' : 'explicit',
+            reason: `${explicitUpgradeFromEnv}/${explicitUpgradeToEnv} override`
+        };
+    }
+
+    const buildDirs = listTempBuildCandidates()
+        .sort((a, b) => b.mtimeMs - a.mtimeMs);
     if (buildDirs.length < 2) return null;
 
     return {
-        fromDir: buildDirs[1],
-        toDir: buildDirs[0]
+        fromDir: buildDirs[1].dirPath,
+        fromKind: buildDirs[1].kind,
+        toDir: buildDirs[0].dirPath,
+        toKind: buildDirs[0].kind,
+        reason: 'latest two temp builds'
     };
 }
 
@@ -79,3 +165,10 @@ export function createOutputDir(modeName) {
     fs.mkdirSync(dirPath, { recursive: true });
     return dirPath;
 }
+
+export {
+    describeBuildSelection,
+    explicitPrimaryBuildEnv,
+    explicitUpgradeFromEnv,
+    explicitUpgradeToEnv
+};

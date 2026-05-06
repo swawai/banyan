@@ -629,3 +629,5 @@ export const scenarios = [
         }
     }
 ];
+
+export const upgradeScenarios = scenarios.filter((scenario) => scenario.kind === 'upgrade');

@@ -1,0 +1,14 @@
+{{- $rawValue := lower (printf "%v" . | replaceRE "^\\s+|\\s+$" "") -}}
+{{- $result := dict "kind" "invalid" "eagerness" "invalid" "value" $rawValue -}}
+{{- if or (eq $rawValue "") (eq $rawValue "off") (eq $rawValue "<nil>") -}}
+  {{- $result = dict "kind" "" "eagerness" "" "value" $rawValue -}}
+{{- else -}}
+  {{- $match := findRE "^(prefetch|prerender)_(conservative|moderate|eager)$" $rawValue -}}
+  {{- if gt (len $match) 0 -}}
+    {{- $parts := split $rawValue "_" -}}
+    {{- if eq (len $parts) 2 -}}
+      {{- $result = dict "kind" (index $parts 0) "eagerness" (index $parts 1) "value" $rawValue -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $result -}}

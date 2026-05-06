@@ -10,13 +10,15 @@
     }
     if (!actionsByEnv || typeof actionsByEnv !== 'object') return;
 
-    function supportsSpeculationRules() {
+    function readRuntimeMeta() {
+        const metaNode = document.getElementById('site-prefetch-runtime-meta');
+        if (!metaNode) return null;
+
         try {
-            return typeof HTMLScriptElement !== 'undefined'
-                && typeof HTMLScriptElement.supports === 'function'
-                && HTMLScriptElement.supports('speculationrules');
+            const parsed = JSON.parse(metaNode.textContent || '{}');
+            return parsed && typeof parsed === 'object' ? parsed : null;
         } catch (error) {
-            return false;
+            return null;
         }
     }
 
@@ -33,9 +35,18 @@
         return 'serviceWorker' in navigator;
     }
 
+    function supportsSpeculationRules() {
+        try {
+            return typeof HTMLScriptElement !== 'undefined'
+                && typeof HTMLScriptElement.supports === 'function'
+                && HTMLScriptElement.supports('speculationrules');
+        } catch (error) {
+            return false;
+        }
+    }
+
     function getBrowserEnvSequence() {
         return [
-            supportsSpeculationRules() ? 'T' : 'F',
             supportsLinkPrefetch() ? 'T' : 'F',
             supportsServiceWorkerApi() ? 'T' : 'F'
         ].join('');
@@ -54,35 +65,59 @@
     const actions = pickActions();
     if (!actions || typeof actions !== 'object') return;
 
-    {{ if .has_global_gate }}
-    {{ if .has_spec_module }}
-    function mergeSpeculationRulesPayloads(primary, secondary) {
-        const merged = {};
-        const prefetch = [];
-        const prerender = [];
-
-        if (primary && Array.isArray(primary.prefetch)) {
-            prefetch.push(...primary.prefetch);
+    function normalizeNavigationUrl(rawUrl) {
+        try {
+            const url = new URL(rawUrl, window.location.href);
+            url.hash = '';
+            return url.toString();
+        } catch (error) {
+            return '';
         }
-        if (secondary && Array.isArray(secondary.prefetch)) {
-            prefetch.push(...secondary.prefetch);
-        }
-        if (primary && Array.isArray(primary.prerender)) {
-            prerender.push(...primary.prerender);
-        }
-        if (secondary && Array.isArray(secondary.prerender)) {
-            prerender.push(...secondary.prerender);
-        }
-        if (prefetch.length > 0) {
-            merged.prefetch = prefetch;
-        }
-        if (prerender.length > 0) {
-            merged.prerender = prerender;
-        }
-        return Object.keys(merged).length > 0 ? merged : null;
     }
-    {{ end }}
 
+    function buildSpecOwnedUrlSet(runtimeMeta) {
+        if (!runtimeMeta || typeof runtimeMeta !== 'object') return null;
+        if (runtimeMeta.coordination_mode !== 'preempt_runtime_when_supported') return null;
+        if (!supportsSpeculationRules()) return null;
+
+        const ownedUrls = Array.isArray(runtimeMeta.owned_urls) ? runtimeMeta.owned_urls : [];
+        if (!ownedUrls.length) return null;
+
+        const ownedSet = new Set();
+        for (const rawUrl of ownedUrls) {
+            const href = normalizeNavigationUrl(rawUrl);
+            if (href) {
+                ownedSet.add(href);
+            }
+        }
+        return ownedSet.size > 0 ? ownedSet : null;
+    }
+
+    function filterActionsByOwnedUrls(sourceActions, ownedUrlSet) {
+        if (!ownedUrlSet || !(sourceActions && typeof sourceActions === 'object')) {
+            return sourceActions;
+        }
+
+        const filtered = {};
+        for (const [key, value] of Object.entries(sourceActions)) {
+            if (!Array.isArray(value)) continue;
+            const urls = value.filter((rawUrl) => {
+                const href = normalizeNavigationUrl(rawUrl);
+                return !href || !ownedUrlSet.has(href);
+            });
+            if (urls.length > 0) {
+                filtered[key] = urls;
+            }
+        }
+        return filtered;
+    }
+
+    const runtimeMeta = readRuntimeMeta();
+    const specOwnedUrlSet = buildSpecOwnedUrlSet(runtimeMeta);
+    const filteredActions = filterActionsByOwnedUrls(actions, specOwnedUrlSet);
+    if (!filteredActions || Object.keys(filteredActions).length === 0) return;
+
+    {{ if .has_global_gate }}
     function canUseGlobalPrefetchGate() {
         try {
             const storage = window.sessionStorage;
@@ -128,88 +163,56 @@
     }
     {{ end }}
 
-    {{ if .has_spec_module }}
-      {{ if .has_global_gate }}
-    const normalSpeculationRulesPayload = actions.sp && typeof actions.sp === 'object'
-        ? actions.sp
-        : null;
-    const gatedSpeculationRulesPayload = consumeGlobalGateValue(
-        'sg',
-        actions.sg && typeof actions.sg === 'object' ? actions.sg : null
-    );
-    const speculationRulesPayload = mergeSpeculationRulesPayloads(
-        normalSpeculationRulesPayload,
-        gatedSpeculationRulesPayload
-    );
-      {{ else }}
-    const speculationRulesPayload = actions.sp && typeof actions.sp === 'object'
-        ? actions.sp
-        : null;
-      {{ end }}
-    {{ else }}
-    const speculationRulesPayload = null;
-    {{ end }}
     {{ if .has_link_module }}
-    const linkStaticUrls = {{ if .has_global_gate }}(Array.isArray(actions.lx) ? actions.lx : []).concat(
-        consumeGlobalGateValue('lxg', Array.isArray(actions.lxg) ? actions.lxg : [])
-    ){{ else }}Array.isArray(actions.lx) ? actions.lx : []{{ end }};
+    const linkStaticUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.lx) ? filteredActions.lx : []).concat(
+        consumeGlobalGateValue('lxg', Array.isArray(filteredActions.lxg) ? filteredActions.lxg : [])
+    ){{ else }}Array.isArray(filteredActions.lx) ? filteredActions.lx : []{{ end }};
     {{ else }}
     const linkStaticUrls = [];
     {{ end }}
     {{ if and .has_link_module .has_conservative_module }}
-    const linkConservativeUrls = {{ if .has_global_gate }}(Array.isArray(actions.ls) ? actions.ls : []).concat(
-        consumeGlobalGateValue('lsg', Array.isArray(actions.lsg) ? actions.lsg : [])
-    ){{ else }}Array.isArray(actions.ls) ? actions.ls : []{{ end }};
+    const linkConservativeUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.ls) ? filteredActions.ls : []).concat(
+        consumeGlobalGateValue('lsg', Array.isArray(filteredActions.lsg) ? filteredActions.lsg : [])
+    ){{ else }}Array.isArray(filteredActions.ls) ? filteredActions.ls : []{{ end }};
     {{ else }}
     const linkConservativeUrls = [];
     {{ end }}
     {{ if and .has_link_module .has_moderate_module }}
-    const linkModerateUrls = {{ if .has_global_gate }}(Array.isArray(actions.lm) ? actions.lm : []).concat(
-        consumeGlobalGateValue('lmg', Array.isArray(actions.lmg) ? actions.lmg : [])
-    ){{ else }}Array.isArray(actions.lm) ? actions.lm : []{{ end }};
+    const linkModerateUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.lm) ? filteredActions.lm : []).concat(
+        consumeGlobalGateValue('lmg', Array.isArray(filteredActions.lmg) ? filteredActions.lmg : [])
+    ){{ else }}Array.isArray(filteredActions.lm) ? filteredActions.lm : []{{ end }};
     {{ else }}
     const linkModerateUrls = [];
     {{ end }}
     {{ if .has_sw_module }}
-    const swStaticUrls = {{ if .has_global_gate }}(Array.isArray(actions.wx) ? actions.wx : []).concat(
-        consumeGlobalGateValue('wxg', Array.isArray(actions.wxg) ? actions.wxg : [])
-    ){{ else }}Array.isArray(actions.wx) ? actions.wx : []{{ end }};
+    const swStaticUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.wx) ? filteredActions.wx : []).concat(
+        consumeGlobalGateValue('wxg', Array.isArray(filteredActions.wxg) ? filteredActions.wxg : [])
+    ){{ else }}Array.isArray(filteredActions.wx) ? filteredActions.wx : []{{ end }};
     {{ else }}
     const swStaticUrls = [];
     {{ end }}
     {{ if and .has_sw_module .has_conservative_module }}
-    const swConservativeUrls = {{ if .has_global_gate }}(Array.isArray(actions.ws) ? actions.ws : []).concat(
-        consumeGlobalGateValue('wsg', Array.isArray(actions.wsg) ? actions.wsg : [])
-    ){{ else }}Array.isArray(actions.ws) ? actions.ws : []{{ end }};
+    const swConservativeUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.ws) ? filteredActions.ws : []).concat(
+        consumeGlobalGateValue('wsg', Array.isArray(filteredActions.wsg) ? filteredActions.wsg : [])
+    ){{ else }}Array.isArray(filteredActions.ws) ? filteredActions.ws : []{{ end }};
     {{ else }}
     const swConservativeUrls = [];
     {{ end }}
     {{ if and .has_sw_module .has_moderate_module }}
-    const swModerateUrls = {{ if .has_global_gate }}(Array.isArray(actions.wm) ? actions.wm : []).concat(
-        consumeGlobalGateValue('wmg', Array.isArray(actions.wmg) ? actions.wmg : [])
-    ){{ else }}Array.isArray(actions.wm) ? actions.wm : []{{ end }};
+    const swModerateUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.wm) ? filteredActions.wm : []).concat(
+        consumeGlobalGateValue('wmg', Array.isArray(filteredActions.wmg) ? filteredActions.wmg : [])
+    ){{ else }}Array.isArray(filteredActions.wm) ? filteredActions.wm : []{{ end }};
     {{ else }}
     const swModerateUrls = [];
     {{ end }}
 
-    const hasSpec = {{ if .has_spec_module }}!!(speculationRulesPayload && Object.keys(speculationRulesPayload).length){{ else }}false{{ end }};
     const hasLinkInteraction = {{ if and .has_link_module .has_interaction_module }}linkConservativeUrls.length > 0 || linkModerateUrls.length > 0{{ else }}false{{ end }};
     const hasSwInteraction = {{ if and .has_sw_module .has_interaction_module }}swConservativeUrls.length > 0 || swModerateUrls.length > 0{{ else }}false{{ end }};
     const hasLink = {{ if .has_link_module }}linkStaticUrls.length > 0 || hasLinkInteraction{{ else }}false{{ end }};
     const hasSw = {{ if .has_sw_module }}swStaticUrls.length > 0 || hasSwInteraction{{ else }}false{{ end }};
-    if (!hasSpec && !hasLink && !hasSw) return;
+    if (!hasLink && !hasSw) return;
 
     {{ if or .has_link_module .has_sw_module }}
-    function normalizeNavigationUrl(rawUrl) {
-        try {
-            const url = new URL(rawUrl, window.location.href);
-            url.hash = '';
-            return url.toString();
-        } catch (error) {
-            return '';
-        }
-    }
-
     const warmedNavigationUrls = new Set();
     {{ end }}
 
@@ -254,16 +257,6 @@
         } catch (error) {
             queuedUrls.forEach((href) => warmedNavigationUrls.delete(href));
         }
-    }
-    {{ end }}
-
-    {{ if .has_spec_module }}
-    if (hasSpec) {
-        const speculationRulesScript = document.createElement('script');
-        speculationRulesScript.type = 'speculationrules';
-        speculationRulesScript.setAttribute('data-prefetch-generated', 'runtime');
-        speculationRulesScript.textContent = JSON.stringify(speculationRulesPayload);
-        document.head.appendChild(speculationRulesScript);
     }
     {{ end }}
 

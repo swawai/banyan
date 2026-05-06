@@ -1,0 +1,76 @@
+{{- $ctx := .ctx | default . -}}
+{{- $mode := lower (printf "%v" (.mode | default "off")) -}}
+{{- $runtimeCoordination := lower (printf "%v" (.runtime_coordination | default "independent")) -}}
+{{- $speculationConfig := .speculation_config | default (site.Params.speculation_rules | default dict) -}}
+{{- $speculationLabels := .speculation_labels | default (slice "menu" "nav" "sort_siblings" "descendants" "post") -}}
+{{- $candidates := $ctx.Scratch.Get "linkCandidates" | default (dict "menu" (slice) "nav" (slice) "sort" (slice) "desc" (slice) "post" (slice)) -}}
+{{- $ctx.Scratch.Delete "speculation_runtime_meta" -}}
+{{- if eq $mode "header" -}}
+  {{- $payload := partial "speculation-rules-actions.html" (dict
+    "speculation_config" $speculationConfig
+    "speculation_labels" $speculationLabels
+    "candidates" $candidates
+    "current" $ctx.RelPermalink
+  ) -}}
+  {{- if gt (len $payload) 0 -}}
+    {{- $runtimeEnvConfigMap := .runtime_env_config_map | default dict -}}
+    {{- $runtimeSwMode := .runtime_sw_mode | default "off" -}}
+    {{- $specUrlSet := dict -}}
+    {{- $specOwnedUrls := slice -}}
+    {{- range $kind := (slice "prefetch" "prerender") -}}
+      {{- range $entry := (index $payload $kind | default slice) -}}
+        {{- range $url := (index $entry "urls" | default slice) -}}
+          {{- if not (isset $specUrlSet $url) -}}
+            {{- $specUrlSet = merge $specUrlSet (dict $url true) -}}
+            {{- $specOwnedUrls = $specOwnedUrls | append $url -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $ctx.Scratch.Set "speculation_runtime_meta" (dict
+      "coordination_mode" $runtimeCoordination
+      "owned_urls" $specOwnedUrls
+    ) -}}
+    {{- $overlapWarnings := slice -}}
+    {{- if and (eq $runtimeCoordination "independent") (gt (len $specUrlSet) 0) -}}
+      {{- $envKeys := slice "TT" "TF" "FT" "FF" -}}
+      {{- $runtimeKeys := slice "ls" "lm" "lx" "lsg" "lmg" "lxg" "ws" "wm" "wx" "wsg" "wmg" "wxg" -}}
+      {{- range $envKey := $envKeys -}}
+        {{- $envConfig := index $runtimeEnvConfigMap $envKey | default dict -}}
+        {{- $runtimeActions := partial "prefetch-runtime-actions.html" (dict
+          "env_config" $envConfig
+          "candidates" $candidates
+          "current" $ctx.RelPermalink
+          "env_key" $envKey
+          "sw_mode" $runtimeSwMode
+        ) -}}
+        {{- $seenRuntimeUrls := dict -}}
+        {{- $overlapUrls := slice -}}
+        {{- range $runtimeKey := $runtimeKeys -}}
+          {{- range $url := (index $runtimeActions $runtimeKey | default slice) -}}
+            {{- if not (isset $seenRuntimeUrls $url) -}}
+              {{- $seenRuntimeUrls = merge $seenRuntimeUrls (dict $url true) -}}
+              {{- if isset $specUrlSet $url -}}
+                {{- $overlapUrls = $overlapUrls | append $url -}}
+              {{- end -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+        {{- if gt (len $overlapUrls) 0 -}}
+          {{- $overlapWarnings = $overlapWarnings | append (printf "%s=[%s]" $envKey (delimit $overlapUrls ", ")) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $route := printf "%v" $ctx.RelPermalink -}}
+    {{- $manifestKey := md5 $route -}}
+    {{- $manifestPayload := dict
+      "route" $route
+      "rules" $payload
+      "overlap_warnings" $overlapWarnings
+    -}}
+    {{- $manifestBody := $manifestPayload | jsonify (dict "indent" "  ") -}}
+    {{- $manifestResource := resources.FromString (printf "__speculation-rules-manifests/%s.json" $manifestKey) $manifestBody -}}
+    {{- $publishManifest := $manifestResource.RelPermalink -}}
+    {{- $noop := $publishManifest -}}
+  {{- end -}}
+{{- end -}}

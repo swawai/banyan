@@ -1,13 +1,14 @@
 {{- $ctx := .ctx | default . -}}
 {{- $swMode := .sw_mode | default "off" -}}
-{{- $prefetchConfig := site.Params.link_prefetch | default dict -}}
-{{- $envConfigMap := .env_config_map | default (partial "prefetch-env-config-map.html" (dict "prefetch_config" $prefetchConfig)) -}}
+{{- $speculationRuntimeCoordination := lower (printf "%v" (.speculation_runtime_coordination | default "independent")) -}}
+{{- $prefetchConfig := site.Params.prefetch_runtime | default dict -}}
+{{- $envConfigMap := .env_config_map | default (partial "prefetch-runtime-env-config-map.html" (dict "prefetch_config" $prefetchConfig)) -}}
 {{- $candidates := $ctx.Scratch.Get "linkCandidates" | default (dict "menu" (slice) "nav" (slice) "sort" (slice) "desc" (slice) "post" (slice)) -}}
-{{- $envKeys := slice "TTT" "TTF" "TFT" "TFF" "FTT" "FTF" "FFT" "FFF" -}}
+{{- $speculationRuntimeMeta := $ctx.Scratch.Get "speculation_runtime_meta" | default dict -}}
+{{- $envKeys := slice "TT" "TF" "FT" "FF" -}}
 {{- $actionsPayloadByEnv := dict -}}
 {{- $canonicalEnvByFingerprint := dict -}}
 {{- $hasGlobalGate := false -}}
-{{- $hasSpecModule := false -}}
 {{- $hasLinkModule := false -}}
 {{- $hasInteractionModule := false -}}
 {{- $hasConservativeModule := false -}}
@@ -16,7 +17,7 @@
 
 {{- range $envKey := $envKeys -}}
   {{- $envConfig := index $envConfigMap $envKey | default dict -}}
-  {{- $actions := partial "prefetch-env-actions.html" (dict
+  {{- $actions := partial "prefetch-runtime-actions.html" (dict
     "env_config" $envConfig
     "candidates" $candidates
     "current" $ctx.RelPermalink
@@ -32,8 +33,7 @@
       {{- $actionsPayloadByEnv = merge $actionsPayloadByEnv (dict $envKey $actions) -}}
       {{- $canonicalEnvByFingerprint = merge $canonicalEnvByFingerprint (dict $actionsFingerprint $envKey) -}}
     {{- end -}}
-    {{- $hasGlobalGate = or $hasGlobalGate (isset $actions "sg") (isset $actions "lsg") (isset $actions "lmg") (isset $actions "lxg") (isset $actions "wsg") (isset $actions "wmg") (isset $actions "wxg") -}}
-    {{- $hasSpecModule = or $hasSpecModule (isset $actions "sp") (isset $actions "sg") -}}
+    {{- $hasGlobalGate = or $hasGlobalGate (isset $actions "lsg") (isset $actions "lmg") (isset $actions "lxg") (isset $actions "wsg") (isset $actions "wmg") (isset $actions "wxg") -}}
     {{- $hasLinkModule = or $hasLinkModule (isset $actions "ls") (isset $actions "lm") (isset $actions "lx") (isset $actions "lsg") (isset $actions "lmg") (isset $actions "lxg") -}}
     {{- $hasInteractionModule = or $hasInteractionModule (isset $actions "ls") (isset $actions "lm") (isset $actions "lsg") (isset $actions "lmg") (isset $actions "ws") (isset $actions "wm") (isset $actions "wsg") (isset $actions "wmg") -}}
     {{- $hasConservativeModule = or $hasConservativeModule (isset $actions "ls") (isset $actions "lsg") (isset $actions "ws") (isset $actions "wsg") -}}
@@ -47,7 +47,6 @@
   {{- $runtimeTemplate := resources.Get $runtimeTemplatePath -}}
   {{- if not $runtimeTemplate }}{{ errorf "Build failed: missing resource %q." $runtimeTemplatePath }}{{ end -}}
   {{- $featureLetters := slice -}}
-  {{- if $hasSpecModule }}{{- $featureLetters = $featureLetters | append "s" -}}{{- end -}}
   {{- if $hasLinkModule }}{{- $featureLetters = $featureLetters | append "l" -}}{{- end -}}
   {{- if $hasInteractionModule }}{{- $featureLetters = $featureLetters | append "i" -}}{{- end -}}
   {{- if $hasConservativeModule }}{{- $featureLetters = $featureLetters | append "t" -}}{{- end -}}
@@ -58,7 +57,6 @@
   {{- $runtimeVariant := $featureVariant -}}
   {{- $runtimeEntry := $runtimeTemplate | resources.ExecuteAsTemplate (printf "js/prefetch.runtime.%s.entry.js" $runtimeVariant) (dict
     "has_global_gate" $hasGlobalGate
-    "has_spec_module" $hasSpecModule
     "has_link_module" $hasLinkModule
     "has_interaction_module" $hasInteractionModule
     "has_conservative_module" $hasConservativeModule
@@ -73,5 +71,8 @@
   {{- if not $isServer }}{{ $runtimeBundle = $runtimeBundle | minify }}{{ end -}}
   {{- $runtimeBundle = $runtimeBundle | fingerprint -}}
 <script id="site-prefetch-data" type="application/json">{{ $actionsPayloadByEnv | jsonify | safeJS }}</script>
+  {{- if and (eq $speculationRuntimeCoordination "preempt_runtime_when_supported") (gt (len $speculationRuntimeMeta) 0) -}}
+<script id="site-prefetch-runtime-meta" type="application/json">{{ $speculationRuntimeMeta | jsonify | safeJS }}</script>
+  {{- end -}}
 <script src="{{ $runtimeBundle.RelPermalink }}" integrity="{{ $runtimeBundle.Data.Integrity }}" defer></script>
 {{- end -}}

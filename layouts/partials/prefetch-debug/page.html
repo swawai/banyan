@@ -4,7 +4,9 @@
 {{- $sections := merge (dict
     "support" "Browser Support"
     "env" "Chosen Env"
-    "actions" "Chosen Actions"
+    "actions" "Chosen Runtime Actions (Raw)"
+    "spec_owned" "Spec-Owned URLs"
+    "actions_filtered" "Runtime Actions After Coordination"
     "runtime" "Runtime Observation"
     "payload" "Page Payload"
 ) (index $config "sections" | default dict) -}}
@@ -21,6 +23,12 @@
 
     <h2>{{ index $sections "actions" }}</h2>
     <pre id="prefetch-debug-actions">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "spec_owned" }}</h2>
+    <pre id="prefetch-debug-spec-owned">{{ $loadingLabel }}</pre>
+
+    <h2>{{ index $sections "actions_filtered" }}</h2>
+    <pre id="prefetch-debug-actions-filtered">{{ $loadingLabel }}</pre>
 
     <h2>{{ index $sections "runtime" }}</h2>
     <pre id="prefetch-debug-runtime">{{ $loadingLabel }}</pre>

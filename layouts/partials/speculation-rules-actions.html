@@ -1,0 +1,53 @@
+{{- $speculationConfig := .speculation_config | default (site.Params.speculation_rules | default dict) -}}
+{{- $speculationLabels := .speculation_labels | default (slice "menu" "nav" "sort_siblings" "descendants" "post") -}}
+{{- $candidates := .candidates | default (dict "menu" (slice) "nav" (slice) "sort" (slice) "desc" (slice) "post" (slice)) -}}
+{{- $current := .current | default "" -}}
+{{- $slotSpecs := slice
+  (dict "config_key" "menu" "candidate_key" "menu")
+  (dict "config_key" "nav" "candidate_key" "nav")
+  (dict "config_key" "sort_siblings" "candidate_key" "sort")
+  (dict "config_key" "descendants" "candidate_key" "desc")
+  (dict "config_key" "post" "candidate_key" "post")
+-}}
+{{- $prefetchRules := slice -}}
+{{- $prerenderRules := slice -}}
+{{- $seenUrls := slice -}}
+
+{{- range $slotSpec := $slotSpecs -}}
+  {{- $configKey := index $slotSpec "config_key" -}}
+  {{- $candidateKey := index $slotSpec "candidate_key" -}}
+  {{- $mode := partial "speculation-rules-mode.html" (index $speculationConfig $configKey) -}}
+  {{- if eq (index $mode "kind") "invalid" -}}
+    {{- errorf "Build failed: params.speculation_rules.%s only supports empty/off or direct modes such as prefetch_moderate or prerender_eager; got %q." $configKey (index $mode "value") -}}
+  {{- end -}}
+  {{- if ne (index $mode "kind") "" -}}
+    {{- $rawUrls := index $candidates $candidateKey | default (slice) -}}
+    {{- $filtered := partial "prefetch-filter-urls.html" (dict
+      "urls" $rawUrls
+      "seen" $seenUrls
+      "current" $current
+    ) -}}
+    {{- $urls := index $filtered "urls" -}}
+    {{- $seenUrls = index $filtered "seen" -}}
+    {{- if gt (len $urls) 0 -}}
+      {{- $entry := dict
+        "urls" $urls
+        "eagerness" (index $mode "eagerness")
+      -}}
+      {{- if eq (index $mode "kind") "prerender" -}}
+        {{- $prerenderRules = $prerenderRules | append $entry -}}
+      {{- else -}}
+        {{- $prefetchRules = $prefetchRules | append $entry -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $result := dict -}}
+{{- if gt (len $prefetchRules) 0 -}}
+  {{- $result = merge $result (dict "prefetch" $prefetchRules) -}}
+{{- end -}}
+{{- if gt (len $prerenderRules) 0 -}}
+  {{- $result = merge $result (dict "prerender" $prerenderRules) -}}
+{{- end -}}
+{{- return $result -}}

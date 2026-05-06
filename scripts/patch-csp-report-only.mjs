@@ -129,9 +129,29 @@ function buildReportOnlyValue(hashes) {
     return directives.join('; ');
 }
 
-function patchHeadersFile(body, cspValue) {
+function splitHeadersPreamble(body) {
     const normalized = body.replace(/\r\n/g, '\n').trimEnd();
-    const blocks = normalized.split(/\n{2,}/);
+    const lines = normalized.split('\n');
+    let index = 0;
+
+    while (index < lines.length) {
+        const trimmed = lines[index].trim();
+        if (trimmed === '' || trimmed.startsWith('#')) {
+            index += 1;
+            continue;
+        }
+        break;
+    }
+
+    return {
+        body: lines.slice(index).join('\n'),
+        preamble: lines.slice(0, index).join('\n').trimEnd(),
+    };
+}
+
+function patchHeadersFile(body, cspValue) {
+    const { body: headerBody, preamble } = splitHeadersPreamble(body);
+    const blocks = headerBody.split(/\n{2,}/);
     let foundDefaultRoute = false;
 
     const patchedBlocks = blocks.map((block) => {
@@ -153,7 +173,11 @@ function patchHeadersFile(body, cspValue) {
         throw new Error(`Missing default route "/*" in _headers.`);
     }
 
-    return `${patchedBlocks.join('\n\n')}\n`;
+    const patchedBody = `${patchedBlocks.join('\n\n')}\n`;
+    if (!preamble) {
+        return patchedBody;
+    }
+    return `${preamble}\n\n${patchedBody}`;
 }
 
 function patchEdgeoneConfig(body, cspValue) {

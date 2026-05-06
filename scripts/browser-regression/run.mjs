@@ -2,7 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 
-import { createOutputDir, relFromRepo, resolvePrimaryBuildDir, resolveUpgradeBuildPair } from './paths.mjs';
+import {
+    createOutputDir,
+    describeBuildSelection,
+    explicitPrimaryBuildEnv,
+    explicitUpgradeFromEnv,
+    explicitUpgradeToEnv,
+    relFromRepo,
+    resolvePrimaryBuild,
+    resolveUpgradeBuildPair
+} from './paths.mjs';
 import { writeReportFiles } from './report.mjs';
 import { createStaticSiteServer } from './server.mjs';
 import { recordLayoutShiftObserverScript, recordSecurityPolicyViolationScript, suppressLanguageSuggestDialogScript } from './helpers.mjs';
@@ -176,8 +185,12 @@ export async function runBrowserRegression(options = {}) {
     const modeName = options.modeName || 'browser';
     const scenarioFilter = options.onlyScenarioIds || readScenarioFilter();
     const scenarioList = Array.isArray(options.scenarios) ? options.scenarios : scenarios;
-    const primaryBuildDir = resolvePrimaryBuildDir();
+    const primaryBuild = resolvePrimaryBuild();
+    const primaryBuildDir = primaryBuild.dirPath;
     const upgradePair = resolveUpgradeBuildPair();
+    if (options.requireUpgradePair === true && !upgradePair) {
+        throw new Error('This browser-regression entry requires two temp builds under temp_workspace/public/, or explicit BANYAN_BROWSER_UPGRADE_FROM_DIR / BANYAN_BROWSER_UPGRADE_TO_DIR overrides.');
+    }
     const outputDir = createOutputDir(modeName);
     const browser = await chromium.launch({
         headless: options.headless !== false
@@ -190,8 +203,25 @@ export async function runBrowserRegression(options = {}) {
         mode: modeName,
         outputDir: relFromRepo(outputDir),
         primaryBuildDir: relFromRepo(primaryBuildDir),
+        primaryBuildSelection: describeBuildSelection(primaryBuild),
+        primaryBuildSelectionEnv: process.env[explicitPrimaryBuildEnv] || '',
         upgradeFromDir: upgradePair ? relFromRepo(upgradePair.fromDir) : '',
         upgradeToDir: upgradePair ? relFromRepo(upgradePair.toDir) : '',
+        upgradeBuildSelection: upgradePair
+            ? `${describeBuildSelection({
+                dirPath: upgradePair.fromDir,
+                kind: upgradePair.fromKind,
+                reason: `${upgradePair.reason}; from`
+            })} -> ${describeBuildSelection({
+                dirPath: upgradePair.toDir,
+                kind: upgradePair.toKind,
+                reason: `${upgradePair.reason}; to`
+            })}`
+            : '',
+        upgradeBuildSelectionEnv: {
+            from: process.env[explicitUpgradeFromEnv] || '',
+            to: process.env[explicitUpgradeToEnv] || ''
+        },
         scenarios: [],
         totals: {
             failed: 0,
@@ -199,6 +229,11 @@ export async function runBrowserRegression(options = {}) {
             skipped: 0
         }
     };
+
+    console.log(`Primary build selection: ${report.primaryBuildSelection}`);
+    if (upgradePair) {
+        console.log(`Upgrade build selection: ${report.upgradeBuildSelection}`);
+    }
 
     try {
         const activeScenarios = scenarioFilter.length > 0
