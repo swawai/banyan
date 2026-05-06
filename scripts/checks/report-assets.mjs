@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const repoRoot = process.cwd();
 const reportTarget = process.argv[2] ?? 'public';

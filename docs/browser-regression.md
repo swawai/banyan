@@ -118,8 +118,8 @@
 - `breadcrumb-tags-wide-stability`
 - `sw-home-register`
 - `sw-update-anchor-multi-target-matrix`
-- `security-csp-report-only-home`
-- `security-csp-report-only-breadcrumb-wide`
+- `security-csp-enforce-home`
+- `security-csp-enforce-breadcrumb-wide`
 - `speculation-rules-header-all`
 - `speculation-rules-header-xvenv`
 - `speculation-rules-header-prefetchdebug`
@@ -272,7 +272,7 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 `check:browser:security` 当前专门验证：
 
 - 本地静态 server 会按构建产物 `_headers` 回放响应头
-- 关键页面响应里存在 `Content-Security-Policy-Report-Only`
+- 关键页面响应里存在 `Content-Security-Policy`
 - 关键页面响应里存在默认 `Permissions-Policy`
 - 关键页面响应里存在初始 ramp-up 的 `Strict-Transport-Security: max-age=300`
 - 页面运行期间没有 `SecurityPolicyViolationEvent`
@@ -291,7 +291,7 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 
 更完整的 CSP 主线说明见 [security-csp.md](security-csp.md)。
 
-正式从 `Report-Only` 走向 Enforce 前的剩余阻塞项，见 [security-csp-enforce-checklist.md](security-csp-enforce-checklist.md)。
+正式 CSP 的剩余风险和维护边界，见 [security-csp-enforce-checklist.md](security-csp-enforce-checklist.md)。
 
 部署后真实响应头验收使用：
 

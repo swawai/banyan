@@ -140,10 +140,10 @@ async function collectSpeculationRulesOutcome({
     response,
     responseEntries
 }) {
-    const reportOnlyValue = readHeader(response, 'content-security-policy-report-only');
-    if (!reportOnlyValue.includes("script-src 'self' 'report-sample'")) {
-        fail('Page did not include the expected report-only CSP baseline.', {
-            cspReportOnly: reportOnlyValue,
+    const cspValue = readHeader(response, 'content-security-policy');
+    if (!cspValue.includes("script-src 'self' 'report-sample'")) {
+        fail('Page did not include the expected enforced CSP baseline.', {
+            csp: cspValue,
             path: pathLabel
         });
     }
@@ -151,7 +151,7 @@ async function collectSpeculationRulesOutcome({
     const speculationRulesHeader = readHeader(response, 'speculation-rules');
     if (!speculationRulesHeader) {
         fail('Page did not include the Speculation-Rules response header.', {
-            cspReportOnly: reportOnlyValue,
+            csp: cspValue,
             path: pathLabel
         });
     }
@@ -443,7 +443,7 @@ async function collectSpeculationRulesOutcome({
     const cspConsoleMessages = filterCspConsoleMessages(consoleEntries);
     if (violations.length > 0) {
         fail('Page triggered SecurityPolicyViolationEvent entries.', {
-            cspReportOnly: reportOnlyValue,
+            csp: cspValue,
             path: pathLabel,
             rulesPath,
             violations
@@ -452,14 +452,14 @@ async function collectSpeculationRulesOutcome({
     if (cspConsoleMessages.length > 0) {
         fail('Page emitted CSP-related console noise.', {
             consoleMessages: cspConsoleMessages,
-            cspReportOnly: reportOnlyValue,
+            csp: cspValue,
             path: pathLabel,
             rulesPath
         });
     }
 
     return {
-        cspReportOnly: reportOnlyValue,
+        csp: cspValue,
         inlineSpeculationScriptCount,
         prefetchEntryCount: prefetchEntries.length,
         rulesContentType,

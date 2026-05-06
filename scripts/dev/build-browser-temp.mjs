@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(fileURLToPath(new URL('../../../', import.meta.url)));
+const repoRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const tempPublicRoot = path.join(repoRoot, 'temp_workspace', 'public');
 
 function parseCli(argv) {
@@ -31,15 +31,15 @@ function parseCli(argv) {
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/build-browser-temp.mjs [note]
+  node themes/banyan/scripts/dev/build-browser-temp.mjs [note]
 
 Examples:
   npm run build:browser:temp
-  node themes/banyan/scripts/build-browser-temp.mjs prefetch-debug
+  node themes/banyan/scripts/dev/build-browser-temp.mjs prefetch-debug
 
 Notes:
   - Builds a minified Hugo output into temp_workspace/public/<timestamp>-<note>
-  - Then patches CSP report-only headers and Speculation-Rules headers in that temp build
+  - Then patches CSP headers and Speculation-Rules headers in that temp build
   - Intended to pair with npm run check:browser:latest-temp or check:browser:speculation:latest-temp
 `);
 }
@@ -128,8 +128,8 @@ if (options.help) {
 const destinationDir = buildDestination(options.note);
 const destinationRel = relFromRepo(destinationDir);
 runShellCommand(`npx hugo --gc --cleanDestinationDir --minify --destination ${quoteForShell(destinationRel)}`);
-runProcess(process.execPath, ['themes/banyan/scripts/patch-csp-report-only.mjs', destinationRel]);
-runProcess(process.execPath, ['themes/banyan/scripts/emit-speculation-rules-headers.mjs', destinationRel]);
+runProcess(process.execPath, ['themes/banyan/scripts/build/patch-csp.mjs', destinationRel]);
+runProcess(process.execPath, ['themes/banyan/scripts/build/emit-speculation-rules-headers.mjs', destinationRel]);
 
 console.log('');
 console.log(`Temp browser-regression build ready: ${destinationRel}`);

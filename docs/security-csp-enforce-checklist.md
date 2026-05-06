@@ -4,7 +4,7 @@
 
 这份清单回答的不是“Banyan 有没有 CSP”，而是：
 
-**当前这套 `Report-Only` 基线，距离切正式 `Content-Security-Policy` 还差什么。**
+**当前这套正式 `Content-Security-Policy` 基线，哪些边界必须继续守住。**
 
 判断标准分三档：
 
@@ -13,7 +13,7 @@
 - `Amber`
   当前可接受，但最好继续补覆盖或保持监控
 - `Red`
-  切正式 Enforce 前应先处理或明确降级能力
+  会破坏当前 Enforce 基线，应先处理或明确降级能力
 
 ## Green
 
@@ -49,7 +49,7 @@
 - `script-src` 不再需要 `'inline-speculation-rules'`
 - `Speculation-Rules` 不再是当前 CSP 语义上的直接冲突点
 
-### 4. 关键页面的 Report-Only 浏览器回归是绿的
+### 4. 关键页面的 Enforce 浏览器回归是绿的
 
 当前默认安全回归已覆盖：
 
@@ -58,7 +58,7 @@
 
 它们都确认：
 
-- 响应头里存在 `Content-Security-Policy-Report-Only`
+- 响应头里存在 `Content-Security-Policy`
 - 页面运行过程中没有 `SecurityPolicyViolationEvent`
 - 没有 CSP 相关 console 噪音
 
@@ -151,15 +151,15 @@ Strict-Transport-Security: max-age=300
 - runtime stack 仍会按自己的 `link/SW` 能力矩阵工作
 - 如果两栈在 `independent` 模式下命中同一 slot，构建后脚本会输出 warning
 
-这不是 Enforce 的语法阻塞项，但它仍值得被当作产品策略风险显式审视。
+这不是当前 Enforce 的语法阻塞项，但它仍值得被当作产品策略风险显式审视。
 
 ## Red
 
 ### 10. 当前没有确认中的 CSP 语法级阻塞项
 
-截至 `2026-05-04`，我们没有再看到一个像“runtime injected speculationrules 会直接撞 `script-src`”那样明确的 Red 阻塞项。
+截至 `2026-05-06`，我们没有再看到一个像“runtime injected speculationrules 会直接撞 `script-src`”那样明确的 Red 阻塞项。
 
-这并不等于可以不思考直接切 Enforce，而是说明：
+这并不等于后续可以随意改 CSP，而是说明：
 
 - 剩余工作更偏向 **覆盖率** 和 **产品策略**
 - 而不是继续为某个已知的 inline 冲突补白名单
@@ -172,9 +172,9 @@ Strict-Transport-Security: max-age=300
 
 那它们会立刻重新进入 Red。
 
-## 建议切换顺序
+## 建议维护顺序
 
-### 如果目标是“尽快切正式 CSP”
+### 如果目标是“保持正式 CSP 稳定”
 
 推荐：
 
@@ -182,7 +182,7 @@ Strict-Transport-Security: max-age=300
 2. 保持现有浏览器安全回归
 3. 确认当前 `runtime_coordination` 是否符合你的产品意图，而不是默认沿用
 4. 再补一轮针对关键路径页的浏览器验证
-5. 然后再评估切正式 `Content-Security-Policy`
+5. 新增高风险能力前先跑 `check:browser:security` 和 `check:browser:speculation`
 
 ### 如果目标是“尽量保留 `Speculation-Rules` 能力”
 
@@ -191,11 +191,11 @@ Strict-Transport-Security: max-age=300
 1. 继续保留当前 header + external rules 交付形态
 2. 对 `independent` 模式保持 overlap warning 可见；若改用 `preempt_runtime_when_supported`，则把 spec slot ownership 视为有意识策略
 3. 逐步扩大 `check:browser:speculation` 覆盖面
-4. 等真实页面观察足够稳定，再决定是否把 secondary stack 也纳入正式 Enforce 叙事
+4. 保持 secondary stack 作为正式 CSP 旁路的可验证浏览器能力栈
 
 ## 一句话判断
 
-截至 `2026-05-04`：
+截至 `2026-05-06`：
 
-- **Banyan 的通用页面 CSP 基线已经接近可切正式 Enforce**
-- **真正还需要你有意识决定的，不再是 inline 冲突，而是 dual-stack overlap 与 `Speculation-Rules` 的产品策略**
+- **Banyan 的通用页面 CSP 基线已经切到正式 Enforce**
+- **后续真正需要有意识维护的，不再是 inline 冲突，而是 dual-stack overlap 与 `Speculation-Rules` 的产品策略**

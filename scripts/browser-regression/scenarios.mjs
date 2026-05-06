@@ -184,8 +184,8 @@ function createDesignAuditScenario(pageConfig, viewportConfig) {
     };
 }
 
-function readCspReportOnlyHeader(response) {
-    return readResponseHeader(response, 'content-security-policy-report-only');
+function readCspHeader(response) {
+    return readResponseHeader(response, 'content-security-policy');
 }
 
 function readResponseHeader(response, headerName) {
@@ -212,12 +212,12 @@ function createConsoleRecorder(page, entries) {
     });
 }
 
-function assertReportOnlyPolicy(headerValue, details = {}) {
+function assertCspPolicy(headerValue, details = {}) {
     if (!headerValue) {
-        fail('Response did not include Content-Security-Policy-Report-Only.', details);
+        fail('Response did not include Content-Security-Policy.', details);
     }
     if (!headerValue.includes("script-src 'self' 'report-sample'")) {
-        fail('Report-only policy is missing the expected script-src baseline.', {
+        fail('CSP is missing the expected script-src baseline.', {
             ...details,
             headerValue
         });
@@ -263,32 +263,32 @@ function assertAdjacentSecurityHeaders(response, details = {}) {
 }
 
 async function collectSecurityOutcome(page, response, consoleEntries, extraDetails = {}) {
-    const cspReportOnly = readCspReportOnlyHeader(response);
-    assertReportOnlyPolicy(cspReportOnly, extraDetails);
+    const csp = readCspHeader(response);
+    assertCspPolicy(csp, extraDetails);
     const adjacentHeaders = assertAdjacentSecurityHeaders(response, extraDetails);
 
     await page.waitForTimeout(250);
     const violations = await readSecurityPolicyViolations(page);
     const cspConsoleMessages = filterCspConsoleMessages(consoleEntries);
     if (violations.length > 0) {
-        fail('Page triggered SecurityPolicyViolationEvent entries under report-only CSP.', {
+        fail('Page triggered SecurityPolicyViolationEvent entries under enforced CSP.', {
             ...extraDetails,
-            cspReportOnly,
+            csp,
             violations
         });
     }
     if (cspConsoleMessages.length > 0) {
-        fail('Page emitted CSP-related console messages under report-only CSP.', {
+        fail('Page emitted CSP-related console messages under enforced CSP.', {
             ...extraDetails,
             consoleMessages: cspConsoleMessages,
-            cspReportOnly
+            csp
         });
     }
 
     return {
         consoleMessageCount: consoleEntries.length,
         cspConsoleMessages,
-        cspReportOnly,
+        csp,
         ...adjacentHeaders,
         violations
     };
@@ -300,9 +300,9 @@ export const designAuditScenarios = DESIGN_AUDIT_PAGES.flatMap((pageConfig) => (
 
 export const securityScenarios = [
     {
-        id: 'security-csp-report-only-home',
+        id: 'security-csp-enforce-home',
         kind: 'single',
-        title: 'Security: CSP Report-Only Home',
+        title: 'Security: CSP Enforce Home',
         viewport: { width: 1440, height: 960 },
         async run({ page, baseUrl }) {
             const consoleEntries = [];
@@ -316,9 +316,9 @@ export const securityScenarios = [
         }
     },
     {
-        id: 'security-csp-report-only-breadcrumb-wide',
+        id: 'security-csp-enforce-breadcrumb-wide',
         kind: 'single',
-        title: 'Security: CSP Report-Only Breadcrumb Wide',
+        title: 'Security: CSP Enforce Breadcrumb Wide',
         viewport: WIDE_VIEWPORT,
         async run({ page, baseUrl }) {
             const consoleEntries = [];

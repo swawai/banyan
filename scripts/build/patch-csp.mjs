@@ -4,7 +4,12 @@ import { createHash } from 'node:crypto';
 
 const repoRoot = process.cwd();
 const defaultPublicDir = 'public';
-const cspHeaderName = 'Content-Security-Policy-Report-Only';
+const cspHeaderName = 'Content-Security-Policy';
+// Keep report-only here only so upgrading older generated outputs removes stale CSP variants.
+const legacyCspHeaderNames = new Set([
+    'content-security-policy',
+    'content-security-policy-report-only',
+]);
 const executableScriptTypes = new Set([
     '',
     'text/javascript',
@@ -41,16 +46,17 @@ function parseCli(argv) {
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/patch-csp-report-only.mjs [publicDir]
+  node themes/banyan/scripts/build/patch-csp.mjs [publicDir]
 
 Examples:
-  npm run csp:report-only
-  node themes/banyan/scripts/patch-csp-report-only.mjs temp_workspace/public/260504-csp-report-only
+  npm run csp:headers
+  node themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/260504-csp
 
 Notes:
   - This script scans final built HTML and hashes the executable inline scripts
     exactly as they appear after Hugo minification.
   - It patches both _headers and edgeone.json in the target public directory.
+  - It writes the enforced Content-Security-Policy header.
 `);
 }
 
@@ -110,7 +116,7 @@ function toCspHash(scriptBody) {
     return `sha256-${createHash('sha256').update(scriptBody).digest('base64')}`;
 }
 
-function buildReportOnlyValue(hashes) {
+function buildCspValue(hashes) {
     const scriptHashes = [...hashes].sort().map((hash) => `'${hash}'`);
     const directives = [
         "default-src 'self'",
@@ -163,7 +169,10 @@ function patchHeadersFile(body, cspValue) {
         foundDefaultRoute = true;
         const headerLines = lines
             .slice(1)
-            .filter((line) => !line.trimStart().toLowerCase().startsWith(`${cspHeaderName.toLowerCase()}:`));
+            .filter((line) => {
+                const headerName = line.trimStart().split(':', 1)[0]?.toLowerCase() || '';
+                return !legacyCspHeaderNames.has(headerName);
+            });
 
         headerLines.push(`  ${cspHeaderName}: ${cspValue}`);
         return [lines[0], ...headerLines].join('\n');
@@ -196,7 +205,7 @@ function patchEdgeoneConfig(body, cspValue) {
         if (!entry || typeof entry !== 'object') {
             return false;
         }
-        return `${entry.key ?? ''}`.toLowerCase() !== cspHeaderName.toLowerCase();
+        return !legacyCspHeaderNames.has(`${entry.key ?? ''}`.toLowerCase());
     });
     defaultRoute.headers.push({ key: cspHeaderName, value: cspValue });
 
@@ -240,7 +249,7 @@ function verifyEdgeoneConfig(body, expectedValue) {
     });
 
     if (!cspHeader || cspHeader.value !== expectedValue) {
-        throw new Error('Patched edgeone.json CSP header does not match the computed report-only policy.');
+        throw new Error('Patched edgeone.json CSP header does not match the computed policy.');
     }
 }
 
@@ -273,7 +282,7 @@ async function main() {
         }
     }
 
-    const cspValue = buildReportOnlyValue(hashes);
+    const cspValue = buildCspValue(hashes);
     const [headersBody, edgeoneBody] = await Promise.all([
         fs.readFile(headersPath, 'utf8'),
         fs.readFile(edgeonePath, 'utf8'),

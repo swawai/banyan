@@ -36,7 +36,7 @@ npm run check:browser:latest-temp
 - `params.speculation_rules`
 - `site-prefetch-data`
 - `site-prefetch-runtime-meta`
-- `Content-Security-Policy-Report-Only`
+- `Content-Security-Policy`
 - `Speculation-Rules` header
 
 命令：

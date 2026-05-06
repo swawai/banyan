@@ -2,12 +2,12 @@ const defaultBaseUrl = 'https://swaw.com/';
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/check-security-headers.mjs [baseUrl]
+  node themes/banyan/scripts/checks/check-security-headers.mjs [baseUrl]
 
 Examples:
   npm run check:security:headers
-  node themes/banyan/scripts/check-security-headers.mjs https://swaw.com/
-  node themes/banyan/scripts/check-security-headers.mjs http://127.0.0.1:8787/
+  node themes/banyan/scripts/checks/check-security-headers.mjs https://swaw.com/
+  node themes/banyan/scripts/checks/check-security-headers.mjs http://127.0.0.1:8787/
 
 Notes:
   - Checks the real response headers returned by the target server.
@@ -91,17 +91,14 @@ function printChecks(title, checks) {
 
 function buildHomeChecks(result) {
     const checks = [];
-    const cspReportOnly = readHeader(result.headers, 'content-security-policy-report-only');
     const cspEnforce = readHeader(result.headers, 'content-security-policy');
     const permissionsPolicy = readHeader(result.headers, 'permissions-policy');
     const hsts = readHeader(result.headers, 'strict-transport-security');
     const speculationRules = readHeader(result.headers, 'speculation-rules');
 
     assertHeader(checks, result.ok, 'home response is OK', { status: result.status, url: result.url });
-    assertHeader(checks, cspReportOnly || cspEnforce, 'home exposes a CSP header', {
-        csp: cspEnforce ? 'enforce' : cspReportOnly ? 'report-only' : '',
-    });
-    const csp = cspEnforce || cspReportOnly;
+    assertHeader(checks, cspEnforce, 'home exposes enforced CSP');
+    const csp = cspEnforce;
     assertHeader(checks, hasDirective(csp, "default-src 'self'"), 'CSP keeps default-src self');
     assertHeader(checks, hasDirective(csp, "object-src 'none'"), 'CSP blocks object embedding');
     assertHeader(checks, hasDirective(csp, "base-uri 'self'"), 'CSP restricts base URI');

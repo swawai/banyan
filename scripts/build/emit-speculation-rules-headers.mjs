@@ -37,11 +37,11 @@ function parseCli(argv) {
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/emit-speculation-rules-headers.mjs [publicDir]
+  node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs [publicDir]
 
 Examples:
-  node themes/banyan/scripts/emit-speculation-rules-headers.mjs
-  node themes/banyan/scripts/emit-speculation-rules-headers.mjs temp_workspace/public/260504-speculation-rules
+  node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs
+  node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/260504-speculation-rules
 
 Notes:
   - This script consumes speculation document-rule manifest files generated

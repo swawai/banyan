@@ -116,6 +116,9 @@ scope = "default"
 path = "/*"
 
 [routes.headers]
+# Content-Security-Policy is intentionally not declared in this static policy.
+# It is generated post-build by themes/banyan/scripts/build/patch-csp.mjs because it
+# depends on the exact executable inline script bytes after Hugo minification.
 Referrer-Policy = "strict-origin-when-cross-origin"
 X-Content-Type-Options = "nosniff"
 X-Frame-Options = "SAMEORIGIN"

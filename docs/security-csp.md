@@ -6,7 +6,7 @@ Banyan 当前的安全收敛主路径是：
 
 1. 内容层不再直接持有运行时资源装配权
 2. Hugo 负责产出最终页面
-3. `Content-Security-Policy-Report-Only` 由**构建后**扫描最终 HTML 再回写
+3. `Content-Security-Policy` 由**构建后**扫描最终 HTML 再回写
 4. `Speculation-Rules` 作为独立 header 栈，由全局 document rules JSON 与响应头交付
 5. 浏览器回归脚本验证关键页面确实拿到了策略头，并且没有产生策略违规事件
 
@@ -33,9 +33,9 @@ Banyan 当前的安全收敛主路径是：
 因此 Banyan 当前采用的是：
 
 1. `hugo --gc --cleanDestinationDir --minify`
-2. `themes/banyan/scripts/patch-csp-report-only.mjs`
-3. `themes/banyan/scripts/emit-speculation-rules-headers.mjs`
-4. `themes/banyan/scripts/sync-edgeone.mjs`
+2. `themes/banyan/scripts/build/patch-csp.mjs`
+3. `themes/banyan/scripts/build/emit-speculation-rules-headers.mjs`
+4. `themes/banyan/scripts/build/sync-edgeone.mjs`
 
 也就是说：
 
@@ -92,9 +92,9 @@ Banyan 当前的安全收敛主路径是：
 
 更具体的配置心智模型见 [prefetch-stacks.md](prefetch-stacks.md)。
 
-## 当前 Report-Only 基线
+## 当前 Enforce 基线
 
-当前生成的 `Content-Security-Policy-Report-Only` 基线包括：
+当前生成的 `Content-Security-Policy` 基线包括：
 
 - `default-src 'self'`
 - `script-src 'self' 'report-sample' <hashes...>`
@@ -111,10 +111,9 @@ Banyan 当前的安全收敛主路径是：
 
 注意：
 
-- 当前仍是 `Report-Only`
-- 这不是最终强制策略
-- 先验证“有没有噪音”，再决定何时切正式 `Content-Security-Policy`
-- 当前 `script-src` 已不再包含 `'inline-speculation-rules'`
+- 当前已经是正式强制策略
+- `script-src` 已不再包含 `'inline-speculation-rules'`
+- 新增 executable inline script 时，必须让构建后 hash 生成链和浏览器回归一起覆盖
 
 ## 相邻浏览器策略
 
@@ -156,20 +155,20 @@ npm run build
 它实际执行的是：
 
 1. `hugo --gc --cleanDestinationDir --minify`
-2. `npm run csp:report-only`
+2. `npm run csp:headers`
 3. `npm run speculation-rules:headers`
 4. `npm run sync:edgeone`
 
 如果你只想对某个临时产物目录补策略头，可以直接运行：
 
 ```bash
-node themes/banyan/scripts/patch-csp-report-only.mjs temp_workspace/public/<build>
+node themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
 ```
 
 如果你还想同时补全 speculation header 栈，可继续运行：
 
 ```bash
-node themes/banyan/scripts/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
+node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
 ```
 
 注意：
@@ -187,12 +186,12 @@ npm run check:security:headers
 默认检查 `https://swaw.com/` 和 `/sw.js`。如果要检查其他环境，可以传入 base URL：
 
 ```bash
-node themes/banyan/scripts/check-security-headers.mjs https://example.com/
+node themes/banyan/scripts/checks/check-security-headers.mjs https://example.com/
 ```
 
 这条命令验证的是浏览器真正会收到的响应头，包括：
 
-- `Content-Security-Policy-Report-Only` 或正式 `Content-Security-Policy`
+- `Content-Security-Policy`
 - `Permissions-Policy`
 - `Strict-Transport-Security`
 - `Speculation-Rules`
@@ -210,15 +209,15 @@ npm run check:browser:security
 
 ```bash
 npx hugo --gc --cleanDestinationDir --minify --destination temp_workspace/public/<build>
-node themes/banyan/scripts/patch-csp-report-only.mjs temp_workspace/public/<build>
-node themes/banyan/scripts/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
+node themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
+node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
 npm run check:browser:speculation
 ```
 
 它复用 `themes/banyan/scripts/browser-regression/` 现有 harness，并额外验证：
 
 - 本地静态 server 会读取构建产物里的 `_headers`
-- 关键页面响应头里存在 `Content-Security-Policy-Report-Only`
+- 关键页面响应头里存在 `Content-Security-Policy`
 - 关键页面响应头里存在 `Permissions-Policy`
 - 关键页面响应头里存在初始 HSTS ramp-up 策略
 - 关键页面响应头里存在 `Speculation-Rules`
@@ -237,42 +236,32 @@ npm run check:browser:speculation
 - 现有 security scenario 是否已经覆盖
 - 如果没有，应该补一条新的浏览器安全场景
 
-## 什么时候可以从 Report-Only 走到 Enforce
+## 如何守住 Enforce
 
-建议按这个顺序推进：
+当前正式 CSP 的守护顺序是：
 
-1. 先继续扩大浏览器安全场景覆盖面
-2. 清掉 `Report-Only` 下残余的 style / script 噪音
-3. 明确当前 `runtime_coordination` 是否符合你的产品意图：
-   - `independent` 时，重叠 warning 应保持可见
-- `preempt_runtime_when_supported` 时，重叠 slot 默认由 spec 拥有
-4. 再决定是否补 `report-uri` / `report-to`
-5. 最后再把 `Content-Security-Policy-Report-Only` 切到正式 `Content-Security-Policy`
+1. 内容层继续只表达内容与受控声明
+2. executable inline script 继续限制在 `themes/banyan/assets/js/inline/`
+3. 构建后继续扫描最终 HTML 并回写真实 hash
+4. `check:browser:security` 验证关键页面没有 CSP 违规
+5. `check:browser:speculation` 验证 `Speculation-Rules` header 栈没有退回 inline 注入
 
-不要反过来做：
+不要把新功能临时塞进 raw HTML、动态 inline script 或内容层资源声明。Banyan 当前 CSP 能成立，靠的是权限边界清楚，而不是无限堆 hash 白名单。
 
-- 不要先上强制 CSP，再靠线上报错慢慢补洞
-- 也不要一边保留开放式 inline/内容注入能力，一边强行堆 hash 白名单
-
-更稳的原则是：
-
-- 先收权限边界
-- 再让策略变严格
-
-更具体的切换阻塞项和建议顺序，见 [security-csp-enforce-checklist.md](security-csp-enforce-checklist.md)。
+更具体的风险清单见 [security-csp-enforce-checklist.md](security-csp-enforce-checklist.md)。
 
 ## 当前实测状态
 
-在 `2026-05-04` 这轮修订里，浏览器安全回归已经通过：
+在 `2026-05-06` 这轮修订里，浏览器安全回归已经通过：
 
-- `security-csp-report-only-home`
-- `security-csp-report-only-breadcrumb-wide`
+- `security-csp-enforce-home`
+- `security-csp-enforce-breadcrumb-wide`
 - `speculation-rules-header-all`
 - `speculation-rules-header-xvenv`
 
 结果是：
 
-- 关键页面确实拿到了 `Content-Security-Policy-Report-Only`
+- 关键页面确实拿到了 `Content-Security-Policy`
 - 当前 3 类 executable inline script 的 hash 与最终 HTML 一致
 - speculation header 页面确实拿到了 `Speculation-Rules`
 - 浏览器未记录策略违规事件
