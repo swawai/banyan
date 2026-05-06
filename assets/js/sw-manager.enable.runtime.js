@@ -2,12 +2,20 @@ export function createServiceWorkerManagerRuntime(options = {}) {
     const swUrl = typeof options.swUrl === 'string' && options.swUrl ? options.swUrl : '/sw.js';
     const swScope = typeof options.swScope === 'string' && options.swScope ? options.swScope : '/';
     const updateStyleUrl = typeof options.updateStyleUrl === 'string' && options.updateStyleUrl ? options.updateStyleUrl : '';
+    const updateCheckInterval = Number.isFinite(options.updateCheckInterval) && options.updateCheckInterval > 0
+        ? options.updateCheckInterval
+        : 15 * 60 * 1000;
+    const updateVisibilityThrottle = Number.isFinite(options.updateVisibilityThrottle) && options.updateVisibilityThrottle > 0
+        ? options.updateVisibilityThrottle
+        : 3 * 60 * 1000;
     const existingRuntime = window.BanyanServiceWorkerManagerRuntime;
     if (
         existingRuntime
         && existingRuntime.swUrl === swUrl
         && existingRuntime.swScope === swScope
         && existingRuntime.updateStyleUrl === updateStyleUrl
+        && existingRuntime.updateCheckInterval === updateCheckInterval
+        && existingRuntime.updateVisibilityThrottle === updateVisibilityThrottle
     ) {
         return existingRuntime;
     }
@@ -81,7 +89,9 @@ export function createServiceWorkerManagerRuntime(options = {}) {
         setActiveRegistration,
         supportsServiceWorker,
         swScope,
+        updateCheckInterval,
         updateStyleUrl,
+        updateVisibilityThrottle,
         swUrl
     };
 

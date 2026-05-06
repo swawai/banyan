@@ -2,7 +2,7 @@
 # Site owners can override it by creating data/cache-policy.toml at the repo root.
 
 [edgeone]
-installCommand = "npm ci"
+installCommand = "git submodule sync --recursive && git submodule update --init --recursive --force && npm ci"
 buildCommand = "npm run build"
 outputDirectory = "public"
 nodeVersion = "22.11.0"

@@ -203,6 +203,14 @@ function filterCspConsoleMessages(entries) {
     });
 }
 
+function filterPreloadCredentialConsoleMessages(entries) {
+    return entries.filter((entry) => {
+        const text = `${entry.text || ''}`.toLowerCase();
+        return text.includes('preload')
+            && text.includes('request credentials mode does not match');
+    });
+}
+
 function createConsoleRecorder(page, entries) {
     page.on('console', (message) => {
         entries.push({
@@ -262,6 +270,35 @@ function assertAdjacentSecurityHeaders(response, details = {}) {
     };
 }
 
+async function assertServiceWorkerNavigationPreloadDisabled(page) {
+    const result = await page.evaluate(async () => {
+        const response = await fetch('/sw.js', {
+            cache: 'no-store',
+            credentials: 'same-origin'
+        }).catch(() => null);
+        if (!response) {
+            return { ok: false, status: 0, text: '' };
+        }
+        return {
+            ok: response.ok,
+            status: response.status,
+            text: await response.text().catch(() => '')
+        };
+    });
+
+    if (!result.ok) {
+        fail('Unable to read generated sw.js for navigation preload guardrail.', {
+            status: result.status
+        });
+    }
+    if (/navigationPreload\s*\.\s*enable\s*\(/.test(result.text)) {
+        fail('sw.js should not enable navigation preload while navigation caching is cache-first.');
+    }
+    if (!/navigationPreload[\s\S]{0,200}\.\s*disable\s*\(/.test(result.text)) {
+        fail('sw.js should explicitly disable navigation preload to clean up older active registrations.');
+    }
+}
+
 async function collectSecurityOutcome(page, response, consoleEntries, extraDetails = {}) {
     const csp = readCspHeader(response);
     assertCspPolicy(csp, extraDetails);
@@ -270,6 +307,7 @@ async function collectSecurityOutcome(page, response, consoleEntries, extraDetai
     await page.waitForTimeout(250);
     const violations = await readSecurityPolicyViolations(page);
     const cspConsoleMessages = filterCspConsoleMessages(consoleEntries);
+    const preloadCredentialConsoleMessages = filterPreloadCredentialConsoleMessages(consoleEntries);
     if (violations.length > 0) {
         fail('Page triggered SecurityPolicyViolationEvent entries under enforced CSP.', {
             ...extraDetails,
@@ -284,12 +322,19 @@ async function collectSecurityOutcome(page, response, consoleEntries, extraDetai
             csp
         });
     }
+    if (preloadCredentialConsoleMessages.length > 0) {
+        fail('Page emitted preload credential mismatch console messages.', {
+            ...extraDetails,
+            consoleMessages: preloadCredentialConsoleMessages
+        });
+    }
 
     return {
         consoleMessageCount: consoleEntries.length,
         cspConsoleMessages,
         csp,
         ...adjacentHeaders,
+        preloadCredentialConsoleMessages,
         violations
     };
 }
@@ -313,6 +358,20 @@ export const securityScenarios = [
             return collectSecurityOutcome(page, response, consoleEntries, {
                 path: '/'
             });
+        }
+    },
+    {
+        id: 'security-sw-navigation-preload-disabled',
+        kind: 'single',
+        title: 'Security: SW Navigation Preload Disabled',
+        viewport: { width: 1440, height: 960 },
+        async run({ page, baseUrl }) {
+            await gotoAndWait(page, `${baseUrl}/`);
+            await assertServiceWorkerNavigationPreloadDisabled(page);
+
+            return {
+                message: 'sw.js disables navigation preload for cache-first navigations.'
+            };
         }
     },
     {

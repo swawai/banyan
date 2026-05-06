@@ -118,27 +118,7 @@ function shouldDeleteOnActivate(key) {
     return false;
 }
 
-function createNavigationPreloadConsumer(event) {
-    let consumed = false;
-
-    return async function consumeNavigationPreload() {
-        if (consumed || !event || typeof event.preloadResponse === 'undefined') return null;
-        consumed = true;
-
-        try {
-            return await event.preloadResponse;
-        } catch (error) {
-            return null;
-        }
-    };
-}
-
-async function fetchNavigationResponse(request, consumeNavigationPreload) {
-    if (consumeNavigationPreload) {
-        const preloadResponse = await consumeNavigationPreload();
-        if (preloadResponse) return preloadResponse;
-    }
-
+async function fetchNavigationResponse(request) {
     return fetch(request);
 }
 
@@ -267,10 +247,10 @@ async function warmAssetsFromHtmlResponse(response, baseUrl) {
     } catch (error) { }
 }
 
-async function updateNavigationCache(request, cache, consumeNavigationPreload, waitForAssetWarmup = false) {
+async function updateNavigationCache(request, cache, waitForAssetWarmup = false) {
     try {
         const cacheKeyRequest = createNavigationCacheKeyRequest(request);
-        let response = await fetchNavigationResponse(request, consumeNavigationPreload);
+        let response = await fetchNavigationResponse(request);
         if (response && response.status === 304) {
             // Browser-level prefetch often revalidates from HTTP cache and returns 304.
             // SW cache needs a full body, so retry by bypassing the browser cache layer.
@@ -319,7 +299,7 @@ async function getOfflineFallbackResponse(pathname) {
         return cachedResponse;
     }
 
-    const networkResponse = await updateNavigationCache(offlineRequest, cache, null, true);
+    const networkResponse = await updateNavigationCache(offlineRequest, cache, true);
     if (isCacheableHtmlResponse(networkResponse)) {
         return networkResponse;
     }
@@ -374,7 +354,7 @@ async function warmNavigationUrl(urlValue) {
             await warmAssetsFromHtmlResponse(cachedResponse.clone(), href);
             return;
         }
-        await updateNavigationCache(request, cache, null, true);
+        await updateNavigationCache(request, cache, true);
     })();
 
     navigationWarmupTasks.set(href, task);
@@ -395,11 +375,11 @@ self.addEventListener('install', (event) => {
     event.waitUntil(warmNavigationUrls(getOfflineFallbackUrls()));
 });
 
-async function handleNavigationRequest(request, consumeNavigationPreload) {
+async function handleNavigationRequest(request) {
     const pathname = getRequestPathname(request);
     const route = getMatchingRoute('navigation', pathname);
     if (!shouldHandleRoute(route)) {
-        return fetchNavigationResponse(request, consumeNavigationPreload);
+        return fetchNavigationResponse(request);
     }
 
     const cache = await caches.open(getCacheNameForRoute(route));
@@ -409,7 +389,7 @@ async function handleNavigationRequest(request, consumeNavigationPreload) {
         return cachedResponse;
     }
 
-    const networkResponse = await updateNavigationCache(request, cache, consumeNavigationPreload);
+    const networkResponse = await updateNavigationCache(request, cache);
     if (networkResponse) {
         return networkResponse;
     }
@@ -450,7 +430,9 @@ async function handleAssetRequest(request, pathname) {
 self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
         if (self.registration.navigationPreload) {
-            await self.registration.navigationPreload.enable();
+            // Navigation caching is cache-first, so global navigation preload only creates
+            // extra network work and Chrome warnings when cached HTML wins.
+            await self.registration.navigationPreload.disable();
         }
         const keys = await caches.keys();
         await Promise.all(
@@ -482,10 +464,7 @@ self.addEventListener('fetch', (event) => {
         const route = getMatchingRoute('navigation', pathname);
         if (!shouldHandleRoute(route)) return;
 
-        const consumeNavigationPreload = request.mode === 'navigate'
-            ? createNavigationPreloadConsumer(event)
-            : null;
-        event.respondWith(handleNavigationRequest(request, consumeNavigationPreload));
+        event.respondWith(handleNavigationRequest(request));
         return;
     }
 
