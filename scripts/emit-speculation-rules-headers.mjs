@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 const repoRoot = process.cwd();
 const defaultPublicDir = 'public';
 const speculationHeaderName = 'Speculation-Rules';
+const defaultHeaderRoute = '/*';
 const speculationRulesAssetRoute = '/speculation-rules/*';
 const manifestDirName = '__speculation-rules-manifests';
 const rulesDirName = 'speculation-rules';
@@ -43,9 +44,9 @@ Examples:
   node themes/banyan/scripts/emit-speculation-rules-headers.mjs temp_workspace/public/260504-speculation-rules
 
 Notes:
-  - This script consumes page-level speculation manifest files generated during
-    Hugo render, emits shared external rules JSON files, and patches both
-    _headers and edgeone.json in the target public directory.
+  - This script consumes speculation document-rule manifest files generated
+    during Hugo render, emits a shared external rules JSON file, and patches
+    both _headers and edgeone.json in the target public directory.
   - It does not read runtime HTML payloads such as site-prefetch-data.
   - The temporary __speculation-rules-manifests directory is removed after the
     response headers and shared rules files have been generated.
@@ -144,7 +145,7 @@ function upsertHeader(headers, key, value) {
     return filtered;
 }
 
-function patchHeadersFile(body, pageRules, hasRulesAssetRoute) {
+function patchHeadersFile(body, rulesHeaderValue, hasRulesAssetRoute) {
     const { preamble } = splitHeadersPreamble(body);
     const blocks = parseHeadersBlocks(body);
     const filteredBlocks = blocks
@@ -165,22 +166,22 @@ function patchHeadersFile(body, pageRules, hasRulesAssetRoute) {
         });
     }
 
-    for (const pageRule of pageRules) {
-        const existing = nextBlocks.find((block) => block.source === pageRule.route);
+    if (rulesHeaderValue) {
+        const existing = nextBlocks.find((block) => block.source === defaultHeaderRoute);
         if (existing) {
-            existing.headers = upsertHeader(existing.headers, speculationHeaderName, pageRule.headerValue);
-            continue;
+            existing.headers = upsertHeader(existing.headers, speculationHeaderName, rulesHeaderValue);
+        } else {
+            nextBlocks.unshift({
+                source: defaultHeaderRoute,
+                headers: [{ key: speculationHeaderName, value: rulesHeaderValue }],
+            });
         }
-        nextBlocks.push({
-            source: pageRule.route,
-            headers: [{ key: speculationHeaderName, value: pageRule.headerValue }],
-        });
     }
 
     return renderHeadersBlocks(nextBlocks, preamble);
 }
 
-function patchEdgeoneConfig(body, pageRules, hasRulesAssetRoute) {
+function patchEdgeoneConfig(body, rulesHeaderValue, hasRulesAssetRoute) {
     const parsed = JSON.parse(body);
     const headerEntries = Array.isArray(parsed.headers) ? parsed.headers : [];
     const filteredEntries = headerEntries
@@ -209,20 +210,20 @@ function patchEdgeoneConfig(body, pageRules, hasRulesAssetRoute) {
         });
     }
 
-    for (const pageRule of pageRules) {
-        const existing = filteredEntries.find((entry) => entry.source === pageRule.route);
+    if (rulesHeaderValue) {
+        const existing = filteredEntries.find((entry) => entry.source === defaultHeaderRoute);
         if (existing) {
             const filteredHeaders = existing.headers.filter((header) => (
                 `${header.key ?? ''}`.toLowerCase() !== speculationHeaderName.toLowerCase()
             ));
-            filteredHeaders.push({ key: speculationHeaderName, value: pageRule.headerValue });
+            filteredHeaders.push({ key: speculationHeaderName, value: rulesHeaderValue });
             existing.headers = filteredHeaders;
-            continue;
+        } else {
+            filteredEntries.unshift({
+                source: defaultHeaderRoute,
+                headers: [{ key: speculationHeaderName, value: rulesHeaderValue }],
+            });
         }
-        filteredEntries.push({
-            source: pageRule.route,
-            headers: [{ key: speculationHeaderName, value: pageRule.headerValue }],
-        });
     }
 
     parsed.headers = filteredEntries;
@@ -231,7 +232,7 @@ function patchEdgeoneConfig(body, pageRules, hasRulesAssetRoute) {
 
 async function ensureRulesFile(publicRoot, content, contentToPath) {
     const contentHash = toContentHash(content).slice(0, 16);
-    const relativePath = contentToPath.get(contentHash) || `${rulesDirName}/rules.${contentHash}.json`;
+    const relativePath = contentToPath.get(contentHash) || `${rulesDirName}/document.${contentHash}.json`;
     const absolutePath = path.join(publicRoot, relativePath);
     await fs.mkdir(path.dirname(absolutePath), { recursive: true });
     await fs.writeFile(absolutePath, `${content}\n`, 'utf8');
@@ -289,21 +290,16 @@ async function main() {
     await Promise.all([fs.access(publicRoot), fs.access(headersPath), fs.access(edgeonePath)]);
 
     const manifestEntries = await readSpeculationManifestEntries(publicRoot);
-    const pageRules = [];
+    const rulesBodiesByHash = new Map();
     const contentToPath = new Map();
     await fs.rm(rulesRoot, { recursive: true, force: true });
 
     for (const manifestEntry of manifestEntries) {
         const content = JSON.stringify(manifestEntry.rules, null, 2);
-        const rulesPath = await ensureRulesFile(publicRoot, content, contentToPath);
-        pageRules.push({
-            route: manifestEntry.route,
-            headerValue: `"${rulesPath}"`,
-            rulesPath,
-        });
+        rulesBodiesByHash.set(toContentHash(content), content);
         if (manifestEntry.overlapWarnings.length > 0) {
             const envKeys = [];
-            const uniqueUrls = new Set();
+            const uniqueSlots = new Set();
             for (const summary of manifestEntry.overlapWarnings) {
                 const separatorIndex = summary.indexOf('=');
                 if (separatorIndex > 0) {
@@ -313,14 +309,27 @@ async function main() {
                 if (!urlsMatch || !urlsMatch[1]) {
                     continue;
                 }
-                for (const url of urlsMatch[1].split(',').map((item) => item.trim()).filter(Boolean)) {
-                    uniqueUrls.add(url);
+                for (const slot of urlsMatch[1].split(',').map((item) => item.trim()).filter(Boolean)) {
+                    uniqueSlots.add(slot);
                 }
             }
             console.warn(
-                `Speculation overlap warning for ${manifestEntry.route}: ${uniqueUrls.size} duplicated target(s) across runtime env(s) ${envKeys.join(', ')}.`
+                `Speculation overlap warning for ${manifestEntry.route}: ${uniqueSlots.size} overlapping slot(s) across runtime env(s) ${envKeys.join(', ')}.`
             );
         }
+    }
+
+    if (rulesBodiesByHash.size > 1) {
+        throw new Error(
+            `Expected one global speculation document-rules payload, got ${rulesBodiesByHash.size}.`
+        );
+    }
+
+    let rulesHeaderValue = '';
+    if (rulesBodiesByHash.size === 1) {
+        const content = Array.from(rulesBodiesByHash.values())[0];
+        const rulesPath = await ensureRulesFile(publicRoot, content, contentToPath);
+        rulesHeaderValue = `"${rulesPath}"`;
     }
 
     const [headersBody, edgeoneBody] = await Promise.all([
@@ -328,8 +337,8 @@ async function main() {
         fs.readFile(edgeonePath, 'utf8'),
     ]);
 
-    const patchedHeadersBody = patchHeadersFile(headersBody, pageRules, contentToPath.size > 0);
-    const patchedEdgeoneBody = patchEdgeoneConfig(edgeoneBody, pageRules, contentToPath.size > 0);
+    const patchedHeadersBody = patchHeadersFile(headersBody, rulesHeaderValue, contentToPath.size > 0);
+    const patchedEdgeoneBody = patchEdgeoneConfig(edgeoneBody, rulesHeaderValue, contentToPath.size > 0);
 
     await Promise.all([
         fs.writeFile(headersPath, patchedHeadersBody, 'utf8'),
@@ -338,7 +347,7 @@ async function main() {
     ]);
 
     console.log(
-        `Emitted ${contentToPath.size} shared speculation rules file(s) and patched ${pageRules.length} page route(s).`
+        `Emitted ${contentToPath.size} global speculation document rules file(s) and patched the default route.`
     );
 }
 

@@ -132,7 +132,7 @@ async function readRulesFile(primaryBuildDir, rulesPath) {
 
 async function collectSpeculationRulesOutcome({
     consoleEntries,
-    expectedEagerUrls = [],
+    expectedEagerSlots = [],
     page,
     pathLabel,
     primaryBuildDir,
@@ -231,16 +231,19 @@ async function collectSpeculationRulesOutcome({
         });
     }
 
-    for (const expectedUrl of expectedEagerUrls) {
+    for (const expectedSlot of expectedEagerSlots) {
+        const expectedSelector = `a[data-prefetch-slot="${expectedSlot}"]`;
         const found = prefetchEntries.some((entry) => (
             entry
+            && entry.source === 'document'
             && entry.eagerness === 'eager'
-            && Array.isArray(entry.urls)
-            && entry.urls.includes(expectedUrl)
+            && entry.where
+            && entry.where.selector_matches === expectedSelector
         ));
         if (!found) {
-            fail('Generated speculation rules payload missed an expected eager target.', {
-                expectedUrl,
+            fail('Generated speculation document rules payload missed an expected eager slot.', {
+                expectedSelector,
+                expectedSlot,
                 path: pathLabel,
                 rulesPath,
                 rulesPayload
@@ -300,7 +303,7 @@ async function collectSpeculationRulesOutcome({
             ].join('');
         }
 
-        function pickActions(payload, envSequence) {
+        function pickConfig(payload, envSequence) {
             const entry = payload && typeof payload === 'object' ? payload[envSequence] || null : null;
             if (!entry) return null;
             if (typeof entry === 'string') {
@@ -310,23 +313,67 @@ async function collectSpeculationRulesOutcome({
             return typeof entry === 'object' ? entry : null;
         }
 
-        const payload = readJsonScript('site-prefetch-data');
-        const runtimeMeta = readJsonScript('site-prefetch-runtime-meta');
-        const resolvedActions = pickActions(payload, getEnvSequence()) || {};
-        const runtimeActionUrls = [];
-        for (const value of Object.values(resolvedActions)) {
-            if (!Array.isArray(value)) continue;
-            for (const rawUrl of value) {
-                const href = normalizeUrl(rawUrl);
-                if (href && !runtimeActionUrls.includes(href)) {
-                    runtimeActionUrls.push(href);
-                }
-            }
+        function parseRuntimeMode(rawValue) {
+            const raw = String(rawValue || '').trim().toLowerCase();
+            if (!raw || raw === 'off' || raw === '<nil>') return null;
+
+            const normalized = raw.endsWith('_g') ? raw.slice(0, -2) : raw;
+            const match = /^(link|sw)_([smx])f$/.exec(normalized);
+            if (!match) return null;
+
+            return {
+                transport: match[1]
+            };
         }
 
-        const ownedUrls = Array.isArray(runtimeMeta?.owned_urls)
-            ? runtimeMeta.owned_urls.map((rawUrl) => normalizeUrl(rawUrl)).filter(Boolean)
+        function canWarmAnchor(anchor) {
+            if (!(anchor instanceof HTMLAnchorElement)) return false;
+            if (anchor.target && anchor.target.toLowerCase() !== '_self') return false;
+            if (anchor.hasAttribute('download')) return false;
+            return true;
+        }
+
+        function collectSlotUrls(slot, seenUrls) {
+            const urls = [];
+            const currentUrl = normalizeUrl(window.location.href);
+            const anchors = document.querySelectorAll('a[href][data-prefetch-slot]');
+            for (let index = 0; index < anchors.length; index += 1) {
+                const anchor = anchors[index];
+                if (!(anchor instanceof HTMLAnchorElement)) continue;
+                if (anchor.getAttribute('data-prefetch-slot') !== slot) continue;
+                if (!canWarmAnchor(anchor)) continue;
+
+                const href = normalizeUrl(anchor.href);
+                if (!href || href === currentUrl || seenUrls.has(href)) continue;
+                seenUrls.add(href);
+                urls.push(href);
+            }
+            return urls;
+        }
+
+        function collectActionUrls(config, options = {}) {
+            const urls = [];
+            const seenUrls = new Set();
+            const slotOrder = ['menu', 'nav', 'sort', 'desc', 'post'];
+            const onlySlots = new Set(Array.isArray(options.onlySlots) ? options.onlySlots : []);
+            const suppressed = new Set(Array.isArray(options.suppressedSlots) ? options.suppressedSlots : []);
+            for (const slot of slotOrder) {
+                if (onlySlots.size > 0 && !onlySlots.has(slot)) continue;
+                if (suppressed.has(slot)) continue;
+                if (!parseRuntimeMode(config && config[slot])) continue;
+                urls.push(...collectSlotUrls(slot, seenUrls));
+            }
+            return urls;
+        }
+
+        const payload = readJsonScript('site-prefetch-data');
+        const runtimeMeta = readJsonScript('site-prefetch-runtime-meta');
+        const resolvedConfig = pickConfig(payload, getEnvSequence()) || {};
+        const ownedSlots = Array.isArray(runtimeMeta?.owned_slots)
+            ? runtimeMeta.owned_slots.filter((slot) => typeof slot === 'string' && slot)
             : [];
+        const runtimeActionUrls = collectActionUrls(resolvedConfig);
+        const ownedUrls = collectActionUrls(resolvedConfig, { onlySlots: ownedSlots });
         const ownedSet = new Set(ownedUrls);
         const trace = window.__banyanPrefetchTrace || { prefetchLinks: [], serviceWorkerMessages: [] };
         const recordedRuntimeUrls = [];
@@ -354,6 +401,7 @@ async function collectSpeculationRulesOutcome({
         return {
             coordinationMode: runtimeMeta?.coordination_mode || '',
             ownedUrls,
+            ownedSlots,
             recordedActionUrls,
             recordedNonActionUrls,
             recordedRuntimeUrls,
@@ -372,7 +420,7 @@ async function collectSpeculationRulesOutcome({
             runtimeCoordination.ownedUrls.includes(href)
         ));
         if (recordedOverlapUrls.length > 0) {
-            fail('Runtime prefetch still touched spec-owned URLs under preempt coordination.', {
+            fail('Runtime prefetch still touched links from spec-owned slots under preempt coordination.', {
                 path: pathLabel,
                 recordedOverlapUrls,
                 runtimeCoordination
@@ -483,8 +531,8 @@ async function collectPrefetchDebugObservation(page, pathLabel) {
     const panels = await readPrefetchDebugPanels(page, pathLabel);
     const filteredActions = panels.filtered && typeof panels.filtered === 'object' ? panels.filtered.filteredActions || {} : {};
     const suppressedActions = panels.filtered && typeof panels.filtered === 'object' ? panels.filtered.suppressedActions || {} : {};
-    const ownedUrls = Array.isArray(panels.specOwned?.activeOwnedUrls) ? panels.specOwned.activeOwnedUrls : [];
-    const declaredOwnedUrls = Array.isArray(panels.specOwned?.declaredOwnedUrls) ? panels.specOwned.declaredOwnedUrls : [];
+    const ownedSlots = Array.isArray(panels.specOwned?.activeOwnedSlots) ? panels.specOwned.activeOwnedSlots : [];
+    const declaredOwnedSlots = Array.isArray(panels.specOwned?.declaredOwnedSlots) ? panels.specOwned.declaredOwnedSlots : [];
 
     if (panels.support?.speculationRules !== true) {
         fail('Prefetch debug page did not detect Speculation Rules support in the test browser.', {
@@ -508,8 +556,8 @@ async function collectPrefetchDebugObservation(page, pathLabel) {
         });
     }
 
-    if (declaredOwnedUrls.length < 1 || ownedUrls.length < 1) {
-        fail('Prefetch debug page did not expose any spec-owned URLs.', {
+    if (declaredOwnedSlots.length < 1 || ownedSlots.length < 1) {
+        fail('Prefetch debug page did not expose any spec-owned slots.', {
             path: pathLabel,
             specOwned: panels.specOwned
         });
@@ -592,7 +640,7 @@ function createSpeculationHeaderScenario(config) {
 
             const outcome = await collectSpeculationRulesOutcome({
                 consoleEntries,
-                expectedEagerUrls: config.expectedEagerUrls || [],
+                expectedEagerSlots: config.expectedEagerSlots || [],
                 page,
                 pathLabel: config.path,
                 primaryBuildDir,
@@ -620,14 +668,14 @@ const speculationHeaderScenarios = [
         path: '/all/',
         title: 'Speculation-Rules Header: All',
         waitForSelector: '.grid-list',
-        expectedEagerUrls: ['/intent/', '/tags/']
+        expectedEagerSlots: ['nav']
     }),
     createSpeculationHeaderScenario({
         id: 'speculation-rules-header-xvenv',
         path: '/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc',
         title: 'Speculation-Rules Header: Xvenv Breadcrumb Path',
         waitForSelector: '.slot-row-breadcrumb',
-        expectedEagerUrls: ['/all/', '/intent/', '/tags/'],
+        expectedEagerSlots: ['nav', 'sort'],
         async afterLoad(page) {
             await waitForBreadcrumbSettled(page);
         }

@@ -2,13 +2,15 @@
     const dataNode = document.getElementById('site-prefetch-data');
     if (!dataNode) return;
 
-    let actionsByEnv = null;
+    let configByEnv = null;
     try {
-        actionsByEnv = JSON.parse(dataNode.textContent || '{}');
+        configByEnv = JSON.parse(dataNode.textContent || '{}');
     } catch (error) {
         return;
     }
-    if (!actionsByEnv || typeof actionsByEnv !== 'object') return;
+    if (!configByEnv || typeof configByEnv !== 'object') return;
+
+    const slotOrder = ['menu', 'nav', 'sort', 'desc', 'post'];
 
     function readRuntimeMeta() {
         const metaNode = document.getElementById('site-prefetch-runtime-meta');
@@ -52,18 +54,40 @@
         ].join('');
     }
 
-    function pickActions() {
-        const entry = actionsByEnv[getBrowserEnvSequence()] || null;
+    function pickConfig() {
+        const entry = configByEnv[getBrowserEnvSequence()] || null;
         if (!entry) return null;
         if (typeof entry === 'string') {
-            const target = actionsByEnv[entry] || null;
+            const target = configByEnv[entry] || null;
             return target && typeof target === 'object' ? target : null;
         }
         return typeof entry === 'object' ? entry : null;
     }
 
-    const actions = pickActions();
-    if (!actions || typeof actions !== 'object') return;
+    const activeConfig = pickConfig();
+    if (!activeConfig || typeof activeConfig !== 'object') return;
+
+    function parseRuntimeMode(rawValue) {
+        const raw = String(rawValue || '').trim().toLowerCase();
+        if (!raw || raw === 'off' || raw === '<nil>') return null;
+
+        const globalGate = raw.endsWith('_g');
+        const normalized = globalGate ? raw.slice(0, -2) : raw;
+        const match = /^(link|sw)_([smx])f$/.exec(normalized);
+        if (!match) return null;
+
+        const eagerness = match[2] === 's'
+            ? 'conservative'
+            : match[2] === 'm'
+                ? 'moderate'
+                : 'eager';
+
+        return {
+            eagerness,
+            globalGate,
+            transport: match[1]
+        };
+    }
 
     function normalizeNavigationUrl(rawUrl) {
         try {
@@ -75,47 +99,85 @@
         }
     }
 
-    function buildSpecOwnedUrlSet(runtimeMeta) {
+    const currentNavigationUrl = normalizeNavigationUrl(window.location.href);
+
+    function canWarmAnchor(anchor) {
+        if (!(anchor instanceof HTMLAnchorElement)) return false;
+        if (anchor.target && anchor.target.toLowerCase() !== '_self') return false;
+        if (anchor.hasAttribute('download')) return false;
+        return true;
+    }
+
+    function collectSlotUrls(slot, seenUrls) {
+        const urls = [];
+        const anchors = document.querySelectorAll('a[href][data-prefetch-slot]');
+        for (let index = 0; index < anchors.length; index += 1) {
+            const anchor = anchors[index];
+            if (!(anchor instanceof HTMLAnchorElement)) continue;
+            if (anchor.getAttribute('data-prefetch-slot') !== slot) continue;
+            if (!canWarmAnchor(anchor)) continue;
+
+            const href = normalizeNavigationUrl(anchor.href);
+            if (!href || href === currentNavigationUrl || seenUrls.has(href)) continue;
+            seenUrls.add(href);
+            urls.push(href);
+        }
+        return urls;
+    }
+
+    function buildSpecOwnedSlotSet(runtimeMeta) {
         if (!runtimeMeta || typeof runtimeMeta !== 'object') return null;
         if (runtimeMeta.coordination_mode !== 'preempt_runtime_when_supported') return null;
         if (!supportsSpeculationRules()) return null;
 
-        const ownedUrls = Array.isArray(runtimeMeta.owned_urls) ? runtimeMeta.owned_urls : [];
-        if (!ownedUrls.length) return null;
+        const ownedSlots = Array.isArray(runtimeMeta.owned_slots) ? runtimeMeta.owned_slots : [];
+        if (!ownedSlots.length) return null;
 
         const ownedSet = new Set();
-        for (const rawUrl of ownedUrls) {
-            const href = normalizeNavigationUrl(rawUrl);
-            if (href) {
-                ownedSet.add(href);
+        for (const slot of ownedSlots) {
+            if (typeof slot === 'string' && slot) {
+                ownedSet.add(slot);
             }
         }
         return ownedSet.size > 0 ? ownedSet : null;
     }
 
-    function filterActionsByOwnedUrls(sourceActions, ownedUrlSet) {
-        if (!ownedUrlSet || !(sourceActions && typeof sourceActions === 'object')) {
-            return sourceActions;
+    function toActionKey(mode) {
+        if (!mode) return '';
+        const transportCode = mode.transport === 'link' ? 'l' : mode.transport === 'sw' ? 'w' : '';
+        if (!transportCode) return '';
+        const eagernessCode = mode.eagerness === 'conservative'
+            ? 's'
+            : mode.eagerness === 'moderate'
+                ? 'm'
+                : 'x';
+        return `${transportCode}${eagernessCode}${mode.globalGate ? 'g' : ''}`;
+    }
+
+    function buildActions(sourceConfig, ownedSlotSet) {
+        const actions = {};
+        const seenUrls = new Set();
+
+        for (const slot of slotOrder) {
+            const mode = parseRuntimeMode(sourceConfig[slot]);
+            if (!mode) continue;
+            if (ownedSlotSet && ownedSlotSet.has(slot)) continue;
+
+            const urls = collectSlotUrls(slot, seenUrls);
+            if (urls.length === 0) continue;
+
+            const actionKey = toActionKey(mode);
+            if (!actionKey) continue;
+            actions[actionKey] = (actions[actionKey] || []).concat(urls);
         }
 
-        const filtered = {};
-        for (const [key, value] of Object.entries(sourceActions)) {
-            if (!Array.isArray(value)) continue;
-            const urls = value.filter((rawUrl) => {
-                const href = normalizeNavigationUrl(rawUrl);
-                return !href || !ownedUrlSet.has(href);
-            });
-            if (urls.length > 0) {
-                filtered[key] = urls;
-            }
-        }
-        return filtered;
+        return actions;
     }
 
     const runtimeMeta = readRuntimeMeta();
-    const specOwnedUrlSet = buildSpecOwnedUrlSet(runtimeMeta);
-    const filteredActions = filterActionsByOwnedUrls(actions, specOwnedUrlSet);
-    if (!filteredActions || Object.keys(filteredActions).length === 0) return;
+    const specOwnedSlotSet = buildSpecOwnedSlotSet(runtimeMeta);
+    const actions = buildActions(activeConfig, specOwnedSlotSet);
+    if (!actions || Object.keys(actions).length === 0) return;
 
     {{ if .has_global_gate }}
     function canUseGlobalPrefetchGate() {
@@ -164,44 +226,44 @@
     {{ end }}
 
     {{ if .has_link_module }}
-    const linkStaticUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.lx) ? filteredActions.lx : []).concat(
-        consumeGlobalGateValue('lxg', Array.isArray(filteredActions.lxg) ? filteredActions.lxg : [])
-    ){{ else }}Array.isArray(filteredActions.lx) ? filteredActions.lx : []{{ end }};
+    const linkStaticUrls = {{ if .has_global_gate }}(Array.isArray(actions.lx) ? actions.lx : []).concat(
+        consumeGlobalGateValue('lxg', Array.isArray(actions.lxg) ? actions.lxg : [])
+    ){{ else }}Array.isArray(actions.lx) ? actions.lx : []{{ end }};
     {{ else }}
     const linkStaticUrls = [];
     {{ end }}
     {{ if and .has_link_module .has_conservative_module }}
-    const linkConservativeUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.ls) ? filteredActions.ls : []).concat(
-        consumeGlobalGateValue('lsg', Array.isArray(filteredActions.lsg) ? filteredActions.lsg : [])
-    ){{ else }}Array.isArray(filteredActions.ls) ? filteredActions.ls : []{{ end }};
+    const linkConservativeUrls = {{ if .has_global_gate }}(Array.isArray(actions.ls) ? actions.ls : []).concat(
+        consumeGlobalGateValue('lsg', Array.isArray(actions.lsg) ? actions.lsg : [])
+    ){{ else }}Array.isArray(actions.ls) ? actions.ls : []{{ end }};
     {{ else }}
     const linkConservativeUrls = [];
     {{ end }}
     {{ if and .has_link_module .has_moderate_module }}
-    const linkModerateUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.lm) ? filteredActions.lm : []).concat(
-        consumeGlobalGateValue('lmg', Array.isArray(filteredActions.lmg) ? filteredActions.lmg : [])
-    ){{ else }}Array.isArray(filteredActions.lm) ? filteredActions.lm : []{{ end }};
+    const linkModerateUrls = {{ if .has_global_gate }}(Array.isArray(actions.lm) ? actions.lm : []).concat(
+        consumeGlobalGateValue('lmg', Array.isArray(actions.lmg) ? actions.lmg : [])
+    ){{ else }}Array.isArray(actions.lm) ? actions.lm : []{{ end }};
     {{ else }}
     const linkModerateUrls = [];
     {{ end }}
     {{ if .has_sw_module }}
-    const swStaticUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.wx) ? filteredActions.wx : []).concat(
-        consumeGlobalGateValue('wxg', Array.isArray(filteredActions.wxg) ? filteredActions.wxg : [])
-    ){{ else }}Array.isArray(filteredActions.wx) ? filteredActions.wx : []{{ end }};
+    const swStaticUrls = {{ if .has_global_gate }}(Array.isArray(actions.wx) ? actions.wx : []).concat(
+        consumeGlobalGateValue('wxg', Array.isArray(actions.wxg) ? actions.wxg : [])
+    ){{ else }}Array.isArray(actions.wx) ? actions.wx : []{{ end }};
     {{ else }}
     const swStaticUrls = [];
     {{ end }}
     {{ if and .has_sw_module .has_conservative_module }}
-    const swConservativeUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.ws) ? filteredActions.ws : []).concat(
-        consumeGlobalGateValue('wsg', Array.isArray(filteredActions.wsg) ? filteredActions.wsg : [])
-    ){{ else }}Array.isArray(filteredActions.ws) ? filteredActions.ws : []{{ end }};
+    const swConservativeUrls = {{ if .has_global_gate }}(Array.isArray(actions.ws) ? actions.ws : []).concat(
+        consumeGlobalGateValue('wsg', Array.isArray(actions.wsg) ? actions.wsg : [])
+    ){{ else }}Array.isArray(actions.ws) ? actions.ws : []{{ end }};
     {{ else }}
     const swConservativeUrls = [];
     {{ end }}
     {{ if and .has_sw_module .has_moderate_module }}
-    const swModerateUrls = {{ if .has_global_gate }}(Array.isArray(filteredActions.wm) ? filteredActions.wm : []).concat(
-        consumeGlobalGateValue('wmg', Array.isArray(filteredActions.wmg) ? filteredActions.wmg : [])
-    ){{ else }}Array.isArray(filteredActions.wm) ? filteredActions.wm : []{{ end }};
+    const swModerateUrls = {{ if .has_global_gate }}(Array.isArray(actions.wm) ? actions.wm : []).concat(
+        consumeGlobalGateValue('wmg', Array.isArray(actions.wmg) ? actions.wmg : [])
+    ){{ else }}Array.isArray(actions.wm) ? actions.wm : []{{ end }};
     {{ else }}
     const swModerateUrls = [];
     {{ end }}
@@ -330,9 +392,7 @@
     }
 
     function getAnchorWarmTarget(anchor) {
-        if (!(anchor instanceof HTMLAnchorElement)) return null;
-        if (anchor.target && anchor.target.toLowerCase() !== '_self') return null;
-        if (anchor.hasAttribute('download')) return null;
+        if (!canWarmAnchor(anchor)) return null;
 
         const href = normalizeNavigationUrl(anchor.href);
         if (!href) return null;

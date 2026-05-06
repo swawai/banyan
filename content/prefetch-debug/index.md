@@ -19,7 +19,7 @@ prefetch_debug:
     support: Browser Support
     env: Chosen Env
     actions: Chosen Runtime Actions (Raw)
-    spec_owned: Spec-Owned URLs
+    spec_owned: Spec-Owned Slots
     actions_filtered: Runtime Actions After Coordination
     runtime: Runtime Observation
     payload: Page Payload

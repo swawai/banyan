@@ -3,10 +3,15 @@
 {{- $speculationRuntimeCoordination := lower (printf "%v" (.speculation_runtime_coordination | default "independent")) -}}
 {{- $prefetchConfig := site.Params.prefetch_runtime | default dict -}}
 {{- $envConfigMap := .env_config_map | default (partial "prefetch-runtime-env-config-map.html" (dict "prefetch_config" $prefetchConfig)) -}}
-{{- $candidates := $ctx.Scratch.Get "linkCandidates" | default (dict "menu" (slice) "nav" (slice) "sort" (slice) "desc" (slice) "post" (slice)) -}}
 {{- $speculationRuntimeMeta := $ctx.Scratch.Get "speculation_runtime_meta" | default dict -}}
-{{- $envKeys := slice "TT" "TF" "FT" "FF" -}}
-{{- $actionsPayloadByEnv := dict -}}
+{{- $slotSpecs := slice
+  (dict "config_key" "menu" "slot" "menu")
+  (dict "config_key" "nav" "slot" "nav")
+  (dict "config_key" "sort_siblings" "slot" "sort")
+  (dict "config_key" "descendants" "slot" "desc")
+  (dict "config_key" "post" "slot" "post")
+-}}
+{{- $configPayloadByEnv := dict -}}
 {{- $canonicalEnvByFingerprint := dict -}}
 {{- $hasGlobalGate := false -}}
 {{- $hasLinkModule := false -}}
@@ -15,33 +20,36 @@
 {{- $hasModerateModule := false -}}
 {{- $hasSwModule := false -}}
 
-{{- range $envKey := $envKeys -}}
+{{- range $envKey := (slice "TT" "TF" "FT" "FF") -}}
   {{- $envConfig := index $envConfigMap $envKey | default dict -}}
-  {{- $actions := partial "prefetch-runtime-actions.html" (dict
-    "env_config" $envConfig
-    "candidates" $candidates
-    "current" $ctx.RelPermalink
-    "env_key" $envKey
-    "sw_mode" $swMode
-  ) -}}
-  {{- if gt (len $actions) 0 -}}
-    {{- $actionsFingerprint := printf "%s" ($actions | jsonify) -}}
-    {{- $canonicalEnvKey := index $canonicalEnvByFingerprint $actionsFingerprint | default "" -}}
-    {{- if $canonicalEnvKey -}}
-      {{- $actionsPayloadByEnv = merge $actionsPayloadByEnv (dict $envKey $canonicalEnvKey) -}}
-    {{- else -}}
-      {{- $actionsPayloadByEnv = merge $actionsPayloadByEnv (dict $envKey $actions) -}}
-      {{- $canonicalEnvByFingerprint = merge $canonicalEnvByFingerprint (dict $actionsFingerprint $envKey) -}}
+  {{- $slotModes := dict -}}
+  {{- range $slotSpec := $slotSpecs -}}
+    {{- $configKey := index $slotSpec "config_key" -}}
+    {{- $slot := index $slotSpec "slot" -}}
+    {{- $parsedMode := partial "prefetch-runtime-mode.html" (index $envConfig $configKey) -}}
+    {{- if eq (index $parsedMode "kind") "prefetch" -}}
+      {{- $slotModes = merge $slotModes (dict $slot (index $parsedMode "value")) -}}
+      {{- $hasGlobalGate = or $hasGlobalGate (index $parsedMode "global_gate") -}}
+      {{- $hasLinkModule = or $hasLinkModule (eq (index $parsedMode "transport") "link") -}}
+      {{- $hasSwModule = or $hasSwModule (eq (index $parsedMode "transport") "sw") -}}
+      {{- $hasInteractionModule = or $hasInteractionModule (in (slice "conservative" "moderate") (index $parsedMode "eagerness")) -}}
+      {{- $hasConservativeModule = or $hasConservativeModule (eq (index $parsedMode "eagerness") "conservative") -}}
+      {{- $hasModerateModule = or $hasModerateModule (eq (index $parsedMode "eagerness") "moderate") -}}
     {{- end -}}
-    {{- $hasGlobalGate = or $hasGlobalGate (isset $actions "lsg") (isset $actions "lmg") (isset $actions "lxg") (isset $actions "wsg") (isset $actions "wmg") (isset $actions "wxg") -}}
-    {{- $hasLinkModule = or $hasLinkModule (isset $actions "ls") (isset $actions "lm") (isset $actions "lx") (isset $actions "lsg") (isset $actions "lmg") (isset $actions "lxg") -}}
-    {{- $hasInteractionModule = or $hasInteractionModule (isset $actions "ls") (isset $actions "lm") (isset $actions "lsg") (isset $actions "lmg") (isset $actions "ws") (isset $actions "wm") (isset $actions "wsg") (isset $actions "wmg") -}}
-    {{- $hasConservativeModule = or $hasConservativeModule (isset $actions "ls") (isset $actions "lsg") (isset $actions "ws") (isset $actions "wsg") -}}
-    {{- $hasModerateModule = or $hasModerateModule (isset $actions "lm") (isset $actions "lmg") (isset $actions "wm") (isset $actions "wmg") -}}
-    {{- $hasSwModule = or $hasSwModule (isset $actions "ws") (isset $actions "wm") (isset $actions "wx") (isset $actions "wsg") (isset $actions "wmg") (isset $actions "wxg") -}}
+  {{- end -}}
+  {{- if gt (len $slotModes) 0 -}}
+    {{- $configFingerprint := printf "%s" ($slotModes | jsonify) -}}
+    {{- $canonicalEnvKey := index $canonicalEnvByFingerprint $configFingerprint | default "" -}}
+    {{- if $canonicalEnvKey -}}
+      {{- $configPayloadByEnv = merge $configPayloadByEnv (dict $envKey $canonicalEnvKey) -}}
+    {{- else -}}
+      {{- $configPayloadByEnv = merge $configPayloadByEnv (dict $envKey $slotModes) -}}
+      {{- $canonicalEnvByFingerprint = merge $canonicalEnvByFingerprint (dict $configFingerprint $envKey) -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- if gt (len $actionsPayloadByEnv) 0 -}}
+
+{{- if gt (len $configPayloadByEnv) 0 -}}
   {{- $isServer := hugo.IsServer -}}
   {{- $runtimeTemplatePath := "js/prefetch.runtime.entry.js.tmpl" -}}
   {{- $runtimeTemplate := resources.Get $runtimeTemplatePath -}}
@@ -70,7 +78,7 @@
   ) -}}
   {{- if not $isServer }}{{ $runtimeBundle = $runtimeBundle | minify }}{{ end -}}
   {{- $runtimeBundle = $runtimeBundle | fingerprint -}}
-<script id="site-prefetch-data" type="application/json">{{ $actionsPayloadByEnv | jsonify | safeJS }}</script>
+<script id="site-prefetch-data" type="application/json">{{ $configPayloadByEnv | jsonify | safeJS }}</script>
   {{- if and (eq $speculationRuntimeCoordination "preempt_runtime_when_supported") (gt (len $speculationRuntimeMeta) 0) -}}
 <script id="site-prefetch-runtime-meta" type="application/json">{{ $speculationRuntimeMeta | jsonify | safeJS }}</script>
   {{- end -}}

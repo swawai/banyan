@@ -1,0 +1,40 @@
+{{- $speculationConfig := .speculation_config | default (site.Params.speculation_rules | default dict) -}}
+{{- $slotSpecs := slice
+  (dict "config_key" "menu" "slot" "menu")
+  (dict "config_key" "nav" "slot" "nav")
+  (dict "config_key" "sort_siblings" "slot" "sort")
+  (dict "config_key" "descendants" "slot" "desc")
+  (dict "config_key" "post" "slot" "post")
+-}}
+{{- $prefetchRules := slice -}}
+{{- $prerenderRules := slice -}}
+
+{{- range $slotSpec := $slotSpecs -}}
+  {{- $configKey := index $slotSpec "config_key" -}}
+  {{- $slot := index $slotSpec "slot" -}}
+  {{- $mode := partial "speculation-rules-mode.html" (index $speculationConfig $configKey) -}}
+  {{- if eq (index $mode "kind") "invalid" -}}
+    {{- errorf "Build failed: params.speculation_rules.%s only supports empty/off or direct modes such as prefetch_moderate or prerender_eager; got %q." $configKey (index $mode "value") -}}
+  {{- end -}}
+  {{- if ne (index $mode "kind") "" -}}
+    {{- $entry := dict
+      "source" "document"
+      "where" (dict "selector_matches" (printf "a[data-prefetch-slot=\"%s\"]" $slot))
+      "eagerness" (index $mode "eagerness")
+    -}}
+    {{- if eq (index $mode "kind") "prerender" -}}
+      {{- $prerenderRules = $prerenderRules | append $entry -}}
+    {{- else -}}
+      {{- $prefetchRules = $prefetchRules | append $entry -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $result := dict -}}
+{{- if gt (len $prefetchRules) 0 -}}
+  {{- $result = merge $result (dict "prefetch" $prefetchRules) -}}
+{{- end -}}
+{{- if gt (len $prerenderRules) 0 -}}
+  {{- $result = merge $result (dict "prerender" $prerenderRules) -}}
+{{- end -}}
+{{- return $result -}}

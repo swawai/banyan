@@ -185,11 +185,15 @@ function createDesignAuditScenario(pageConfig, viewportConfig) {
 }
 
 function readCspReportOnlyHeader(response) {
+    return readResponseHeader(response, 'content-security-policy-report-only');
+}
+
+function readResponseHeader(response, headerName) {
     if (!response) {
         return '';
     }
     const headers = response.headers();
-    return headers['content-security-policy-report-only'] || '';
+    return headers[headerName.toLowerCase()] || '';
 }
 
 function filterCspConsoleMessages(entries) {
@@ -220,9 +224,48 @@ function assertReportOnlyPolicy(headerValue, details = {}) {
     }
 }
 
+function assertAdjacentSecurityHeaders(response, details = {}) {
+    const permissionsPolicy = readResponseHeader(response, 'permissions-policy');
+    if (!permissionsPolicy) {
+        fail('Response did not include Permissions-Policy.', details);
+    }
+    for (const directive of ['camera=()', 'microphone=()', 'geolocation=()', 'payment=()', 'usb=()']) {
+        if (!permissionsPolicy.includes(directive)) {
+            fail('Permissions-Policy is missing an expected denied capability.', {
+                ...details,
+                directive,
+                permissionsPolicy
+            });
+        }
+    }
+
+    const hsts = readResponseHeader(response, 'strict-transport-security');
+    if (!hsts) {
+        fail('Response did not include Strict-Transport-Security.', details);
+    }
+    if (!/^max-age=300(?:\s*;|$)/i.test(hsts.trim())) {
+        fail('Strict-Transport-Security should remain in the initial ramp-up stage.', {
+            ...details,
+            hsts
+        });
+    }
+    if (/includeSubDomains|preload/i.test(hsts)) {
+        fail('Strict-Transport-Security should not enable includeSubDomains or preload during ramp-up.', {
+            ...details,
+            hsts
+        });
+    }
+
+    return {
+        hsts,
+        permissionsPolicy
+    };
+}
+
 async function collectSecurityOutcome(page, response, consoleEntries, extraDetails = {}) {
     const cspReportOnly = readCspReportOnlyHeader(response);
     assertReportOnlyPolicy(cspReportOnly, extraDetails);
+    const adjacentHeaders = assertAdjacentSecurityHeaders(response, extraDetails);
 
     await page.waitForTimeout(250);
     const violations = await readSecurityPolicyViolations(page);
@@ -246,6 +289,7 @@ async function collectSecurityOutcome(page, response, consoleEntries, extraDetai
         consoleMessageCount: consoleEntries.length,
         cspConsoleMessages,
         cspReportOnly,
+        ...adjacentHeaders,
         violations
     };
 }

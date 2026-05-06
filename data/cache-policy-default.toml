@@ -119,6 +119,8 @@ path = "/*"
 Referrer-Policy = "strict-origin-when-cross-origin"
 X-Content-Type-Options = "nosniff"
 X-Frame-Options = "SAMEORIGIN"
+Permissions-Policy = "accelerometer=(), bluetooth=(), browsing-topics=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), midi=(), payment=(), serial=(), usb=()"
+Strict-Transport-Security = "max-age=300"
 Cache-Control = "public, max-age=900, must-revalidate"
 
 [routes.sw]

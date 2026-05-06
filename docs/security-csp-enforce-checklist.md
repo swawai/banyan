@@ -40,8 +40,8 @@
 
 当前 `Speculation-Rules` 栈已经改成：
 
-- 页面响应头返回 `Speculation-Rules: "/speculation-rules/....json"`
-- 规则内容位于外部 `application/speculationrules+json`
+- 默认响应头返回 `Speculation-Rules: "/speculation-rules/document.<hash>.json"`
+- 规则内容位于外部 `application/speculationrules+json` document rules 文件
 - 页面不再 runtime append `script[type="speculationrules"]`
 
 这意味着：
@@ -73,9 +73,42 @@ secondary speculation header 回归当前也已覆盖：
 - 浏览器真实请求了 rules JSON
 - 页面没有因为这条 header 产生新的 CSP 违规
 
+### 5. 浏览器能力边界已有默认基线
+
+当前默认响应头已经包含 `Permissions-Policy`，并关闭 Banyan 当前不需要的高权限浏览器能力：
+
+- 摄像头、麦克风、定位、屏幕捕获、支付
+- USB、Bluetooth、Serial、HID、MIDI
+- 运动传感器与 Topics API
+
+这不是 CSP 的替代品，而是 Enforce 之外的浏览器能力收缩层。当前判断是：
+
+- 不阻塞 CSP Enforce
+- 适合和 CSP 一起作为默认安全基线保留
+- 若后续页面需要某项能力，应在 cache policy 源配置中显式放开
+
+### 6. HSTS 已进入保守 ramp-up
+
+当前默认响应头已经包含：
+
+```http
+Strict-Transport-Security: max-age=300
+```
+
+这是初始观察阶段，不包含 `includeSubDomains` 或 `preload`。
+
+当前判断：
+
+- apex 域名 `swaw.com` 已经通过 HTTPS 正常服务
+- `http://swaw.com/` 会跳转到 `https://swaw.com/`
+- `www.swaw.com` 会跳转到 `https://swaw.com/`
+- 仓库内没有看到需要单独保留 HTTP 的公开子域配置
+
+因此短 `max-age` 的 HSTS 适合作为下一步安全基线。后续是否升级到更长周期、是否覆盖子域、是否 preload，应作为部署层决策单独确认。
+
 ## Amber
 
-### 5. `application/json` / `application/ld+json` 数据脚本仍存在
+### 7. `application/json` / `application/ld+json` 数据脚本仍存在
 
 当前存在：
 
@@ -91,7 +124,7 @@ secondary speculation header 回归当前也已覆盖：
 - 现在不必为了“形式洁癖”把它们强行搬走
 - 但继续保留“它们不是 executable inline”的认知边界
 
-### 6. `sw-manager.enable.update.js` 仍有高敏感 sink
+### 8. `sw-manager.enable.update.js` 仍有高敏感 sink
 
 当前仍有：
 
@@ -105,24 +138,24 @@ secondary speculation header 回归当前也已覆盖：
 所以它现在更像“受控 sink”，不是立即阻塞项。  
 但它仍应被视为后续 code review 的敏感点。
 
-### 7. `Speculation-Rules` 支持度与重叠语义仍是次级风险
+### 9. `Speculation-Rules` 支持度与重叠语义仍是次级风险
 
 这条风险已经不再是“CSP 会不会直接拦住它”，而是：
 
 1. 浏览器是否支持 `Speculation-Rules`
-2. 当前 `params.speculation_rules` 是否会和 `params.prefetch_runtime` 命中同一批目标
+2. 当前 `params.speculation_rules` 是否会和 `params.prefetch_runtime` 命中同一批 slot
 
 当前架构的真实语义是：
 
 - 不支持 `Speculation-Rules` 的浏览器，会静默忽略 header
 - runtime stack 仍会按自己的 `link/SW` 能力矩阵工作
-- 如果两栈命中同一目标，构建后脚本会输出 warning
+- 如果两栈在 `independent` 模式下命中同一 slot，构建后脚本会输出 warning
 
 这不是 Enforce 的语法阻塞项，但它仍值得被当作产品策略风险显式审视。
 
 ## Red
 
-### 8. 当前没有确认中的 CSP 语法级阻塞项
+### 10. 当前没有确认中的 CSP 语法级阻塞项
 
 截至 `2026-05-04`，我们没有再看到一个像“runtime injected speculationrules 会直接撞 `script-src`”那样明确的 Red 阻塞项。
 
@@ -156,7 +189,7 @@ secondary speculation header 回归当前也已覆盖：
 推荐：
 
 1. 继续保留当前 header + external rules 交付形态
-2. 对 `independent` 模式保持 overlap warning 可见；若改用 `preempt_runtime_when_supported`，则把 spec ownership 视为有意识策略
+2. 对 `independent` 模式保持 overlap warning 可见；若改用 `preempt_runtime_when_supported`，则把 spec slot ownership 视为有意识策略
 3. 逐步扩大 `check:browser:speculation` 覆盖面
 4. 等真实页面观察足够稳定，再决定是否把 secondary stack 也纳入正式 Enforce 叙事
 

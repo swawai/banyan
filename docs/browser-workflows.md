@@ -90,6 +90,14 @@ npm run check:browser:public
 npm run check:browser:speculation:public
 ```
 
+部署到线上后，再跑真实响应头验收：
+
+```powershell
+npm run check:security:headers
+```
+
+这条命令默认检查 `https://swaw.com/`，并确认首页安全头和 `/sw.js` 缓存策略真实生效。
+
 ## 什么时候才需要显式指定 build
 
 只有这类情况才需要：

@@ -1,4 +1,6 @@
 (function () {
+    var slotOrder = ['menu', 'nav', 'sort', 'desc', 'post'];
+
     function supportsSpeculationRules() {
         try {
             return typeof HTMLScriptElement !== 'undefined'
@@ -51,20 +53,36 @@
         }
     }
 
-    function pickActions(payload, envSequence) {
+    function pickConfig(payload, envSequence) {
         var entry = payload && typeof payload === 'object' ? payload[envSequence] || null : null;
         if (!entry) return null;
 
         if (typeof entry === 'string') {
             var target = payload[entry] || null;
             return target && typeof target === 'object'
-                ? { targetEnv: entry, actions: target }
+                ? { targetEnv: entry, config: target }
                 : null;
         }
 
         return typeof entry === 'object'
-            ? { targetEnv: envSequence, actions: entry }
+            ? { targetEnv: envSequence, config: entry }
             : null;
+    }
+
+    function parseRuntimeMode(rawValue) {
+        var raw = String(rawValue || '').trim().toLowerCase();
+        if (!raw || raw === 'off' || raw === '<nil>') return null;
+
+        var globalGate = raw.indexOf('_g', raw.length - 2) !== -1;
+        var normalized = globalGate ? raw.slice(0, -2) : raw;
+        var match = /^(link|sw)_([smx])f$/.exec(normalized);
+        if (!match) return null;
+
+        return {
+            eagerness: match[2] === 's' ? 'conservative' : match[2] === 'm' ? 'moderate' : 'eager',
+            globalGate: globalGate,
+            transport: match[1]
+        };
     }
 
     function normalizeNavigationUrl(rawUrl) {
@@ -77,16 +95,71 @@
         }
     }
 
-    function buildOwnedUrlDetails(runtimeMeta) {
-        var declared = Array.isArray(runtimeMeta && runtimeMeta.owned_urls) ? runtimeMeta.owned_urls : [];
-        var declaredNormalized = [];
+    function canWarmAnchor(anchor) {
+        if (!(anchor instanceof HTMLAnchorElement)) return false;
+        if (anchor.target && anchor.target.toLowerCase() !== '_self') return false;
+        if (anchor.hasAttribute('download')) return false;
+        return true;
+    }
+
+    function collectSlotUrls(slot, seenUrls) {
+        var urls = [];
+        var currentUrl = normalizeNavigationUrl(window.location.href);
+        var anchors = document.querySelectorAll('a[href][data-prefetch-slot]');
+        for (var index = 0; index < anchors.length; index += 1) {
+            var anchor = anchors[index];
+            if (!(anchor instanceof HTMLAnchorElement)) continue;
+            if (anchor.getAttribute('data-prefetch-slot') !== slot) continue;
+            if (!canWarmAnchor(anchor)) continue;
+
+            var href = normalizeNavigationUrl(anchor.href);
+            if (!href || href === currentUrl || seenUrls[href]) continue;
+            seenUrls[href] = true;
+            urls.push(href);
+        }
+        return urls;
+    }
+
+    function actionKeyForMode(mode) {
+        if (!mode) return '';
+        var transport = mode.transport === 'link' ? 'l' : mode.transport === 'sw' ? 'w' : '';
+        if (!transport) return '';
+        var eagerness = mode.eagerness === 'conservative' ? 's' : mode.eagerness === 'moderate' ? 'm' : 'x';
+        return transport + eagerness + (mode.globalGate ? 'g' : '');
+    }
+
+    function buildActionsFromConfig(config, suppressedSlots) {
+        if (!(config && typeof config === 'object')) return {};
+
+        var actions = {};
+        var seenUrls = Object.create(null);
+        for (var index = 0; index < slotOrder.length; index += 1) {
+            var slot = slotOrder[index];
+            if (suppressedSlots && suppressedSlots[slot]) continue;
+
+            var mode = parseRuntimeMode(config[slot]);
+            if (!mode) continue;
+
+            var urls = collectSlotUrls(slot, seenUrls);
+            if (urls.length === 0) continue;
+
+            var actionKey = actionKeyForMode(mode);
+            if (!actionKey) continue;
+            actions[actionKey] = (actions[actionKey] || []).concat(urls);
+        }
+        return actions;
+    }
+
+    function buildOwnedSlotDetails(runtimeMeta) {
+        var declared = Array.isArray(runtimeMeta && runtimeMeta.owned_slots) ? runtimeMeta.owned_slots : [];
         var declaredSet = Object.create(null);
+        var declaredSlots = [];
 
         for (var i = 0; i < declared.length; i += 1) {
-            var normalized = normalizeNavigationUrl(declared[i]);
-            if (!normalized || declaredSet[normalized]) continue;
-            declaredSet[normalized] = true;
-            declaredNormalized.push(normalized);
+            var slot = String(declared[i] || '').trim();
+            if (!slot || declaredSet[slot]) continue;
+            declaredSet[slot] = true;
+            declaredSlots.push(slot);
         }
 
         var coordinationMode = runtimeMeta && runtimeMeta.coordination_mode
@@ -95,46 +168,21 @@
         var browserSupportsSpec = supportsSpeculationRules();
         var preemptionActive = coordinationMode === 'preempt_runtime_when_supported' && browserSupportsSpec;
         return {
-            coordinationMode: coordinationMode,
+            activeOwnedSlots: preemptionActive ? declaredSlots : [],
             browserSupportsSpeculationRules: browserSupportsSpec,
-            preemptionActive: preemptionActive,
-            declaredOwnedUrls: declaredNormalized,
-            activeOwnedUrls: preemptionActive ? declaredNormalized : []
+            coordinationMode: coordinationMode,
+            declaredOwnedSlots: declaredSlots,
+            preemptionActive: preemptionActive
         };
     }
 
-    function buildOwnedUrlSet(ownedUrlDetails) {
-        if (!ownedUrlDetails || !Array.isArray(ownedUrlDetails.activeOwnedUrls) || ownedUrlDetails.activeOwnedUrls.length === 0) {
-            return null;
+    function toSlotSet(slots) {
+        var result = Object.create(null);
+        if (!Array.isArray(slots)) return result;
+        for (var i = 0; i < slots.length; i += 1) {
+            result[slots[i]] = true;
         }
-
-        var ownedSet = Object.create(null);
-        for (var i = 0; i < ownedUrlDetails.activeOwnedUrls.length; i += 1) {
-            ownedSet[ownedUrlDetails.activeOwnedUrls[i]] = true;
-        }
-        return ownedSet;
-    }
-
-    function filterActionsByOwnedUrls(sourceActions, ownedUrlSet) {
-        if (!ownedUrlSet || !(sourceActions && typeof sourceActions === 'object')) {
-            return sourceActions;
-        }
-
-        var filtered = {};
-        Object.keys(sourceActions).forEach(function (key) {
-            var value = sourceActions[key];
-            if (!Array.isArray(value)) return;
-
-            var kept = value.filter(function (rawUrl) {
-                var normalized = normalizeNavigationUrl(rawUrl);
-                return !normalized || !ownedUrlSet[normalized];
-            });
-
-            if (kept.length > 0) {
-                filtered[key] = kept;
-            }
-        });
-        return filtered;
+        return result;
     }
 
     function collectSuppressedActions(rawActions, filteredActions) {
@@ -258,10 +306,12 @@
         var payload = readPayload();
         var runtimeMeta = readRuntimeMeta();
         var runtimeEnvSequence = getRuntimeEnvSequence();
-        var picked = pickActions(payload, runtimeEnvSequence);
-        var rawActions = picked ? picked.actions : null;
-        var ownedUrlDetails = buildOwnedUrlDetails(runtimeMeta);
-        var filteredActions = filterActionsByOwnedUrls(rawActions, buildOwnedUrlSet(ownedUrlDetails));
+        var picked = pickConfig(payload, runtimeEnvSequence);
+        var rawActions = picked ? buildActionsFromConfig(picked.config, null) : null;
+        var ownedSlotDetails = buildOwnedSlotDetails(runtimeMeta);
+        var filteredActions = picked
+            ? buildActionsFromConfig(picked.config, toSlotSet(ownedSlotDetails.activeOwnedSlots))
+            : null;
         var suppressedActions = collectSuppressedActions(rawActions, filteredActions);
         var runtimeState = inspectRuntime();
         var speculationHeaderState = await readSpeculationRulesHeaderState();
@@ -325,11 +375,11 @@
             runtimeEnvSequence: runtimeEnvSequence,
             payloadEntry: payload && typeof payload === 'object' ? payload[runtimeEnvSequence] || null : null,
             resolvedEnv: picked ? picked.targetEnv : null,
-            runtimeCoordinationMode: ownedUrlDetails.coordinationMode,
-            preemptionActive: ownedUrlDetails.preemptionActive
+            runtimeCoordinationMode: ownedSlotDetails.coordinationMode,
+            preemptionActive: ownedSlotDetails.preemptionActive
         });
         writePre('prefetch-debug-actions', rawActions || 'No actions for current env');
-        writePre('prefetch-debug-spec-owned', ownedUrlDetails);
+        writePre('prefetch-debug-spec-owned', ownedSlotDetails);
         writePre('prefetch-debug-actions-filtered', rawActions ? {
             filteredActions: filteredActions,
             suppressedActions: suppressedActions

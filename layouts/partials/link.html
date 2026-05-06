@@ -3,7 +3,12 @@
 {{ $textClass := .textClass | default "" }}
 {{ $ctx := .ctx }}
 {{ $linkSlot := .linkSlot | default (.prefetchSlot | default "") }}
+{{ $prefetchSlot := lower (printf "%v" $linkSlot) }}
+{{ $allowedPrefetchSlots := slice "menu" "nav" "sort" "desc" "post" }}
+{{ $dataAttrs := .dataAttrs | default dict }}
+{{ if in $allowedPrefetchSlots $prefetchSlot }}
+{{ $dataAttrs = merge $dataAttrs (dict "prefetch-slot" $prefetchSlot) }}
+{{ end }}
 {{ if $href }}
-{{ if and $ctx $linkSlot }}{{ partial "link-collect-url.html" (dict "ctx" $ctx "slot" $linkSlot "url" $href) }}{{ end }}
-<a href="{{ $href }}"{{ with .class }} class="{{ . }}"{{ end }}{{ with .title }} title="{{ . }}"{{ end }}{{ with .label }} aria-label="{{ . }}"{{ end }}{{ with .ariaCurrent }} aria-current="{{ . }}"{{ end }}{{ with .ariaHaspopup }} aria-haspopup="{{ . }}"{{ end }}{{ with .ariaExpanded }} aria-expanded="{{ . }}"{{ end }}{{ with .target }} target="{{ . }}"{{ end }}{{ with .rel }} rel="{{ . }}"{{ end }}{{ with .dataAttrs }}{{ range $name, $value := . }} {{ printf "data-%s=%q" $name $value | safeHTMLAttr }}{{ end }}{{ end }}>{{ if $textClass }}<span class="{{ $textClass }}">{{ if .safeHTML }}{{ $text | safeHTML }}{{ else }}{{ $text }}{{ end }}</span>{{ else }}{{ if .safeHTML }}{{ $text | safeHTML }}{{ else }}{{ $text }}{{ end }}{{ end }}</a>
+<a href="{{ $href }}"{{ with .class }} class="{{ . }}"{{ end }}{{ with .title }} title="{{ . }}"{{ end }}{{ with .label }} aria-label="{{ . }}"{{ end }}{{ with .ariaCurrent }} aria-current="{{ . }}"{{ end }}{{ with .ariaHaspopup }} aria-haspopup="{{ . }}"{{ end }}{{ with .ariaExpanded }} aria-expanded="{{ . }}"{{ end }}{{ with .target }} target="{{ . }}"{{ end }}{{ with .rel }} rel="{{ . }}"{{ end }}{{ with $dataAttrs }}{{ range $name, $value := . }} {{ printf "data-%s=%q" $name $value | safeHTMLAttr }}{{ end }}{{ end }}>{{ if $textClass }}<span class="{{ $textClass }}">{{ if .safeHTML }}{{ $text | safeHTML }}{{ else }}{{ $text }}{{ end }}</span>{{ else }}{{ if .safeHTML }}{{ $text | safeHTML }}{{ else }}{{ $text }}{{ end }}{{ end }}</a>
 {{ end }}

@@ -7,7 +7,7 @@ Banyan 当前的安全收敛主路径是：
 1. 内容层不再直接持有运行时资源装配权
 2. Hugo 负责产出最终页面
 3. `Content-Security-Policy-Report-Only` 由**构建后**扫描最终 HTML 再回写
-4. `Speculation-Rules` 作为独立 header 栈，由页面 sidecar manifest 生成共享 rules JSON 与响应头
+4. `Speculation-Rules` 作为独立 header 栈，由全局 document rules JSON 与响应头交付
 5. 浏览器回归脚本验证关键页面确实拿到了策略头，并且没有产生策略违规事件
 
 这条路径的关键不是“上了 CSP”本身，而是：
@@ -80,9 +80,9 @@ Banyan 当前的安全收敛主路径是：
 
 当前判断应记成一句话：
 
-- runtime stack 仍会把自己的 payload 以内联 `application/json` 形式输出到 `site-prefetch-data`
+- runtime stack 仍会把自己的 slot 策略 payload 以内联 `application/json` 形式输出到 `site-prefetch-data`
 - coordination 层若启用，还会额外输出 `site-prefetch-runtime-meta`
-- speculation stack 不再把规则塞进 HTML 可执行脚本，而是走 header + sidecar JSON
+- speculation stack 不再把规则塞进 HTML 可执行脚本，而是走 header + 全局 document rules JSON
 
 因此：
 
@@ -116,6 +116,35 @@ Banyan 当前的安全收敛主路径是：
 - 先验证“有没有噪音”，再决定何时切正式 `Content-Security-Policy`
 - 当前 `script-src` 已不再包含 `'inline-speculation-rules'`
 
+## 相邻浏览器策略
+
+`Permissions-Policy` 已作为默认响应头写入 `themes/banyan/data/cache-policy-default.toml`。
+
+它和 CSP 的职责不同：
+
+- CSP 约束页面能加载和执行哪些资源
+- `Permissions-Policy` 约束页面能调用哪些浏览器高权限能力
+
+当前默认关闭了摄像头、麦克风、定位、屏幕捕获、支付、USB、Bluetooth、Serial、HID、MIDI、运动传感器与 Topics API 等能力。Banyan 当前不依赖这些浏览器能力，因此这是一条低心智负担的防御边界。
+
+如果后续某个页面真的需要其中某项能力，应在上游 cache policy 中显式放开，而不是在产物 `_headers` 或 `edgeone.json` 中手改。
+
+`Strict-Transport-Security` 当前也已进入默认响应头，但只处于初始 ramp-up 阶段：
+
+```http
+Strict-Transport-Security: max-age=300
+```
+
+当前不带 `includeSubDomains`，也不带 `preload`。原因是 HSTS 会被浏览器缓存，子域和 preload 会把影响面从当前站点扩大到整个域名体系。后续若要升级，应按阶段推进：
+
+```http
+Strict-Transport-Security: max-age=604800
+Strict-Transport-Security: max-age=2592000
+Strict-Transport-Security: max-age=31536000
+```
+
+只有在确认所有子域都长期支持 HTTPS 后，才应考虑 `includeSubDomains`；只有在明确理解 preload 的长期撤回成本后，才应考虑 `preload`。
+
 ## 构建与验证
 
 生产构建当前主路径：
@@ -147,7 +176,27 @@ node themes/banyan/scripts/emit-speculation-rules-headers.mjs temp_workspace/pub
 
 - `public/_headers` / `public/edgeone.json` 是生成产物，不应手改
 - `_headers` 首行已经明确提示：要改上游配置或 build post-processing scripts
-- `Speculation-Rules` header 的页面级数据源不是 HTML runtime payload，而是 Hugo 渲染出的临时 sidecar manifests
+- `Speculation-Rules` header 的数据源不是 HTML runtime payload，而是 Hugo 渲染出的 document-rules manifests
+
+部署后验收真实响应头：
+
+```bash
+npm run check:security:headers
+```
+
+默认检查 `https://swaw.com/` 和 `/sw.js`。如果要检查其他环境，可以传入 base URL：
+
+```bash
+node themes/banyan/scripts/check-security-headers.mjs https://example.com/
+```
+
+这条命令验证的是浏览器真正会收到的响应头，包括：
+
+- `Content-Security-Policy-Report-Only` 或正式 `Content-Security-Policy`
+- `Permissions-Policy`
+- `Strict-Transport-Security`
+- `Speculation-Rules`
+- `/sw.js` 的 `no-cache, max-age=0, must-revalidate`
 
 ## 浏览器安全回归
 
@@ -170,6 +219,8 @@ npm run check:browser:speculation
 
 - 本地静态 server 会读取构建产物里的 `_headers`
 - 关键页面响应头里存在 `Content-Security-Policy-Report-Only`
+- 关键页面响应头里存在 `Permissions-Policy`
+- 关键页面响应头里存在初始 HSTS ramp-up 策略
 - 关键页面响应头里存在 `Speculation-Rules`
 - 浏览器真实请求了 `/speculation-rules/*.json`
 - 页面运行过程中没有 `SecurityPolicyViolationEvent`
@@ -194,7 +245,7 @@ npm run check:browser:speculation
 2. 清掉 `Report-Only` 下残余的 style / script 噪音
 3. 明确当前 `runtime_coordination` 是否符合你的产品意图：
    - `independent` 时，重叠 warning 应保持可见
-   - `preempt_runtime_when_supported` 时，重叠 URL 默认由 spec 拥有
+- `preempt_runtime_when_supported` 时，重叠 slot 默认由 spec 拥有
 4. 再决定是否补 `report-uri` / `report-to`
 5. 最后再把 `Content-Security-Policy-Report-Only` 切到正式 `Content-Security-Policy`
 
@@ -231,13 +282,13 @@ npm run check:browser:speculation
 截至 `2026-05-04`，Banyan 对 speculation stack 的当前判断是：
 
 - 不再使用 runtime `append(script[type="speculationrules"])`
-- 改为给页面返回 `Speculation-Rules: "/speculation-rules/....json"`
+- 改为默认返回 `Speculation-Rules: "/speculation-rules/document.<hash>.json"`
 - 外部规则文件使用 `application/speculationrules+json`
 
 当前已确认的事实：
 
 - 这条 header 路径在 Chromium 下可被页面干净接收
-- 浏览器会真实请求外部 rules 文件
+- 浏览器会真实请求外部 document rules 文件
 - 页面本身不会因此新增 CSP 违规事件
 - 当前页面 DOM 中没有额外生成 `script[type="speculationrules"]`
 

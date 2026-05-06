@@ -273,6 +273,8 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 
 - 本地静态 server 会按构建产物 `_headers` 回放响应头
 - 关键页面响应里存在 `Content-Security-Policy-Report-Only`
+- 关键页面响应里存在默认 `Permissions-Policy`
+- 关键页面响应里存在初始 ramp-up 的 `Strict-Transport-Security: max-age=300`
 - 页面运行期间没有 `SecurityPolicyViolationEvent`
 - 页面没有出现 CSP 相关 console 噪音
 
@@ -291,6 +293,14 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 
 正式从 `Report-Only` 走向 Enforce 前的剩余阻塞项，见 [security-csp-enforce-checklist.md](security-csp-enforce-checklist.md)。
 
+部署后真实响应头验收使用：
+
+```powershell
+npm run check:security:headers
+```
+
+它不启动本地 browser regression server，而是直接请求目标站点，验证首页安全头和 `/sw.js` 缓存策略。
+
 ## `Speculation-Rules` Header 场景
 
 `check:browser:speculation` 当前不属于日常默认安全回归。
@@ -305,10 +315,11 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 - 页面响应里存在 `Speculation-Rules` 头
 - 浏览器真实请求了 `/speculation-rules/*.json`
 - rules 文件 MIME 为 `application/speculationrules+json`
+- rules payload 使用 document rules，并按 `data-prefetch-slot` 匹配页面链接
 - 页面运行期间没有新的 CSP 违规事件
 - 当前浏览器环境下，DOM 中没有额外生成 `script[type="speculationrules"]`
 - `/prefetchdebug` 观察面会同步验证：
-  - spec-owned URL 集已暴露
+  - spec-owned slot 集已暴露
   - runtime raw actions 已暴露
   - coordination 后剩余动作与被抑制动作已暴露
   - 在 spec-capable 浏览器里，已被 spec 接管的动作不会再作为 runtime action 执行
