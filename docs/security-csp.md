@@ -244,7 +244,7 @@ npm run check:browser:speculation
 2. executable inline script 继续限制在 `themes/banyan/assets/js/inline/`
 3. 构建后继续扫描最终 HTML 并回写真实 hash
 4. `check:browser:security` 验证关键页面没有 CSP 违规
-5. `check:browser:speculation` 验证 `Speculation-Rules` header 栈没有退回 inline 注入
+5. `check:browser:speculation` 验证 `Speculation-Rules` 栈没有退回 inline 注入；若站点关闭该栈，则验证没有残留 header / rules 产物
 
 不要把新功能临时塞进 raw HTML、动态 inline script 或内容层资源声明。Banyan 当前 CSP 能成立，靠的是权限边界清楚，而不是无限堆 hash 白名单。
 
@@ -268,11 +268,12 @@ npm run check:browser:speculation
 
 ## 当前 `Speculation-Rules` header 栈结论
 
-截至 `2026-05-04`，Banyan 对 speculation stack 的当前判断是：
+截至 `2026-05-08`，Banyan 对 speculation stack 的当前判断是：
 
 - 不再使用 runtime `append(script[type="speculationrules"])`
-- 改为默认返回 `Speculation-Rules: "/speculation-rules/document.<hash>.json"`
+- 当 `params.speculation_rules.mode = "header"` 时，返回 `Speculation-Rules: "/speculation-rules/document.<hash>.json"`
 - 外部规则文件使用 `application/speculationrules+json`
+- 使用 EdgeOne Pages 时，建议在站点 `hugo.toml` 中设置 `params.speculation_rules.mode = "off"`，因为其 `edgeone.json` 当前不支持 header value 中需要转义的双引号
 
 当前已确认的事实：
 
@@ -280,6 +281,7 @@ npm run check:browser:speculation
 - 浏览器会真实请求外部 document rules 文件
 - 页面本身不会因此新增 CSP 违规事件
 - 当前页面 DOM 中没有额外生成 `script[type="speculationrules"]`
+- 当该栈关闭时，runtime/SW 预取仍按 `params.prefetch_runtime` 继续工作
 
 同时要记住两条边界：
 

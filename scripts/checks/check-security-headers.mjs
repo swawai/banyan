@@ -11,7 +11,9 @@ Examples:
 
 Notes:
   - Checks the real response headers returned by the target server.
-  - The home page must expose the browser security headers and Speculation-Rules.
+  - The home page must expose the browser security headers.
+  - Speculation-Rules is an optional performance header and is validated only
+    when the target server exposes it.
   - /sw.js must remain no-cache so browsers can discover service worker updates.
 `);
 }
@@ -109,9 +111,13 @@ function buildHomeChecks(result) {
     }
     assertHeader(checks, /^max-age=\d+/i.test(hsts), 'home exposes HSTS max-age', { hsts });
     assertHeader(checks, !/includeSubDomains|preload/i.test(hsts), 'HSTS is still in ramp-up mode', { hsts });
-    assertHeader(checks, speculationRules.startsWith('"/speculation-rules/'), 'home exposes generated Speculation-Rules document', {
-        speculationRules,
-    });
+    if (speculationRules) {
+        assertHeader(checks, speculationRules.startsWith('"/speculation-rules/'), 'home exposes generated Speculation-Rules document', {
+            speculationRules,
+        });
+    } else {
+        assertHeader(checks, true, 'Speculation-Rules header is optional and currently not enabled');
+    }
     assertHeader(checks, readHeader(result.headers, 'x-content-type-options').toLowerCase() === 'nosniff', 'home sends X-Content-Type-Options nosniff');
     assertHeader(checks, readHeader(result.headers, 'referrer-policy').toLowerCase() === 'strict-origin-when-cross-origin', 'home sends Referrer-Policy baseline');
 

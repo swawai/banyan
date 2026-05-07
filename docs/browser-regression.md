@@ -312,10 +312,16 @@ npm run check:security:headers
 
 当前场景会验证：
 
-- 页面响应里存在 `Speculation-Rules` 头
-- 浏览器真实请求了 `/speculation-rules/*.json`
-- rules 文件 MIME 为 `application/speculationrules+json`
-- rules payload 使用 document rules，并按 `data-prefetch-slot` 匹配页面链接
+- 若当前构建启用了 `params.speculation_rules.mode = "header"`：
+  页面响应里存在 `Speculation-Rules` 头
+- 若当前构建启用了 `params.speculation_rules.mode = "header"`：
+  浏览器真实请求了 `/speculation-rules/*.json`
+- 若当前构建启用了 `params.speculation_rules.mode = "header"`：
+  rules 文件 MIME 为 `application/speculationrules+json`
+- 若当前构建启用了 `params.speculation_rules.mode = "header"`：
+  rules payload 使用 document rules，并按 `data-prefetch-slot` 匹配页面链接
+- 若当前构建关闭了 `params.speculation_rules.mode`：
+  验证没有遗留 inline `script[type="speculationrules"]` 或孤儿 rules 目录
 - 页面运行期间没有新的 CSP 违规事件
 - 当前浏览器环境下，DOM 中没有额外生成 `script[type="speculationrules"]`
 - `/prefetchdebug` 观察面会同步验证：

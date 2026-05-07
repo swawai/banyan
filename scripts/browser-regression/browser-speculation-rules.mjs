@@ -130,6 +130,15 @@ async function readRulesFile(primaryBuildDir, rulesPath) {
     return JSON.parse(body);
 }
 
+async function pathExists(absolutePath) {
+    try {
+        await fs.access(absolutePath);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 async function collectSpeculationRulesOutcome({
     consoleEntries,
     expectedEagerSlots = [],
@@ -150,10 +159,26 @@ async function collectSpeculationRulesOutcome({
 
     const speculationRulesHeader = readHeader(response, 'speculation-rules');
     if (!speculationRulesHeader) {
-        fail('Page did not include the Speculation-Rules response header.', {
-            csp: cspValue,
-            path: pathLabel
+        const inlineSpeculationScriptCount = await page.evaluate(() => {
+            return document.querySelectorAll('script[type="speculationrules"]').length;
         });
+        if (inlineSpeculationScriptCount !== 0) {
+            fail('Speculation-Rules is disabled but inline speculationrules scripts were still emitted.', {
+                inlineSpeculationScriptCount,
+                path: pathLabel
+            });
+        }
+        const hasRulesDir = await pathExists(path.join(primaryBuildDir, 'speculation-rules'));
+        if (hasRulesDir) {
+            fail('Generated speculation rules assets exist but the page did not include the Speculation-Rules response header.', {
+                path: pathLabel
+            });
+        }
+        return {
+            inlineSpeculationScriptCount,
+            message: 'Speculation-Rules header disabled for this build.',
+            speculationRulesEnabled: false
+        };
     }
 
     const rulesPath = parseSpeculationRulesHeaderValue(speculationRulesHeader);
@@ -648,6 +673,10 @@ function createSpeculationHeaderScenario(config) {
                 response,
                 responseEntries
             });
+
+            if (outcome?.speculationRulesEnabled === false) {
+                return outcome;
+            }
 
             if (typeof config.collectExtraDetails === 'function') {
                 const extraDetails = await config.collectExtraDetails(page, config.path);
