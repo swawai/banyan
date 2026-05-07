@@ -46,7 +46,10 @@ Examples:
 Notes:
   - This script consumes speculation document-rule manifest files generated
     during Hugo render, emits a shared external rules JSON file, and patches
-    both _headers and edgeone.json in the target public directory.
+    response header config in the target public directory.
+  - _headers receives the standards-compliant Speculation-Rules header. EdgeOne
+    edgeone.json only receives the rules asset route because its CDN config
+    layer currently rejects quoted structured-field header values.
   - It does not read runtime HTML payloads such as site-prefetch-data.
   - The temporary __speculation-rules-manifests directory is removed after the
     response headers and shared rules files have been generated.
@@ -181,7 +184,7 @@ function patchHeadersFile(body, rulesHeaderValue, hasRulesAssetRoute) {
     return renderHeadersBlocks(nextBlocks, preamble);
 }
 
-function patchEdgeoneConfig(body, rulesHeaderValue, hasRulesAssetRoute) {
+function patchEdgeoneConfig(body, hasRulesAssetRoute) {
     const parsed = JSON.parse(body);
     const headerEntries = Array.isArray(parsed.headers) ? parsed.headers : [];
     const filteredEntries = headerEntries
@@ -208,22 +211,6 @@ function patchEdgeoneConfig(body, rulesHeaderValue, hasRulesAssetRoute) {
                 { key: 'Content-Type', value: 'application/speculationrules+json' },
             ],
         });
-    }
-
-    if (rulesHeaderValue) {
-        const existing = filteredEntries.find((entry) => entry.source === defaultHeaderRoute);
-        if (existing) {
-            const filteredHeaders = existing.headers.filter((header) => (
-                `${header.key ?? ''}`.toLowerCase() !== speculationHeaderName.toLowerCase()
-            ));
-            filteredHeaders.push({ key: speculationHeaderName, value: rulesHeaderValue });
-            existing.headers = filteredHeaders;
-        } else {
-            filteredEntries.unshift({
-                source: defaultHeaderRoute,
-                headers: [{ key: speculationHeaderName, value: rulesHeaderValue }],
-            });
-        }
     }
 
     parsed.headers = filteredEntries;
@@ -338,7 +325,7 @@ async function main() {
     ]);
 
     const patchedHeadersBody = patchHeadersFile(headersBody, rulesHeaderValue, contentToPath.size > 0);
-    const patchedEdgeoneBody = patchEdgeoneConfig(edgeoneBody, rulesHeaderValue, contentToPath.size > 0);
+    const patchedEdgeoneBody = patchEdgeoneConfig(edgeoneBody, contentToPath.size > 0);
 
     await Promise.all([
         fs.writeFile(headersPath, patchedHeadersBody, 'utf8'),
@@ -347,7 +334,7 @@ async function main() {
     ]);
 
     console.log(
-        `Emitted ${contentToPath.size} global speculation document rules file(s) and patched the default route.`
+        `Emitted ${contentToPath.size} global speculation document rules file(s) and patched response header config.`
     );
 }
 
