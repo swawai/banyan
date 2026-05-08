@@ -14,6 +14,22 @@ function createCrumbText(text, { withCaret = false } = {}) {
     return span;
 }
 
+function normalizeBreadcrumbItemKind(item) {
+    const kind = item && typeof item.kind === 'string' ? item.kind.trim().toLowerCase() : '';
+    return kind || '';
+}
+
+function applyBreadcrumbKind(element, item) {
+    if (!(element instanceof Element)) {
+        return;
+    }
+
+    const kind = normalizeBreadcrumbItemKind(item);
+    if (kind) {
+        element.dataset.breadcrumbKind = kind;
+    }
+}
+
 function buildMenuPanel(menuItems) {
     const panel = document.createElement('span');
     panel.className = 'ui-dropdown-panel breadcrumb-menu-panel';
@@ -27,6 +43,7 @@ function buildMenuPanel(menuItems) {
         option.className = menuItem.current
             ? 'ui-dropdown-option breadcrumb-menu-option is-current'
             : 'ui-dropdown-option breadcrumb-menu-option';
+        applyBreadcrumbKind(option, menuItem);
         if (menuItem.current) {
             option.dataset.siteUpdateAnchor = 'true';
             option.setAttribute('aria-current', 'page');
@@ -97,6 +114,7 @@ function buildTopBreadcrumbItem(item, index) {
     const link = document.createElement('a');
     link.href = item.href;
     link.className = linkClasses.join(' ');
+    applyBreadcrumbKind(link, item);
     if (item.current) {
         link.dataset.siteUpdateAnchor = 'true';
         link.setAttribute('aria-current', 'page');
@@ -207,6 +225,7 @@ function buildRootRailNav(rootItem, rootMenuItems, rootMenuLabel) {
         const link = document.createElement('a');
         link.href = rootItem.href;
         link.className = 'breadcrumb-root-link';
+        applyBreadcrumbKind(link, rootItem);
         link.textContent = rootItem.text;
         nav.appendChild(link);
         return nav;
@@ -226,6 +245,7 @@ function buildRootRailNav(rootItem, rootMenuItems, rootMenuLabel) {
         link.className = menuItem.current
             ? 'breadcrumb-root-link is-current'
             : 'breadcrumb-root-link';
+        applyBreadcrumbKind(link, menuItem);
         link.textContent = menuItem.text;
         if (menuItem.current) {
             link.dataset.siteUpdateAnchor = 'true';

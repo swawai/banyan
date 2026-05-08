@@ -15,6 +15,7 @@
 {{- if not $target -}}{{- errorf "Build failed: page %q cannot resolve breadcrumb page=%q." ($ctx.File.Path | default (printf "%s %s" $ctx.Kind $ctx.RelPermalink)) $pageRef -}}{{- end -}}
   {{- $href = $target.RelPermalink -}}
   {{- if eq $text "" -}}{{- $text = $target.LinkTitle | default $target.Title -}}{{- end -}}
+  {{- if not (isset $spec "kind") -}}{{- $spec = merge $spec (dict "kind" $target.Kind) -}}{{- end -}}
 {{- else -}}
   {{- with index $spec "href" -}}
     {{- $hrefRaw := printf "%v" . -}}
@@ -39,4 +40,8 @@
   "current" (eq $hrefKey $currentKey)
 -}}
 {{- with index $spec "title" }}{{ $item = merge $item (dict "title" (printf "%v" .)) }}{{ end -}}
+{{- with index $spec "kind" -}}
+  {{- $kind := lower (trim (printf "%v" .) " ") -}}
+  {{- if ne $kind "" -}}{{- $item = merge $item (dict "kind" $kind) -}}{{- end -}}
+{{- end -}}
 {{- return $item -}}

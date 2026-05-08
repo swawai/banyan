@@ -1,3 +1,13 @@
+.slot-row-breadcrumb,
+.breadcrumb-root-list {
+    --breadcrumb-row-option-padding-block: 0.1rem;
+    --breadcrumb-row-option-padding-inline: 0.24rem;
+    --breadcrumb-row-option-radius: 0.22rem;
+    --breadcrumb-row-option-hover-bg: color-mix(in srgb, var(--focus) 8%, transparent);
+    --breadcrumb-row-option-current-bg: color-mix(in srgb, var(--focus) 14%, transparent);
+    --breadcrumb-row-option-current-ring: color-mix(in srgb, var(--focus) 18%, transparent);
+}
+
 .slot-row-breadcrumb {
     display: flex;
     flex-wrap: wrap;

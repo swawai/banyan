@@ -15,6 +15,7 @@
     {{- $result = $result | append (dict
       "text" ($page.LinkTitle | default $page.Title)
       "href" $page.RelPermalink
+      "kind" "section"
     ) -}}
   {{- end -}}
   {{- $children := slice -}}
@@ -22,6 +23,7 @@
     {{- $children = $children | append (dict
       "text" ($child.LinkTitle | default $child.Title)
       "href" $child.RelPermalink
+      "kind" "section"
       "weight" $child.Weight
     ) -}}
   {{- end -}}
@@ -30,6 +32,7 @@
     {{- $result = $result | append (dict
       "text" (index $item "text")
       "href" (index $item "href")
+      "kind" (index $item "kind")
     ) -}}
   {{- end -}}
 {{- end -}}

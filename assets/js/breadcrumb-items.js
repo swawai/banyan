@@ -76,6 +76,10 @@ function toRelativeHref(url) {
         : url.toString();
 }
 
+function normalizeBreadcrumbItemKind(kind) {
+    return typeof kind === 'string' ? kind.trim().toLowerCase() : '';
+}
+
 function readRequestedSortState(source, sortVariant, defaultSort = '') {
     const fallbackToken = defaultSort || SORT_VARIANTS[sortVariant]?.defaultToken || '';
     const sortToken = sortVariant ? readRequestedSortToken(sortVariant, source?.logicalPath || '', fallbackToken) : '';
@@ -200,11 +204,17 @@ export function buildBreadcrumbMenuItemsFromDecodedRows(decoded, collectionSourc
                 }
             }
 
-            return {
+            const item = {
                 text: typeof row.text === 'string' && row.text !== '' ? row.text : row.key,
                 href,
                 current,
             };
+            const kind = normalizeBreadcrumbItemKind(row.kind);
+            if (kind) {
+                item.kind = kind;
+            }
+
+            return item;
         })
         .filter(Boolean);
 }
@@ -248,11 +258,17 @@ export async function buildSelectedBreadcrumbItem(fragmentRoot, source, entryKey
         return null;
     }
 
-    return {
+    const item = {
         text: typeof selectedRow.text === 'string' && selectedRow.text !== '' ? selectedRow.text : entryKey,
         href,
         current: true,
         menu,
         collection_source: collectionSource,
     };
+    const kind = normalizeBreadcrumbItemKind(selectedRow.kind);
+    if (kind) {
+        item.kind = kind;
+    }
+
+    return item;
 }

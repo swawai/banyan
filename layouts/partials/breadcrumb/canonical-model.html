@@ -165,6 +165,10 @@
     {{- if and (ne $rootText "") (ne $rootHref "") -}}
       {{- $rootItem = dict "text" $rootText "href" $rootHref -}}
       {{- with index $rootRaw "title" }}{{- $rootItem = merge $rootItem (dict "title" (printf "%v" .)) -}}{{- end -}}
+      {{- with index $rootRaw "kind" -}}
+        {{- $kind := lower (trim (printf "%v" .) " ") -}}
+        {{- if ne $kind "" -}}{{- $rootItem = merge $rootItem (dict "kind" $kind) -}}{{- end -}}
+      {{- end -}}
       {{- if eq (index $rootRaw "current") true }}{{- $rootItem = merge $rootItem (dict "current" true) -}}{{- end -}}
       {{- if eq (index $rootRaw "selected") true }}{{- $rootItem = merge $rootItem (dict "selected" true) -}}{{- end -}}
       {{- if eq (index $rootRaw "highlighted") true }}{{- $rootItem = merge $rootItem (dict "highlighted" true) -}}{{- end -}}
@@ -174,6 +178,10 @@
         {{- if or (eq $menuText "") (eq $menuHref "") -}}{{- continue -}}{{- end -}}
         {{- $normalizedMenuItem := dict "text" $menuText "href" $menuHref -}}
         {{- with index $menuItem "title" }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "title" (printf "%v" .)) -}}{{- end -}}
+        {{- with index $menuItem "kind" -}}
+          {{- $kind := lower (trim (printf "%v" .) " ") -}}
+          {{- if ne $kind "" -}}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "kind" $kind) -}}{{- end -}}
+        {{- end -}}
         {{- if eq (index $menuItem "current") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "current" true) -}}{{- end -}}
         {{- if eq (index $menuItem "selected") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "selected" true) -}}{{- end -}}
         {{- if eq (index $menuItem "highlighted") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "highlighted" true) -}}{{- end -}}
@@ -189,6 +197,10 @@
         {{- if or (eq $tailText "") (eq $tailHref "") (eq $tailHref $rootHref) -}}{{- continue -}}{{- end -}}
         {{- $tailItem := dict "text" $tailText "href" $tailHref -}}
         {{- with index $tailRaw "title" }}{{- $tailItem = merge $tailItem (dict "title" (printf "%v" .)) -}}{{- end -}}
+        {{- with index $tailRaw "kind" -}}
+          {{- $kind := lower (trim (printf "%v" .) " ") -}}
+          {{- if ne $kind "" -}}{{- $tailItem = merge $tailItem (dict "kind" $kind) -}}{{- end -}}
+        {{- end -}}
         {{- if eq (index $tailRaw "current") true }}{{- $tailItem = merge $tailItem (dict "current" true) -}}{{- end -}}
         {{- if eq (index $tailRaw "selected") true }}{{- $tailItem = merge $tailItem (dict "selected" true) -}}{{- end -}}
         {{- if eq (index $tailRaw "highlighted") true }}{{- $tailItem = merge $tailItem (dict "highlighted" true) -}}{{- end -}}
@@ -199,6 +211,10 @@
           {{- if or (eq $menuText "") (eq $menuHref "") -}}{{- continue -}}{{- end -}}
           {{- $normalizedMenuItem := dict "text" $menuText "href" $menuHref -}}
           {{- with index $menuItem "title" }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "title" (printf "%v" .)) -}}{{- end -}}
+          {{- with index $menuItem "kind" -}}
+            {{- $kind := lower (trim (printf "%v" .) " ") -}}
+            {{- if ne $kind "" -}}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "kind" $kind) -}}{{- end -}}
+          {{- end -}}
           {{- if eq (index $menuItem "current") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "current" true) -}}{{- end -}}
           {{- if eq (index $menuItem "selected") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "selected" true) -}}{{- end -}}
           {{- if eq (index $menuItem "highlighted") true }}{{- $normalizedMenuItem = merge $normalizedMenuItem (dict "highlighted" true) -}}{{- end -}}

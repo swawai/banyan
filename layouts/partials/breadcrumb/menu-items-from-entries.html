@@ -15,10 +15,15 @@
   {{- if or (eq $text "") (eq $href "") -}}
     {{- continue -}}
   {{- end -}}
-  {{- $items = $items | append (dict
+  {{- $item := dict
     "text" $text
     "href" $href
     "current" (eq $href $selectedHref)
-  ) -}}
+  -}}
+  {{- with index $entry "kind" -}}
+    {{- $kind := lower (trim (printf "%v" .) " ") -}}
+    {{- if ne $kind "" -}}{{- $item = merge $item (dict "kind" $kind) -}}{{- end -}}
+  {{- end -}}
+  {{- $items = $items | append $item -}}
 {{- end -}}
 {{- return $items -}}
