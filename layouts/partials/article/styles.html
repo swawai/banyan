@@ -18,7 +18,7 @@
 {{ if and $content (gt (len (findRE "<(?:ul|ol)\\b" $content)) 0) }}{{ $features = $features | append "list" }}{{ end }}
 {{ if and $content (gt (len (findRE "<blockquote\\b" $content)) 0) }}{{ $features = $features | append "quote" }}{{ end }}
 {{ if and $content (gt (len (findRE "<(?:img|hr)\\b" $content)) 0) }}{{ $features = $features | append "media" }}{{ end }}
-{{ if and $content (gt (len (findRE "<(?:pre|code)\\b" $content)) 0) }}{{ $features = $features | append "code" }}{{ end }}
+{{ if and $content (gt (len (findRE "<pre\\b" $content)) 0) }}{{ $features = $features | append "code" }}{{ end }}
 {{ if and $content (gt (len (findRE "<table\\b" $content)) 0) }}{{ $features = $features | append "table" }}{{ end }}
 {{ $articleCoreParts := slice $articleBase }}
 {{ if $withMeta }}{{ $articleCoreParts = $articleCoreParts | append $articleMeta }}{{ end }}

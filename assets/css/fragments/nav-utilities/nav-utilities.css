@@ -2,17 +2,35 @@
     position: relative;
 }
 
+.site-nav-utilities > :is(a, a:visited, .site-nav-utility-menu) {
+    color: var(--site-nav-secondary);
+}
+
+.site-nav-utilities > :is(a, .site-nav-utility-menu)::after {
+    border-bottom-color: var(--site-nav-secondary);
+}
+
 .site-nav-utilities .site-nav-utility-trigger {
     gap: 0.15rem;
-    transition: color 0.3s, opacity 0.3s;
 }
 
-.site-nav-utilities .site-nav-utility-trigger:hover:not(:disabled) {
-    opacity: 0.8;
+.site-nav-utilities > a:hover {
+    opacity: 1;
 }
 
-.site-nav-utilities .site-nav-utility-trigger > .icon,
-.site-nav-utilities .site-nav-link-account > .icon {
+.site-nav-utilities > :is(a:hover, .site-nav-utility-menu:not(.is-disabled):hover, .site-nav-utility-menu.is-open) {
+    color: var(--focus);
+}
+
+.site-nav-utilities > :is(a:hover, .site-nav-utility-menu:not(.is-disabled):hover, .site-nav-utility-menu.is-open)::after {
+    border-bottom-color: var(--focus);
+}
+
+.site-nav-utilities > .site-nav-utility-menu.is-open::after {
+    border-bottom-width: 2px;
+}
+
+.site-nav-utilities :is(.site-nav-utility-trigger, .site-nav-link-account) > .icon {
     display: block;
     flex: none;
     transform-origin: center center;

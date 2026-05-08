@@ -1,6 +1,13 @@
 {{- $swConfig := site.Params.service_worker | default dict -}}
 {{- $swModeRaw := index $swConfig "mode" | default "off" -}}
 {{- $swMode := lower (printf "%v" $swModeRaw) -}}
+{{- $webAppManifestConfig := site.Params.web_app_manifest | default dict -}}
+{{- $webAppManifestModeRaw := index $webAppManifestConfig "mode" | default "link" -}}
+{{- $webAppManifestMode := lower (printf "%v" $webAppManifestModeRaw) -}}
+{{- $allowedWebAppManifestModes := slice "link" "defer" "off" -}}
+{{- if not (in $allowedWebAppManifestModes $webAppManifestMode) -}}
+{{- errorf "Build failed: params.web_app_manifest.mode only supports link/defer/off; got %q." $webAppManifestModeRaw -}}
+{{- end -}}
 {{- $offlineNoticePathRaw := printf "%v" (index $swConfig "offline_notice_path" | default "offline/") -}}
 {{- $offlineNoticePath := trim $offlineNoticePathRaw "/" -}}
 {{- if eq $offlineNoticePath "" -}}
@@ -37,6 +44,16 @@
 {{- $siteCachePolicyEdgeone := index $siteCachePolicy "edgeone" | default dict -}}
 {{- $cachePolicyEdgeone := merge $themeCachePolicyEdgeone $siteCachePolicyEdgeone -}}
 {{- $cachePolicyHeaderRoutes := partial "cache-policy-header-routes.html" (dict "routes" $cachePolicyRoutes) -}}
+{{- if eq $webAppManifestMode "off" -}}
+    {{- $filteredCachePolicyHeaderRoutes := slice -}}
+    {{- range $route := $cachePolicyHeaderRoutes -}}
+        {{- $path := printf "%v" (index $route "path" | default "") -}}
+        {{- if ne $path "/site/*.webmanifest" -}}
+            {{- $filteredCachePolicyHeaderRoutes = $filteredCachePolicyHeaderRoutes | append $route -}}
+        {{- end -}}
+    {{- end -}}
+    {{- $cachePolicyHeaderRoutes = $filteredCachePolicyHeaderRoutes -}}
+{{- end -}}
 {{- $swRoutes := slice -}}
 {{- range $route := $cachePolicyRoutes -}}
     {{- with index $route "sw" -}}
@@ -124,7 +141,7 @@
     {{- $appleTouchIcon = $appleTouchIcon | fingerprint -}}
     {{- $defaultSite := $primarySite -}}
     {{- $manifest := "" -}}
-    {{- if $defaultSite -}}
+    {{- if and $defaultSite (ne $webAppManifestMode "off") -}}
         {{- $manifestTmpl := resources.Get "site/manifest.webmanifest.tmpl" -}}
         {{- if $manifestTmpl -}}
             {{- $manifest = $manifestTmpl | resources.ExecuteAsTemplate "site/site.webmanifest" $defaultSite.Home | fingerprint -}}
@@ -150,8 +167,8 @@
     <meta charset="utf-8">
     <link rel="icon" href="{{ $faviconSvg.RelPermalink }}" type="image/svg+xml" fetchpriority="low">
     <link rel="apple-touch-icon" href="{{ $appleTouchIcon.RelPermalink }}" fetchpriority="low">
-    {{- with $manifest }}
-    <link rel="manifest" href="{{ .RelPermalink }}" fetchpriority="low">
+    {{- if and $manifest (eq $webAppManifestMode "link") }}
+    <link rel="manifest" href="{{ $manifest.RelPermalink }}" fetchpriority="low">
     {{- end }}
     <link rel="preload" href="{{ $assetManifest.RelPermalink }}" as="fetch" type="application/json" crossorigin="anonymous" fetchpriority="low">
     <title>{{ if .Title }}{{ .Title }} - {{ end }}{{ .Site.Title }}</title>
@@ -297,6 +314,9 @@
             <script src="{{ $swManager.RelPermalink }}" integrity="{{ $swManager.Data.Integrity }}" defer></script>
         {{- end -}}
     {{- end -}}
+    {{- if and $manifest (eq $webAppManifestMode "defer") }}
+    <link rel="manifest" href="{{ $manifest.RelPermalink }}" fetchpriority="low">
+    {{- end }}
 </head>
 <body data-asset-manifest-url="{{ $assetManifest.RelPermalink }}" data-fragment-root="{{ printf "/__fragments/%s/%s/" $buildVersion .Site.Language.Lang }}" data-site-root="{{ .Site.Home.RelPermalink }}"{{- if $hasBreadcrumbCapability }} data-entry-breadcrumb-sources="{{ $entryBreadcrumbSources | jsonify }}" data-page-collection-source="{{ $pageCollectionSource | jsonify }}" data-current-page-title="{{ (.Title | default .LinkTitle) | htmlEscape }}" data-current-page-href="{{ .RelPermalink }}"{{- end }}>
     {{- if and .IsPage (not .Params.slug) -}}

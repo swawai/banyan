@@ -44,5 +44,12 @@ weight = 3
 description = "極簡風格的 Hugo 主題。"
 locale = "zh_TW"
 
+[params.web_app_manifest]
+# link  = emit <link rel="manifest"> in <head> for the most predictable PWA path
+# defer = emit the manifest late in <head>, after render-critical styles/scripts
+#         have already been discovered
+# off   = do not generate or link the web app manifest
+mode = "off"
+
 [frontmatter]
 lastmod = ["lastmod", ":git", ":fileModTime", ":default"]

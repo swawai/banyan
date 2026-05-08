@@ -60,6 +60,21 @@ The current dual-stack prefetch model is documented in:
 
 - [`docs/prefetch-stacks.md`](docs/prefetch-stacks.md)
 
+## Web App Manifest
+
+Banyan emits a fingerprinted web app manifest by default. Sites that want the
+manifest to stay behind render-critical resources can defer the manifest link to
+the end of `<head>`:
+
+```toml
+[params.web_app_manifest]
+mode = "defer" # link | defer | off
+```
+
+Use `link` when the manifest should be discovered as early as possible, `defer`
+when the manifest is useful but not part of the first screen, and `off` for
+sites that do not need installability metadata.
+
 ## Taxonomies
 
 Declare taxonomies in your site's root `hugo.toml` under `[taxonomies]`.

@@ -18,7 +18,10 @@
 
 button.ui-dropdown-trigger,
 button.ui-dropdown-option {
-    font: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
 }
 
 button.ui-dropdown-trigger {

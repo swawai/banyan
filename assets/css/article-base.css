@@ -22,13 +22,13 @@
     --code-inline-border: var(--quote-border);
     --code-block-bg: var(--bg);
     /* --code-block-border: var(--bg); */
-    --code-block-text: #5F959E;
+    --code-block-text: #5F759E;
     --code-token-string: #885F9E;
     --code-token-comment: var(--link-visited);
     --code-token-keyword: var(--focus);
     --code-token-type: #759E5F;
     --code-line-highlight: var(--quote-bg);
-    --code-line-number: var(--border);
+    --code-line-number: var(--link-visited);
     --code-scrollbar-track: var(--bg);
     --code-scrollbar-thumb: var(--quote-bg);
     --code-scrollbar-thumb-hover: var(--link-visited);
@@ -50,13 +50,13 @@
     
     --code-block-bg: var(--bg);
     /* --code-block-border: var(--bg); */
-    --code-block-text: #79A8AF;
+    --code-block-text: #7388AC;
     --code-token-string: #9C79AF;
     --code-token-comment: var(--quote-border);
     --code-token-keyword: var(--focus);
     --code-token-type: #8CAF79;
     --code-line-highlight: var(--quote-bg);
-    --code-line-number: var(--quote-border);
+    --code-line-number: var(--link-visited);
     --code-scrollbar-track: var(--bg);
     --code-scrollbar-thumb: var(--quote-bg);
     --code-scrollbar-thumb-hover: var(--quote-border);

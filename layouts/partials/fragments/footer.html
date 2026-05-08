@@ -16,9 +16,9 @@
   {{- $aboutHref = .RelPermalink -}}
 {{- end -}}
 <footer class="footer-shortcuts" aria-label="{{ $ariaLabel }}">
-  <p><a href="{{ $home.RelPermalink }}">©</a><a href="{{ $home.RelPermalink }}">{{ $brandLabel | safeHTML }}</a></p>
-  <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ $icpPrefix }}</a><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ $icpNumber }}</a></p>
-  <p><a href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer">{{ partial "icon" (dict "name" "github") }}</a><a href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer">{{ $githubLabel }}</a></p>
-  <p><a href="{{ $aboutHref }}">i</a><a href="{{ $aboutHref }}">{{ $aboutLabel }}</a></p>
+  <p><a class="footer-shortcut" href="{{ $home.RelPermalink }}"><span class="footer-shortcut-mark">©</span><span class="footer-shortcut-text">{{ $brandLabel | safeHTML }}</span></a></p>
+  <p><a class="footer-shortcut" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"><span class="footer-shortcut-mark">{{ $icpPrefix }}</span><span class="footer-shortcut-text">{{ $icpNumber }}</span></a></p>
+  <p><a class="footer-shortcut" href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer"><span class="footer-shortcut-mark" aria-hidden="true">{{ partial "icon" (dict "name" "github") }}</span><span class="footer-shortcut-text">{{ $githubLabel }}</span></a></p>
+  <p><a class="footer-shortcut" href="{{ $aboutHref }}"><span class="footer-shortcut-mark" aria-hidden="true">i</span><span class="footer-shortcut-text">{{ $aboutLabel }}</span></a></p>
 </footer>
 {{- end -}}

@@ -6,4 +6,4 @@
 {{ $resource = $resource | js.Build (dict "params" $buildParams) }}
 {{ if not hugo.IsServer }}{{ $resource = $resource | minify }}{{ end }}
 {{ $resource = $resource | fingerprint }}
-<script src="{{ $resource.RelPermalink }}" integrity="{{ $resource.Data.Integrity }}"></script>
+<script src="{{ $resource.RelPermalink }}" integrity="{{ $resource.Data.Integrity }}" defer fetchpriority="low"></script>
