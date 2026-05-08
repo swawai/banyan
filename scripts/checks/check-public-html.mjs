@@ -184,6 +184,65 @@ function extractAttribute(text, attributeName) {
     return match[1] ?? match[2] ?? '';
 }
 
+function extractTagAttribute(tagText, attributeName) {
+    const escapedName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`, 'i');
+    const match = tagText.match(pattern);
+    if (!match) {
+        return '';
+    }
+    return decodeHtmlAttribute(match[1] ?? match[2] ?? match[3] ?? '');
+}
+
+function extractStartTags(text, tagName) {
+    const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return [...text.matchAll(new RegExp(`<${escapedTagName}\\b[^>]*>`, 'gi'))].map((match) => match[0]);
+}
+
+const breadcrumbPrefetchAnchorClasses = new Set([
+    'breadcrumb-link',
+    'breadcrumb-root-link',
+    'breadcrumb-menu-option'
+]);
+
+function hasBreadcrumbPrefetchAnchorClass(className) {
+    return className
+        .split(/\s+/)
+        .some((classPart) => breadcrumbPrefetchAnchorClasses.has(classPart));
+}
+
+function inspectBreadcrumbPrefetchContract(text) {
+    const issues = [];
+    let breadcrumbAnchorCount = 0;
+    let breadcrumbCrumbAnchorCount = 0;
+
+    for (const tag of extractStartTags(text, 'a')) {
+        const className = extractTagAttribute(tag, 'class');
+        if (!hasBreadcrumbPrefetchAnchorClass(className)) {
+            continue;
+        }
+
+        breadcrumbAnchorCount += 1;
+        const slot = extractTagAttribute(tag, 'data-prefetch-slot');
+        if (slot === 'crumb') {
+            breadcrumbCrumbAnchorCount += 1;
+            continue;
+        }
+
+        issues.push({
+            className,
+            href: extractTagAttribute(tag, 'href'),
+            slot: slot || '<missing>'
+        });
+    }
+
+    return {
+        breadcrumbAnchorCount,
+        breadcrumbCrumbAnchorCount,
+        breadcrumbPrefetchIssues: issues
+    };
+}
+
 function extractExternalScriptSrcs(text) {
     const matches = text.matchAll(/<script\b[^>]*\bsrc=(?:"([^"]*)"|'([^']*)'|([^"' >]+))/gi);
     const refs = [];
@@ -457,6 +516,7 @@ async function inspectHtmlFile(rootDir, absolutePath) {
     let breadcrumbParseError = '';
     const prefetchPayloadScript = extractInlineScriptTextById(text, 'site-prefetch-data');
     const prefetchStats = parsePrefetchPayload(prefetchPayloadScript);
+    const breadcrumbPrefetchContract = inspectBreadcrumbPrefetchContract(text);
 
     if (encodedBreadcrumbSources !== '') {
         const decodedBreadcrumbSources = decodeHtmlAttribute(encodedBreadcrumbSources);
@@ -495,6 +555,7 @@ async function inspectHtmlFile(rootDir, absolutePath) {
         breadcrumbSourceCount,
         breadcrumbSourcePaths,
         breadcrumbParseError,
+        ...breadcrumbPrefetchContract,
         ...prefetchStats,
         externalScriptRefs: extractExternalScriptSrcs(text),
     };
@@ -536,6 +597,11 @@ function buildIntegrityIssues(rows) {
         }
         if (row.breadcrumbParseError) {
             issues.push(`Invalid breadcrumb payload on ${row.relativePath}: ${row.breadcrumbParseError}`);
+        }
+        for (const issue of row.breadcrumbPrefetchIssues || []) {
+            issues.push(
+                `Breadcrumb anchor must use data-prefetch-slot="crumb": ${row.relativePath} href=${issue.href || '<empty>'} slot=${issue.slot} class=${issue.className || '<none>'}`
+            );
         }
         if (row.prefetchParseError) {
             issues.push(`Invalid prefetch payload on ${row.relativePath}: ${row.prefetchParseError}`);
@@ -665,6 +731,9 @@ async function main() {
     const rawTotal = rows.reduce((sum, row) => sum + row.rawBytes, 0);
     const gzipTotal = rows.reduce((sum, row) => sum + row.gzipBytes, 0);
     const breadcrumbTotal = rows.reduce((sum, row) => sum + row.breadcrumbPayloadBytes, 0);
+    const breadcrumbAnchorTotal = rows.reduce((sum, row) => sum + row.breadcrumbAnchorCount, 0);
+    const breadcrumbCrumbAnchorTotal = rows.reduce((sum, row) => sum + row.breadcrumbCrumbAnchorCount, 0);
+    const breadcrumbPrefetchIssueTotal = rows.reduce((sum, row) => sum + row.breadcrumbPrefetchIssues.length, 0);
     const prefetchTotal = rows.reduce((sum, row) => sum + row.prefetchPayloadBytes, 0);
     const prefetchPages = rows.filter((row) => row.prefetchPayloadBytes > 0);
     const prefetchEnvTotal = rows.reduce((sum, row) => sum + row.prefetchEnvCount, 0);
@@ -688,6 +757,9 @@ async function main() {
     console.log(`Raw total\t${rawTotal}\t${formatBytes(rawTotal)}`);
     console.log(`Gzip total\t${gzipTotal}\t${formatBytes(gzipTotal)}`);
     console.log(`Breadcrumb payload total\t${breadcrumbTotal}\t${formatBytes(breadcrumbTotal)}`);
+    console.log(`Breadcrumb prefetch anchors\t${breadcrumbAnchorTotal}`);
+    console.log(`Breadcrumb crumb anchors\t${breadcrumbCrumbAnchorTotal}`);
+    console.log(`Breadcrumb prefetch issues\t${breadcrumbPrefetchIssueTotal}`);
     console.log(`Prefetch payload total\t${prefetchTotal}\t${formatBytes(prefetchTotal)}`);
     console.log(`Prefetch pages\t${prefetchPages.length}`);
     console.log(`Prefetch env entries\t${prefetchEnvTotal}`);

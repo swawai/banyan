@@ -10,7 +10,7 @@
     }
     if (!configByEnv || typeof configByEnv !== 'object') return;
 
-    const slotOrder = ['menu', 'nav', 'sort', 'desc', 'post'];
+    const slotOrder = ['menu', 'nav', 'crumb', 'sort', 'desc', 'post'];
 
     function readRuntimeMeta() {
         const metaNode = document.getElementById('site-prefetch-runtime-meta');
@@ -154,14 +154,19 @@
         return `${transportCode}${eagernessCode}${mode.globalGate ? 'g' : ''}`;
     }
 
+    function getRuntimeModeForSlot(sourceConfig, slot, ownedSlotSet) {
+        if (!slot || !sourceConfig || typeof sourceConfig !== 'object') return null;
+        if (ownedSlotSet && ownedSlotSet.has(slot)) return null;
+        return parseRuntimeMode(sourceConfig[slot]);
+    }
+
     function buildActions(sourceConfig, ownedSlotSet) {
         const actions = {};
         const seenUrls = new Set();
 
         for (const slot of slotOrder) {
-            const mode = parseRuntimeMode(sourceConfig[slot]);
+            const mode = getRuntimeModeForSlot(sourceConfig, slot, ownedSlotSet);
             if (!mode) continue;
-            if (ownedSlotSet && ownedSlotSet.has(slot)) continue;
 
             const urls = collectSlotUrls(slot, seenUrls);
             if (urls.length === 0) continue;
@@ -396,7 +401,20 @@
 
         const href = normalizeNavigationUrl(anchor.href);
         if (!href) return null;
-        return interactionTargets.get(href) || null;
+        const registeredTarget = interactionTargets.get(href) || null;
+        if (registeredTarget) return registeredTarget;
+
+        const mode = getRuntimeModeForSlot(
+            activeConfig,
+            anchor.getAttribute('data-prefetch-slot') || '',
+            specOwnedSlotSet
+        );
+        if (!mode || (mode.eagerness !== 'conservative' && mode.eagerness !== 'moderate')) return null;
+
+        return {
+            transport: mode.transport,
+            eagerness: mode.eagerness
+        };
     }
 
     function maybeWarmNavigationAnchor(anchor, expectedEagerness) {
@@ -545,13 +563,35 @@
                     }
                 });
 
-                const allAnchors = document.querySelectorAll('a[href]');
-                for (let i = 0; i < allAnchors.length; i++) {
-                    const anchor = allAnchors[i];
+                const observeAnchor = (anchor) => {
+                    if (!(anchor instanceof HTMLAnchorElement)) return;
                     const target = getAnchorWarmTarget(anchor);
                     if (target && target.eagerness === 'moderate') {
                         observer.observe(anchor);
                     }
+                };
+
+                const allAnchors = document.querySelectorAll('a[href]');
+                for (let i = 0; i < allAnchors.length; i++) {
+                    observeAnchor(allAnchors[i]);
+                }
+
+                if (window.MutationObserver) {
+                    const mutationObserver = new MutationObserver((mutations) => {
+                        for (const mutation of mutations) {
+                            for (const node of mutation.addedNodes) {
+                                if (node instanceof HTMLAnchorElement) {
+                                    observeAnchor(node);
+                                } else if (node instanceof Element) {
+                                    node.querySelectorAll('a[href]').forEach(observeAnchor);
+                                }
+                            }
+                        }
+                    });
+                    mutationObserver.observe(document.documentElement, {
+                        childList: true,
+                        subtree: true
+                    });
                 }
             });
         };

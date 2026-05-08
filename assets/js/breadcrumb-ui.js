@@ -1,5 +1,7 @@
 import { normalizePathname } from './nav-state.js';
 
+const BREADCRUMB_PREFETCH_SLOT = 'crumb';
+
 function createCrumbText(text, { withCaret = false } = {}) {
     const span = document.createElement('span');
     span.className = 'crumb-text';
@@ -30,6 +32,12 @@ function applyBreadcrumbKind(element, item) {
     }
 }
 
+function applyBreadcrumbPrefetchSlot(element) {
+    if (element instanceof Element) {
+        element.dataset.prefetchSlot = BREADCRUMB_PREFETCH_SLOT;
+    }
+}
+
 function buildMenuPanel(menuItems) {
     const panel = document.createElement('span');
     panel.className = 'ui-dropdown-panel breadcrumb-menu-panel';
@@ -43,6 +51,7 @@ function buildMenuPanel(menuItems) {
         option.className = menuItem.current
             ? 'ui-dropdown-option breadcrumb-menu-option is-current'
             : 'ui-dropdown-option breadcrumb-menu-option';
+        applyBreadcrumbPrefetchSlot(option);
         applyBreadcrumbKind(option, menuItem);
         if (menuItem.current) {
             option.dataset.siteUpdateAnchor = 'true';
@@ -114,6 +123,7 @@ function buildTopBreadcrumbItem(item, index) {
     const link = document.createElement('a');
     link.href = item.href;
     link.className = linkClasses.join(' ');
+    applyBreadcrumbPrefetchSlot(link);
     applyBreadcrumbKind(link, item);
     if (item.current) {
         link.dataset.siteUpdateAnchor = 'true';
@@ -225,6 +235,7 @@ function buildRootRailNav(rootItem, rootMenuItems, rootMenuLabel) {
         const link = document.createElement('a');
         link.href = rootItem.href;
         link.className = 'breadcrumb-root-link';
+        applyBreadcrumbPrefetchSlot(link);
         applyBreadcrumbKind(link, rootItem);
         link.textContent = rootItem.text;
         nav.appendChild(link);
@@ -245,6 +256,7 @@ function buildRootRailNav(rootItem, rootMenuItems, rootMenuLabel) {
         link.className = menuItem.current
             ? 'breadcrumb-root-link is-current'
             : 'breadcrumb-root-link';
+        applyBreadcrumbPrefetchSlot(link);
         applyBreadcrumbKind(link, menuItem);
         link.textContent = menuItem.text;
         if (menuItem.current) {

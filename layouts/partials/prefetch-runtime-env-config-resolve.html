@@ -1,4 +1,4 @@
-{{- $prefetchLabels := .prefetch_labels | default (slice "menu" "nav" "sort_siblings" "descendants" "post") -}}
+{{- $prefetchLabels := .prefetch_labels | default (slice "menu" "nav" "crumb" "sort_siblings" "descendants" "post") -}}
 {{- $envKey := upper (printf "%v" (.env_key | default "")) -}}
 {{- $envConfigMap := .env_config_map | default dict -}}
 {{- $stack := .stack | default (slice) -}}

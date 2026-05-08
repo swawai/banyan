@@ -394,6 +394,49 @@ export const securityScenarios = [
     }
 ];
 
+async function readBreadcrumbPrefetchSlotContract(page) {
+    return page.evaluate(() => {
+        const describeAnchor = (anchor) => ({
+            className: anchor.getAttribute('class') || '',
+            href: anchor.getAttribute('href') || '',
+            slot: anchor.getAttribute('data-prefetch-slot') || '',
+            text: (anchor.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80)
+        });
+
+        const breadcrumbAnchors = Array.from(document.querySelectorAll([
+            'a.breadcrumb-link[href]',
+            'a.breadcrumb-root-link[href]',
+            'a.breadcrumb-menu-option[href]'
+        ].join(',')));
+        const slotRowAnchors = Array.from(document.querySelectorAll('.slot-row-breadcrumb a[href]'));
+        const slotRowBreadcrumbMenuOptions = Array.from(document.querySelectorAll(
+            '.slot-row-breadcrumb a.breadcrumb-menu-option[href]'
+        ));
+
+        const breadcrumbInvalidAnchors = breadcrumbAnchors
+            .filter((anchor) => anchor.getAttribute('data-prefetch-slot') !== 'crumb')
+            .map(describeAnchor);
+        const slotRowNavAnchors = slotRowAnchors
+            .filter((anchor) => anchor.getAttribute('data-prefetch-slot') === 'nav')
+            .map(describeAnchor);
+        const slotRowBreadcrumbMenuOptionsWithoutCrumb = slotRowBreadcrumbMenuOptions
+            .filter((anchor) => anchor.getAttribute('data-prefetch-slot') !== 'crumb')
+            .map(describeAnchor);
+
+        return {
+            breadcrumbAnchorCount: breadcrumbAnchors.length,
+            breadcrumbCrumbAnchorCount: breadcrumbAnchors.filter((anchor) => (
+                anchor.getAttribute('data-prefetch-slot') === 'crumb'
+            )).length,
+            breadcrumbInvalidAnchors,
+            slotRowAnchorCount: slotRowAnchors.length,
+            slotRowBreadcrumbMenuOptionCount: slotRowBreadcrumbMenuOptions.length,
+            slotRowBreadcrumbMenuOptionsWithoutCrumb,
+            slotRowNavAnchors
+        };
+    });
+}
+
 export const scenarios = [
     {
         id: 'home-shell-smoke',
@@ -437,6 +480,36 @@ export const scenarios = [
                 fail('Wide breadcrumb path caused excessive layout shift.', { cls });
             }
             return { cls, mainX1, mainX2, delta };
+        }
+    },
+    {
+        id: 'breadcrumb-prefetch-slot-contract',
+        kind: 'single',
+        title: 'Breadcrumb Prefetch Slot Contract',
+        viewport: WIDE_VIEWPORT,
+        async run({ page, baseUrl }) {
+            await gotoAndWait(page, `${baseUrl}/d/products/?sort=name-asc`);
+            await page.waitForSelector('.slot-row-breadcrumb');
+            await waitForBreadcrumbSettled(page);
+
+            const state = await readBreadcrumbPrefetchSlotContract(page);
+            if (state.breadcrumbAnchorCount === 0) {
+                fail('Breadcrumb prefetch contract scenario did not find any breadcrumb anchors.', state);
+            }
+            if (state.breadcrumbInvalidAnchors.length > 0) {
+                fail('Breadcrumb anchors must use data-prefetch-slot="crumb".', state);
+            }
+            if (state.slotRowNavAnchors.length > 0) {
+                fail('slot-row-breadcrumb must not contain nav prefetch anchors.', state);
+            }
+            if (state.slotRowBreadcrumbMenuOptionCount === 0) {
+                fail('Sorted breadcrumb page did not expose rebuilt breadcrumb menu options.', state);
+            }
+            if (state.slotRowBreadcrumbMenuOptionsWithoutCrumb.length > 0) {
+                fail('Runtime rebuilt breadcrumb menu options must keep data-prefetch-slot="crumb".', state);
+            }
+
+            return state;
         }
     },
     {

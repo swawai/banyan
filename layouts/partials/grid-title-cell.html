@@ -10,7 +10,7 @@
 {{ $rel := .rel }}
 {{ $dataAttrs := .dataAttrs | default dict }}
 {{ $prefetchSlot := lower (printf "%v" $linkSlot) }}
-{{ $allowedPrefetchSlots := slice "menu" "nav" "sort" "desc" "post" }}
+{{ $allowedPrefetchSlots := slice "menu" "nav" "crumb" "sort" "desc" "post" }}
 <span class="cell-title"{{ with $dataAttrs }}{{ range $name, $value := . }} {{ printf "data-%s=%q" $name $value | safeHTMLAttr }}{{ end }}{{ end }}>
   <a class="title-link" href="{{ $href }}"{{ with $label }} aria-label="{{ . }}"{{ end }}{{ with $target }} target="{{ . }}"{{ end }}{{ with $rel }} rel="{{ . }}"{{ end }}{{ if in $allowedPrefetchSlots $prefetchSlot }} data-prefetch-slot="{{ $prefetchSlot }}"{{ end }}>
     <span class="title-icon{{ if $iconText }} title-icon-text{{ end }}">{{ if $iconText }}{{ $iconText }}{{ else }}{{ partial "icon" (dict "name" $icon) }}{{ end }}</span>

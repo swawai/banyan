@@ -4,7 +4,7 @@
 {{ $ctx := .ctx }}
 {{ $linkSlot := .linkSlot | default (.prefetchSlot | default "") }}
 {{ $prefetchSlot := lower (printf "%v" $linkSlot) }}
-{{ $allowedPrefetchSlots := slice "menu" "nav" "sort" "desc" "post" }}
+{{ $allowedPrefetchSlots := slice "menu" "nav" "crumb" "sort" "desc" "post" }}
 {{ $dataAttrs := .dataAttrs | default dict }}
 {{ if in $allowedPrefetchSlots $prefetchSlot }}
 {{ $dataAttrs = merge $dataAttrs (dict "prefetch-slot" $prefetchSlot) }}

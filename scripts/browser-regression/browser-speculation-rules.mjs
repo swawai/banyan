@@ -379,7 +379,7 @@ async function collectSpeculationRulesOutcome({
         function collectActionUrls(config, options = {}) {
             const urls = [];
             const seenUrls = new Set();
-            const slotOrder = ['menu', 'nav', 'sort', 'desc', 'post'];
+            const slotOrder = ['menu', 'nav', 'crumb', 'sort', 'desc', 'post'];
             const onlySlots = new Set(Array.isArray(options.onlySlots) ? options.onlySlots : []);
             const suppressed = new Set(Array.isArray(options.suppressedSlots) ? options.suppressedSlots : []);
             for (const slot of slotOrder) {

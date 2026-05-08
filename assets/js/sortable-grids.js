@@ -136,6 +136,10 @@ function readBreadcrumbCollectionSource(wrapper, pageCollectionSource) {
 
 let breadcrumbTrailMenuRenderId = 0;
 
+function normalizeBreadcrumbItemKind(item) {
+    return item && typeof item.kind === 'string' ? item.kind.trim().toLowerCase() : '';
+}
+
 async function updateBreadcrumbTrailMenus(pageCollectionSource) {
     const fragmentRoot = document.body?.dataset.fragmentRoot || '';
     if (!fragmentRoot || !pageCollectionSource?.provider) {
@@ -191,6 +195,11 @@ async function updateBreadcrumbTrailMenus(pageCollectionSource) {
             const option = document.createElement('a');
             option.href = menuItem.href;
             option.className = 'ui-dropdown-option breadcrumb-menu-option';
+            option.dataset.prefetchSlot = 'crumb';
+            const kind = normalizeBreadcrumbItemKind(menuItem);
+            if (kind) {
+                option.dataset.breadcrumbKind = kind;
+            }
             option.textContent = menuItem.text;
             if (menuItem.current) {
                 option.classList.add('is-current');

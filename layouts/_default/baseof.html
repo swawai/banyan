@@ -195,7 +195,7 @@
     {{- $speculationRulesMode := lower (printf "%v" $speculationRulesModeRaw) -}}
     {{- $speculationRuntimeCoordinationRaw := index $speculationRulesConfig "runtime_coordination" | default "independent" -}}
     {{- $speculationRuntimeCoordination := lower (printf "%v" $speculationRuntimeCoordinationRaw) -}}
-    {{- $prefetchLabels := slice "menu" "nav" "sort_siblings" "descendants" "post" -}}
+    {{- $prefetchLabels := slice "menu" "nav" "crumb" "sort_siblings" "descendants" "post" -}}
     {{- range $label := $prefetchLabels -}}
         {{- if isset $prefetchRuntimeConfig $label -}}
           {{- errorf "Build failed: params.prefetch_runtime.%s global defaults have been removed. Use explicit runtime environment tables such as params.prefetch_runtime.env.TT.%s or params.prefetch_runtime.env.FT.%s instead." $label $label $label -}}

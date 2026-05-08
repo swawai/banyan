@@ -40,7 +40,7 @@
       "ariaHaspopup" "true"
       "ariaExpanded" "false"
       "safeHTML" $linkSafeHTML
-      "linkSlot" "nav"
+      "linkSlot" "crumb"
     ) -}}
   {{- $panelParts := slice -}}
   {{- range $menuItem := $itemMenu -}}
@@ -66,7 +66,7 @@
           "title" (index $menuItem "title")
           "dataAttrs" $menuItemDataAttrs
           "ariaCurrent" (cond $menuItemIsCurrent "page" "")
-          "linkSlot" "nav"
+          "linkSlot" "crumb"
         )) -}}
   {{- end -}}
   {{- $menuDataAttrs := dict "breadcrumb-menu" "true" -}}
@@ -99,7 +99,7 @@
       "dataAttrs" $linkDataAttrs
       "ariaCurrent" (cond $itemIsCurrent "page" "")
       "safeHTML" $linkSafeHTML
-      "linkSlot" "nav"
+      "linkSlot" "crumb"
     ) }}
   </span>
 {{- end -}}
