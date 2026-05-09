@@ -1,0 +1,26 @@
+.site-nav-utilities .site-nav-link-account > .icon {
+    position: relative;
+}
+
+.site-nav-utilities .site-nav-utility-trigger {
+    gap: 0.15rem;
+}
+
+.site-nav-utilities .site-nav-utility-trigger > .icon,
+.site-nav-utilities .site-nav-link-account > .icon {
+    display: block;
+    flex: none;
+    transform-origin: center center;
+}
+
+.site-nav-utilities .site-nav-utility-caret {
+    font-size: 0.72em;
+}
+
+.site-nav-utilities .site-nav-utility-menu.is-disabled {
+    opacity: 0.5;
+}
+
+.site-nav-utilities :is(.site-nav-utility-trigger, .site-nav-utility-option):disabled {
+    cursor: default;
+}

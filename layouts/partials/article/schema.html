@@ -1,11 +1,4 @@
-{{- $desc := "" -}}
-{{- if .Params.description -}}
-  {{- $desc = .Params.description -}}
-{{- else if .Summary -}}
-  {{- $desc = (.Summary | plainify | truncate 160) -}}
-{{- else -}}
-  {{- $desc = site.Params.description -}}
-{{- end -}}
+{{- $desc := partial "seo-description.html" . -}}
 {{- $author := or site.Params.author "ipzu" -}}
 {{- $published := .PublishDate -}}
 {{- if le $published.Unix 0 -}}

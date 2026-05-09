@@ -20,7 +20,11 @@ To use all features of the Banyan theme, **you must copy the provided example co
 cp themes/banyan/exampleSite/hugo.toml ./hugo.toml
 ```
 
-Once copied, open your root `hugo.toml` and customize the `baseURL`, `title`, and site descriptions to match your needs.
+Once copied, open your root `hugo.toml` and customize the `baseURL` and `title`.
+Customize site-level SEO descriptions by overriding
+`content/fragments/site-meta/index.<lang>.md` in your site root.
+Keep each language's social locale in `languages.<lang>.params.locale`; Banyan
+uses it for Open Graph locale tags.
 
 If you need to customize cache routes, SW cache behavior, or deployment metadata,
 copy the optional cache policy starter into your site's `data` directory:

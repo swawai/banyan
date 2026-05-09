@@ -1,0 +1,8 @@
+{{- $ctx := . -}}
+{{- if reflect.IsMap . }}{{ with index . "ctx" }}{{ $ctx = . }}{{ end }}{{ end -}}
+{{- $locale := "" -}}
+{{- with $ctx.Site.Params.locale -}}
+  {{- $locale = printf "%v" . -}}
+{{- end -}}
+{{- $locale = replace $locale "-" "_" -}}
+{{- return $locale -}}

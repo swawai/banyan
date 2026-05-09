@@ -1,20 +1,15 @@
 {{/*
   SEO head partial
-  - description 优先级：.Params.description > .Summary(plainify,160) > site.Params.description
+  - description 优先级：.Params.description > /fragments/site-meta site_meta.description
   - OpenGraph / Twitter 卡片
+  - og:locale：读取当前语言站点的 params.locale，支持 en_US 或 en-US 输入
   - hreflang：当前语言 + .AllTranslations + x-default（指向默认语言版本）
   - RSS 暴露
 */}}
 
-{{- $desc := "" -}}
-{{- if .Params.description -}}
-  {{- $desc = .Params.description -}}
-{{- else if .Summary -}}
-  {{- $desc = (.Summary | plainify | truncate 160) -}}
-{{- else -}}
-  {{- $desc = site.Params.description -}}
-{{- end -}}
+{{- $desc := partial "seo-description.html" . -}}
 {{- with $desc -}}<meta name="description" content="{{ . }}">{{ end }}
+{{- $ogLocale := partial "seo-locale.html" . -}}
 
 {{- $pageUrl := .Permalink -}}
 {{- $defaultSite := index (sort site.Sites "Language.Weight") 0 -}}
@@ -32,6 +27,17 @@
 <meta property="og:description" content="{{ $desc }}">
 <meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
 <meta property="og:url" content="{{ $pageUrl }}">
+{{- with $ogLocale }}
+<meta property="og:locale" content="{{ . }}">
+{{- end }}
+{{- range .AllTranslations -}}
+  {{- if ne .Language.Lang $.Language.Lang -}}
+    {{- $altOgLocale := partial "seo-locale.html" . -}}
+    {{- if and $altOgLocale (ne $altOgLocale $ogLocale) }}
+<meta property="og:locale:alternate" content="{{ $altOgLocale }}">
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 {{- $img := "" -}}
 {{- with .Params.images -}}
   {{- $img = index . 0 -}}

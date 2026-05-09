@@ -1,0 +1,16 @@
+{{- $ctx := . -}}
+{{- if reflect.IsMap . }}{{ with index . "ctx" }}{{ $ctx = . }}{{ end }}{{ end -}}
+{{- $desc := "" -}}
+{{- with $ctx.Params.description -}}
+  {{- $desc = printf "%v" . -}}
+{{- end -}}
+{{- if eq $desc "" -}}
+  {{- $siteMeta := partial "site-meta.html" (dict "ctx" $ctx) -}}
+  {{- with index $siteMeta "description" -}}
+    {{- $desc = printf "%v" . -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq $desc "" -}}
+  {{- errorf "Build failed: page %q has no Params.description and /fragments/site-meta has no site_meta.description for language %q." ($ctx.File.Path | default $ctx.RelPermalink) $ctx.Site.Language.Lang -}}
+{{- end -}}
+{{- return $desc -}}
