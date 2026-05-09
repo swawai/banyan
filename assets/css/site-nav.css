@@ -60,19 +60,5 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 1px solid var(--focus);
-}
-
-.site-nav > a.site-nav-link-primary.is-current::after {
-    border-bottom-color: var(--focus);
-    border-bottom-width: 2px;
-}
-
-.site-nav > :is(
-    a:hover,
-    a:focus-visible,
-    .site-nav-utility-menu:not(.is-disabled):hover,
-    .site-nav-utility-menu:not(.is-disabled).is-open
-)::after {
-    border-bottom-width: 2px;
+    border-bottom: 2px solid var(--focus);
 }
