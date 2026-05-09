@@ -171,7 +171,7 @@
     <link rel="manifest" href="{{ $manifest.RelPermalink }}" fetchpriority="low">
     {{- end }}
     <link rel="preload" href="{{ $assetManifest.RelPermalink }}" as="fetch" type="application/json" crossorigin="anonymous" fetchpriority="low">
-    <title>{{ if .Title }}{{ .Title }} - {{ end }}{{ .Site.Title }}</title>
+    <title>{{ partial "browser-title.html" . }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="wap-font-scale" content="no">
     <link rel="canonical" href="{{ .Permalink }}">

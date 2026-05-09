@@ -1,0 +1,17 @@
+{{- $ctx := . -}}
+{{- if reflect.IsMap . }}{{ with index . "ctx" }}{{ $ctx = . }}{{ end }}{{ end -}}
+{{- $pageTitle := trim (printf "%v" ($ctx.Title | default "")) " \r\n\t" -}}
+{{- $siteTitle := trim (printf "%v" ($ctx.Site.Title | default "")) " \r\n\t" -}}
+{{- $browserTitle := $siteTitle -}}
+{{- if $ctx.IsHome -}}
+  {{- if ne $pageTitle "" -}}
+    {{- $browserTitle = $pageTitle -}}
+  {{- end -}}
+{{- else if eq $pageTitle "" -}}
+  {{- $browserTitle = $siteTitle -}}
+{{- else if or (eq $siteTitle "") (eq (lower $pageTitle) (lower $siteTitle)) -}}
+  {{- $browserTitle = $pageTitle -}}
+{{- else -}}
+  {{- $browserTitle = printf "%s - %s" $pageTitle $siteTitle -}}
+{{- end -}}
+{{- return $browserTitle -}}
