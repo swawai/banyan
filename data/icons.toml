@@ -61,7 +61,7 @@ stroke_linecap = "round"
 stroke_width = "2"
 body = '<path d="M4 6H20M4 12H20M4 18H20"/>'
 
-[me]
+[my]
 viewBox = "0 0 1024 1024"
 fill = "none"
 stroke = "currentColor"

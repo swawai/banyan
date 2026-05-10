@@ -1,10 +1,10 @@
 ﻿---
 draft: false
-title: "我"
-slug: "me"
-nav_primary: me
-type: "me"
-layout: "me-page"
+title: "我的"
+slug: "my"
+nav_primary: my
+type: "my"
+layout: "my-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
@@ -13,7 +13,7 @@ build:
 ---
 
 
-這裡預留給後續的個人與設定功能。
+這裡預留給後續的個人資源與設定功能。
 
 目前尚未開放。
 

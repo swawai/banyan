@@ -7,7 +7,7 @@ nav:
   controls:
     language: false
     theme: false
-  me:
+  my:
     show: false
   items:
     - page: /

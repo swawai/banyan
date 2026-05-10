@@ -6,28 +6,28 @@
 {{ $navConfig := $source.Params.nav | default dict }}
 {{ $items := index $navConfig "items" | default slice }}
 {{ $controls := index $navConfig "controls" | default dict }}
-{{ $meConfig := index $navConfig "me" | default dict }}
+{{ $myConfig := index $navConfig "my" | default dict }}
 {{ $labelDefaults := dict
     "language" "Language"
     "theme" "Theme"
     "theme_auto" "Auto"
     "theme_light" "Light"
     "theme_dark" "Dark"
-    "me" "Me"
+    "my" "My"
 }}
 {{ $labels := merge $labelDefaults (index $navConfig "labels" | default dict) }}
 {{ $showLanguage := true }}
 {{ if isset $controls "language" }}{{ $showLanguage = index $controls "language" }}{{ end }}
 {{ $showTheme := true }}
 {{ if isset $controls "theme" }}{{ $showTheme = index $controls "theme" }}{{ end }}
-{{ $showMe := true }}
-{{ if isset $meConfig "show" }}{{ $showMe = index $meConfig "show" }}{{ end }}
+{{ $showMy := true }}
+{{ if isset $myConfig "show" }}{{ $showMy = index $myConfig "show" }}{{ end }}
 {{ $labelLanguage := index $labels "language" }}
 {{ $labelTheme := index $labels "theme" }}
 {{ $themeAuto := index $labels "theme_auto" }}
 {{ $themeLight := index $labels "theme_light" }}
 {{ $themeDark := index $labels "theme_dark" }}
-{{ $labelMeDefault := index $labels "me" }}
+{{ $labelMyDefault := index $labels "my" }}
 {{ $resolvedItems := slice }}
 {{ $fallbackItemCount := 0 }}
 {{ $hasCurrent := false }}
@@ -94,50 +94,50 @@
 
 {{ if gt $fallbackItemCount 1 }}{{ errorf "Build failed: page %q allows only one nav.items entry with fallback_when_none=true." $source.File.Path }}{{ end }}
 
-{{ $mePageRef := "" }}
-{{ with index $meConfig "page" }}{{ $mePageRef = printf "%v" . }}{{ end }}
-{{ $meKey := "" }}
-{{ with index $meConfig "key" }}{{ $meKey = lower (trim (printf "%v" .) " /") }}{{ end }}
-{{ $mePage := false }}
-{{ if ne $mePageRef "" }}
-    {{ if eq $mePageRef "/" }}
-        {{ $mePage = $ctx.Site.Home }}
+{{ $myPageRef := "" }}
+{{ with index $myConfig "page" }}{{ $myPageRef = printf "%v" . }}{{ end }}
+{{ $myKey := "" }}
+{{ with index $myConfig "key" }}{{ $myKey = lower (trim (printf "%v" .) " /") }}{{ end }}
+{{ $myPage := false }}
+{{ if ne $myPageRef "" }}
+    {{ if eq $myPageRef "/" }}
+        {{ $myPage = $ctx.Site.Home }}
     {{ else }}
-        {{ $mePage = $ctx.Site.GetPage $mePageRef }}
+        {{ $myPage = $ctx.Site.GetPage $myPageRef }}
     {{ end }}
-    {{ if not $mePage }}{{ errorf "Build failed: page %q cannot resolve nav.me.page=%q." $source.File.Path $mePageRef }}{{ end }}
+    {{ if not $myPage }}{{ errorf "Build failed: page %q cannot resolve nav.my.page=%q." $source.File.Path $myPageRef }}{{ end }}
 {{ end }}
-{{ $meLinkRaw := "" }}
-{{ with $mePage }}{{ $meLinkRaw = printf "%v" .RelPermalink }}{{ end }}
-{{ with index $meConfig "href" }}{{ $meLinkRaw = printf "%v" . }}{{ end }}
-{{ if eq $meLinkRaw "" }}{{ $meLinkRaw = site.Params.me_url | default (site.Params.account_url | default "") }}{{ end }}
-{{ $meLink := "" }}
-{{ $meIsInternal := false }}
-{{ $hasMe := true }}
-{{ if $meLinkRaw }}
-    {{ if $mePage }}
-        {{ $meIsInternal = true }}
-        {{ $meLink = $mePage.RelPermalink }}
-    {{ else if or (hasPrefix $meLinkRaw "/") (and (not (hasPrefix $meLinkRaw "http://")) (not (hasPrefix $meLinkRaw "https://")) (not (hasPrefix $meLinkRaw "//"))) }}
-        {{ $meIsInternal = true }}
-        {{ if hasPrefix $meLinkRaw "/" }}
-            {{ $meLink = $meLinkRaw | relLangURL }}
+{{ $myLinkRaw := "" }}
+{{ with $myPage }}{{ $myLinkRaw = printf "%v" .RelPermalink }}{{ end }}
+{{ with index $myConfig "href" }}{{ $myLinkRaw = printf "%v" . }}{{ end }}
+{{ if eq $myLinkRaw "" }}{{ $myLinkRaw = site.Params.my_url | default (site.Params.account_url | default "") }}{{ end }}
+{{ $myLink := "" }}
+{{ $myIsInternal := false }}
+{{ $hasMy := true }}
+{{ if $myLinkRaw }}
+    {{ if $myPage }}
+        {{ $myIsInternal = true }}
+        {{ $myLink = $myPage.RelPermalink }}
+    {{ else if or (hasPrefix $myLinkRaw "/") (and (not (hasPrefix $myLinkRaw "http://")) (not (hasPrefix $myLinkRaw "https://")) (not (hasPrefix $myLinkRaw "//"))) }}
+        {{ $myIsInternal = true }}
+        {{ if hasPrefix $myLinkRaw "/" }}
+            {{ $myLink = $myLinkRaw | relLangURL }}
         {{ else }}
-            {{ $meLink = (printf "/%s" $meLinkRaw) | relLangURL }}
+            {{ $myLink = (printf "/%s" $myLinkRaw) | relLangURL }}
         {{ end }}
     {{ else }}
-        {{ $meLink = $meLinkRaw }}
+        {{ $myLink = $myLinkRaw }}
     {{ end }}
 {{ else }}
-    {{ $meLink = "https://github.com/swawai/hugo-theme-banyan" }}
-    {{ $hasMe = false }}
+    {{ $myLink = "https://github.com/swawai/hugo-theme-banyan" }}
+    {{ $hasMy = false }}
 {{ end }}
-{{ $meLabel := $labelMeDefault }}
-{{ with index $meConfig "label" }}{{ $meLabel = printf "%v" . }}{{ end }}
-{{ if and $showMe $meIsInternal (eq $meKey "") }}{{ errorf "Build failed: page %q cannot use an empty nav.me.key." $source.File.Path }}{{ end }}
-{{ $meIsCurrent := false }}
-{{ if $meIsInternal }}
-    {{ $meIsCurrent = partial "fragments/nav-link-is-current.html" (dict "ctx" $ctx "item" $meConfig) }}
+{{ $myLabel := $labelMyDefault }}
+{{ with index $myConfig "label" }}{{ $myLabel = printf "%v" . }}{{ end }}
+{{ if and $showMy $myIsInternal (eq $myKey "") }}{{ errorf "Build failed: page %q cannot use an empty nav.my.key." $source.File.Path }}{{ end }}
+{{ $myIsCurrent := false }}
+{{ if $myIsInternal }}
+    {{ $myIsCurrent = partial "fragments/nav-link-is-current.html" (dict "ctx" $ctx "item" $myConfig) }}
 {{ end }}
 
 {{ if or (eq $section "primary") (eq $section "all") }}
@@ -171,21 +171,21 @@
 
 {{ if or (eq $section "utilities") (eq $section "all") }}
 <nav class="site-nav site-nav-utilities" aria-label="Utilities">
-    {{ if $showMe }}
-    {{ $meClass := "site-nav-link-primary site-nav-link-account" }}
-    {{ if $meIsCurrent }}{{ $meClass = printf "%s is-current" $meClass }}{{ end }}
-    {{ $meText := printf "%s<span class=\"sr-only\">%s</span>" (partial "icon" (dict "name" "me")) (cond $hasMe $meLabel "Banyan Theme GitHub") }}
+    {{ if $showMy }}
+    {{ $myClass := "site-nav-link-primary site-nav-link-account" }}
+    {{ if $myIsCurrent }}{{ $myClass = printf "%s is-current" $myClass }}{{ end }}
+    {{ $myText := printf "%s<span class=\"sr-only\">%s</span>" (partial "icon" (dict "name" "my")) (cond $hasMy $myLabel "Banyan Theme GitHub") }}
     {{ partial "link.html" (dict
         "ctx" $ctx
-        "href" $meLink
-        "title" (cond $hasMe $meLabel "Banyan Theme GitHub")
-        "text" $meText
-        "class" $meClass
-        "label" (cond $hasMe $meLabel "Banyan Theme GitHub")
-        "ariaCurrent" (cond $meIsCurrent "page" "")
+        "href" $myLink
+        "title" (cond $hasMy $myLabel "Banyan Theme GitHub")
+        "text" $myText
+        "class" $myClass
+        "label" (cond $hasMy $myLabel "Banyan Theme GitHub")
+        "ariaCurrent" (cond $myIsCurrent "page" "")
         "linkSlot" "menu"
-        "target" (cond $meIsInternal "" "_blank")
-        "rel" (cond $meIsInternal "" "noopener noreferrer")
+        "target" (cond $myIsInternal "" "_blank")
+        "rel" (cond $myIsInternal "" "noopener noreferrer")
         "safeHTML" true
     ) }}
     {{ end }}

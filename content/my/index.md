@@ -1,10 +1,10 @@
 ﻿---
 draft: false
-title: "Me"
-slug: "me"
-nav_primary: me
-type: "me"
-layout: "me-page"
+title: "My"
+slug: "my"
+nav_primary: my
+type: "my"
+layout: "my-page"
 slots:
   primary_nav: /fragments/nav-primary-links
   utilities: /fragments/nav-utilities
@@ -13,7 +13,7 @@ build:
 ---
 
 
-This page is reserved for future personal and settings features.
+This page is reserved for future personal resources and settings features.
 
 It is not available yet.
 

@@ -10,12 +10,12 @@ nav:
     theme_auto: 自动
     theme_light: 明亮
     theme_dark: 深色
-    me: 我
+    my: 我的
   controls:
     language: true
     theme: true
-  me:
+  my:
     show: true
-    page: /me
-    key: me
+    page: /my
+    key: my
 ---

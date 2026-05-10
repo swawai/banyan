@@ -10,12 +10,12 @@ nav:
     theme_auto: Auto
     theme_light: Light
     theme_dark: Dark
-    me: Me
+    my: My
   controls:
     language: true
     theme: true
-  me:
+  my:
     show: true
-    page: /me
-    key: me
+    page: /my
+    key: my
 ---
