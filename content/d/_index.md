@@ -1,5 +1,5 @@
 ﻿---
-title: Directory
+title: Signals
 linkTitle: DIR
 nav_primary: signals
 layout: "article-list"

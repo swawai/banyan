@@ -1,5 +1,5 @@
 ﻿---
-title: 目录
+title: 信号
 linkTitle: 目录
 nav_primary: signals
 layout: "article-list"

@@ -1,5 +1,5 @@
 ﻿---
-title: 目錄
+title: 信號
 linkTitle: 目錄
 nav_primary: signals
 layout: "article-list"

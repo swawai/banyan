@@ -27,8 +27,9 @@
     min-height: 1.15em;
     padding-bottom: 0.14em;
     text-decoration: none;
-    color: var(--site-nav-secondary);
+    color: var(--focus);
     transition: color 0.3s;
+
 }
 
 .site-nav .site-nav-link-primary.is-current,
@@ -60,5 +61,16 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 2px solid var(--focus);
+    border-bottom: 1px solid var(--site-nav-secondary);
+}
+
+
+.site-nav > a.site-nav-link-primary.is-current::after {
+    border-bottom-color: var(--focus);
+    border-bottom-width: 2px;
+}
+
+.site-nav > :is(a:hover, .site-nav-utility-menu:hover)::after {
+    border-bottom-color: var(--focus);
+    border-bottom-width: 2px;
 }

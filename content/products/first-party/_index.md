@@ -1,5 +1,5 @@
 ---
-title: First-party
+title: Products
 linkTitle: First-party
 description: Products built and produced in-house, including both paid and free offerings.
 weight: 10
