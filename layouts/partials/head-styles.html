@@ -17,6 +17,7 @@
 {{ $siteNav := resources.Get "css/site-nav.css" }}
 {{ $siteNavMedium := resources.Get "css/site-nav.medium.css" }}
 {{ $siteNavWide := resources.Get "css/site-nav.wide.css" }}
+{{ $siteNavUtilities := resources.Get "css/site-nav-utilities.css" }}
 {{ $siteHeader := resources.Get "css/site-header.css" }}
 {{ $uiDropdown := resources.Get "css/ui-dropdown.css" }}
 {{ $swUpdateAnchor := resources.Get "css/sw-update-anchor.css" }}
@@ -26,6 +27,7 @@
 {{ $pageBundleParts = $pageBundleParts | append $siteNav }}
 {{ $pageBundleParts = $pageBundleParts | append $siteNavMedium }}
 {{ $pageBundleParts = $pageBundleParts | append $siteNavWide }}
+{{ $pageBundleParts = $pageBundleParts | append $siteNavUtilities }}
 {{ $pageBundleParts = $pageBundleParts | append $uiDropdown }}
 {{ $pageBundleParts = $pageBundleParts | append $coreA11y }}
 {{ $pageBundleParts = $pageBundleParts | append $coreMotion }}
