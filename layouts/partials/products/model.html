@@ -41,7 +41,7 @@
 {{- else if $isFree -}}
   {{- $scope = "free" -}}
 {{- end -}}
-{{- $priceText := printf "%s %s" $currency $amountText -}}
+{{- $priceText := printf "%s%s" $currency $amountText -}}
 {{- if $isFree -}}
   {{- $priceText = i18n "products_free" -}}
 {{- end -}}

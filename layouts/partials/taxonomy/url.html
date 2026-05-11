@@ -1,17 +1,25 @@
 {{- $ctx := .ctx | default . -}}
 {{- $spec := .spec | default dict -}}
 {{- $plural := printf "%v" (or .plural (index $spec "plural")) -}}
-{{- $root := printf "/%s/" $plural | relLangURL -}}
-{{- $url := $root -}}
+{{- $url := "" -}}
 {{- if isset . "value" -}}
   {{- $value := trim (printf "%v" .value) " " -}}
   {{- if ne $value "" -}}
-    {{- $slug := urlize $value -}}
     {{- $unassignedTerm := printf "%v" (index $spec "unassigned_term" | default "") -}}
+    {{- $targetValue := $value -}}
     {{- if and (ne $unassignedTerm "") (eq (partial "taxonomy/normalize.html" (dict "spec" $spec "value" $value)) (partial "taxonomy/normalize.html" (dict "spec" $spec "value" $unassignedTerm))) -}}
-      {{- $slug = urlize $unassignedTerm -}}
+      {{- $targetValue = $unassignedTerm -}}
     {{- end -}}
-    {{- $url = printf "%s%s/" $root $slug -}}
+    {{- with partial "taxonomy/term-page-get.html" (dict "ctx" $ctx "spec" $spec "plural" $plural "value" $targetValue) -}}
+      {{- $url = .RelPermalink -}}
+    {{- end -}}
   {{- end -}}
+{{- else -}}
+  {{- with partial "taxonomy/root-page-get.html" (dict "ctx" $ctx "spec" $spec "plural" $plural) -}}
+    {{- $url = .RelPermalink -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq $url "" -}}
+  {{- errorf "Build failed: taxonomy URL cannot resolve plural=%q value=%q for page %q." $plural (printf "%v" (.value | default "")) ($ctx.File.Path | default (printf "%s %s" $ctx.Kind $ctx.RelPermalink)) -}}
 {{- end -}}
 {{- return $url -}}

@@ -26,7 +26,7 @@
   {{- end -}}
 {{- end -}}
 {{- if gt (len $used) 0 -}}
-<svg class="icon-sprite-root" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<svg class="icon-sprite-root" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false">
   {{- range $name, $_ := $used -}}
     {{- $iconData := index site.Data.icons $name -}}
     {{- if $iconData -}}

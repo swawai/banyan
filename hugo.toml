@@ -46,7 +46,7 @@ locale = "zh_TW"
 # defer = emit the manifest late in <head>, after render-critical styles/scripts
 #         have already been discovered
 # off   = do not generate or link the web app manifest
-mode = "off"
+mode = "defer"
 
 [frontmatter]
 lastmod = ["lastmod", ":git", ":fileModTime", ":default"]

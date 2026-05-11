@@ -9,6 +9,6 @@
 {{- $classes := slice "icon" (printf "icon-%s" $name) -}}
 {{- with .class }}{{ $classes = $classes | append . }}{{ end -}}
 {{- $label := .label -}}
-<svg class="{{ delimit $classes " " }}"{{ if $label }} role="img" aria-label="{{ $label }}"{{ else }} aria-hidden="true"{{ end }} focusable="false">
+<svg class="{{ delimit $classes " " }}" width="1em" height="1em"{{ if $label }} role="img" aria-label="{{ $label }}"{{ else }} aria-hidden="true"{{ end }} focusable="false">
   <use href="#icon-{{ $name }}"></use>
 </svg>

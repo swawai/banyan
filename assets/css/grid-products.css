@@ -1,5 +1,5 @@
 .grid-products {
-    grid-template-columns: 7rem minmax(4rem, max-content) minmax(10rem, max-content);
+    grid-template-columns: 8rem minmax(4rem, max-content) minmax(10rem, max-content);
 }
 
 .grid-products > :is(.cell-title, .cell-price, .cell-value) {
@@ -15,6 +15,7 @@
 }
 
 .grid-products > .cell-price {
+    /* grid-column: 1; */
     justify-self: start;
     text-align: left;
 }
@@ -22,3 +23,11 @@
 .grid-products > .cell-price.header {
     justify-self: stretch;
 }
+/* 
+.grid-products > .cell-title {
+    grid-column: 2;
+}
+
+.grid-products > .cell-value {
+    grid-column: 3;
+} */
