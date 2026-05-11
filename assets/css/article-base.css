@@ -6,6 +6,7 @@
     /* padding-inline: 0 8px; */
 
     --img-border-radius: 3px;
+    --article-prose-max-inline: 88ch;
     --border-subtle: #888888;
 
     --quote-bg: #F1F1F1;

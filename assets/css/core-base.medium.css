@@ -1,4 +1,4 @@
-@media (min-width: 64rem) {
+@media (min-width: 58rem) {
     :root {
         --page-shell-medium-inline: 78rem;
         --page-shell-min-inline: min(var(--page-shell-medium-inline), 100%);

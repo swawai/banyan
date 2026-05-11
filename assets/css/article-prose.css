@@ -1,4 +1,5 @@
 .prose {
+    max-inline-size: min(100%, var(--article-prose-max-inline));
     line-height: 1.65;
     /* word-break: break-all;
     text-align: justify; */

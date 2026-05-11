@@ -1,5 +1,5 @@
 .grid-products {
-    grid-template-columns: 12rem minmax(5rem, max-content) minmax(10rem, max-content);
+    grid-template-columns: 7rem minmax(4rem, max-content) minmax(10rem, max-content);
 }
 
 .grid-products > :is(.cell-title, .cell-price, .cell-value) {
@@ -15,8 +15,8 @@
 }
 
 .grid-products > .cell-price {
-    justify-self: end;
-    text-align: right;
+    justify-self: start;
+    text-align: left;
 }
 
 .grid-products > .cell-price.header {
