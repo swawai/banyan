@@ -8,7 +8,7 @@
 
 - 新 worker 能否被发现
 - waiting -> activate -> reload 这条链是否稳定
-- 更新提示是否挂在固定 Version/Ver 菜单上
+- 更新提示是否挂在固定 Ver 菜单上
 - 没有可用菜单时，是否正确退化到 `confirm`
 - 失败恢复是否会误伤正常用户
 
@@ -46,13 +46,13 @@
 
 ### 更新提示菜单
 
-- 当前更新提示挂到固定 Version/Ver 菜单上的 `data-site-version-menu`
+- 当前更新提示挂到固定 Ver 菜单上的 `data-site-version-menu`
 - 常规页面应只有一个可用更新菜单
 - 当前逻辑应当：
   - fallback 检查时，优先找 `data-site-version-menu`
-  - 点击 Version/Ver 按钮时打开版本 dropdown
-  - dropdown 只保留两项：当前版本、最后检查
-  - update ready 时，最后检查项的值显示刷新动作
+  - 点击 Ver 按钮时打开版本 dropdown
+  - dropdown 只保留两项：版本号、状态
+  - update ready 时，状态项显示“有新版本 · 点击更新”
 
 ### 语言文案
 
@@ -163,7 +163,7 @@
 - 新 build 已部署，但浏览器长时间没有 waiting worker
 - `registration.update()` 后仍停留旧 worker 且无错误线索
 
-### 4. Version 菜单的更新提示
+### 4. Ver 菜单的更新提示
 
 建议页面：
 
@@ -175,7 +175,7 @@
 操作：
 
 1. 让页面进入 update ready 状态
-2. 点击可见的 Version/Ver 更新菜单
+2. 点击可见的 Ver 更新菜单
 
 预期：
 
@@ -185,7 +185,7 @@
 
 失败信号：
 
-- 页面上明明有 Version/Ver 菜单，但点击无反应
+- 页面上明明有 Ver 菜单，但点击无反应
 - breadcrumb 当前项仍带有更新提示入口数据属性
 - 可见菜单存在，但仍直接弹 `confirm`
 
@@ -193,7 +193,7 @@
 
 建议页面：
 
-- 临时让当前页没有可见 Version/Ver 菜单的场景
+- 临时让当前页没有可见 Ver 菜单的场景
 - offline 页面不属于这个场景，因为它不注入 enable manager
 
 操作：
@@ -338,8 +338,8 @@
 如果不想每次都全测，至少覆盖这 4 组：
 
 1. 首页首次访问
-2. breadcrumb 页面出现 waiting 后，点击 Version/Ver 菜单
-3. Version/Ver 无更新时的当前版本 dropdown
+2. breadcrumb 页面出现 waiting 后，点击 Ver 菜单
+3. Ver 无更新时的版本号 dropdown
 4. `zh-hk` 或 `zh-mo` 的文案 fallback
 
 ## 出问题时先怀疑哪一层
@@ -350,8 +350,8 @@
 
 1. 新 worker 根本没进入 `waiting`
 2. `data-site-update="ready"` 没被设置
-3. 当前页没有可用 Version/Ver 菜单
-4. 菜单存在但点击命中的不是可用 Version/Ver 入口
+3. 当前页没有可用 Ver 菜单
+4. 菜单存在但点击命中的不是可用 Ver 入口
 
 ### 文案语言不对
 
@@ -382,7 +382,7 @@
 
 ### 固定版本菜单
 
-常规页面应由固定 Version/Ver 菜单独占 `data-site-version-menu`。
+常规页面应由固定 Ver 菜单独占 `data-site-version-menu`。
 breadcrumb、root rail、menu panel current option 不应再承担更新提示职责。
 
 ### 4 秒激活超时

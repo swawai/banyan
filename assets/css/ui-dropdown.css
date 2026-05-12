@@ -37,7 +37,6 @@ button.ui-dropdown-option {
     width: 100%;
     margin: 0;
     text-align: left;
-    white-space: nowrap;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -60,13 +59,21 @@ button.ui-dropdown-option {
     display: flex;
     flex-direction: column;
     gap: 0.08rem;
-    min-width: max-content;
+    box-sizing: border-box;
+    inline-size: max-content;
+    min-inline-size: 100%;
+    max-inline-size: calc(100vw - (var(--page-edge-inline, 8px) * 2));
     padding: 0.26rem;
     background: var(--bg);
     border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
     border-radius: 0.42rem;
     box-shadow: 0 0.32rem 1rem color-mix(in srgb, var(--fg) 12%, transparent);
     white-space: nowrap;
+}
+
+.ui-dropdown[data-ui-dropdown-align="end"] > .ui-dropdown-panel {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
 }
 
 .ui-dropdown-panel[hidden] {
@@ -81,6 +88,8 @@ button.ui-dropdown-option {
     line-height: 1.35;
     color: var(--link);
     border-radius: 0.32rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .ui-dropdown-option.is-current,

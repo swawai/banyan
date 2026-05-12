@@ -62,10 +62,10 @@ function ensureTwoBuilds(upgradePair) {
     }
 }
 
-async function readExpectedSiteVersionRefreshLabel(page, lang) {
+async function readExpectedSiteVersionUpdateLabel(page, lang) {
     return page.evaluate(async (targetLang) => {
         const normalize = (value) => typeof value === 'string' ? value.toLowerCase() : '';
-        const fallbackPrompt = 'Refresh';
+        const fallbackPrompt = 'click update';
         const manifestUrl = document.body?.dataset.assetManifestUrl || '';
         if (!manifestUrl) return fallbackPrompt;
 
@@ -92,8 +92,8 @@ async function readExpectedSiteVersionRefreshLabel(page, lang) {
         if (!resolvedUrl) return fallbackPrompt;
         const i18nResponse = await fetch(resolvedUrl, { credentials: 'same-origin' }).catch(() => null);
         const messages = i18nResponse && i18nResponse.ok ? await i18nResponse.json().catch(() => ({})) : {};
-        return typeof messages?.site_version_refresh === 'string' && messages.site_version_refresh
-            ? messages.site_version_refresh
+        return typeof messages?.site_version_status_click_update === 'string' && messages.site_version_status_click_update
+            ? messages.site_version_status_click_update
             : fallbackPrompt;
     }, lang);
 }
@@ -729,7 +729,7 @@ export const scenarios = [
 
             server.setRoot(upgradePair.toDir);
             await gotoAndWait(page, `${baseUrl}/`);
-            const expectedDropdownMessage = await readExpectedSiteVersionRefreshLabel(page, 'zh-hk');
+            const expectedDropdownMessage = await readExpectedSiteVersionUpdateLabel(page, 'zh-hk');
             await page.evaluate(() => {
                 document.documentElement.lang = 'zh-hk';
             });
@@ -774,7 +774,7 @@ export const scenarios = [
 
             server.setRoot(upgradePair.toDir);
             await gotoAndWait(page, `${baseUrl}/`);
-            const expectedDropdownMessage = await readExpectedSiteVersionRefreshLabel(page, 'zh-mo');
+            const expectedDropdownMessage = await readExpectedSiteVersionUpdateLabel(page, 'zh-mo');
             await page.evaluate(() => {
                 document.documentElement.lang = 'zh-mo';
             });

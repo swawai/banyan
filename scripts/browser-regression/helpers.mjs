@@ -90,7 +90,24 @@ export async function getMainInlineStart(page) {
 }
 
 export async function readFragmentRoot(page) {
-    return page.evaluate(() => document.body?.dataset.fragmentRoot || '');
+    return page.evaluate(async () => {
+        const inlineRoot = document.body?.dataset.fragmentRoot || '';
+        if (inlineRoot) return inlineRoot;
+
+        const manifestUrl = document.body?.dataset.assetManifestUrl || '';
+        const lang = document.documentElement?.lang || '';
+        if (!manifestUrl || !lang) return '';
+
+        try {
+            const response = await fetch(manifestUrl, { credentials: 'same-origin' });
+            if (!response || !response.ok) return '';
+            const manifest = await response.json();
+            const buildVersion = typeof manifest?.buildVersion === 'string' ? manifest.buildVersion : '';
+            return buildVersion ? `/__fragments/${buildVersion}/${lang}/` : '';
+        } catch {
+            return '';
+        }
+    });
 }
 
 export async function readSecurityPolicyViolations(page) {

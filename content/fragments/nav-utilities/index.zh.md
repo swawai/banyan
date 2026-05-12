@@ -18,4 +18,19 @@ nav:
     show: true
     page: /my
     key: my
+  version:
+    show: true
+    changelog_href: /changelog/
+    labels:
+      label: version
+      text: ver
+      check: 立即检查
+      checking: 检查中...
+      check_failed: 检查失败
+      status: 状态
+      status_current: 已是最新
+      status_ready: 有新版本
+      status_offline: 离线
+      status_click_update: 点击更新
+      status_click_retry: 点击重试
 ---

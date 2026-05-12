@@ -561,6 +561,114 @@ async function inspectHtmlFile(rootDir, absolutePath) {
     };
 }
 
+async function readUtf8IfExists(absolutePath) {
+    try {
+        return await fs.readFile(absolutePath, 'utf8');
+    } catch {
+        return '';
+    }
+}
+
+async function collectAssetManifestPaths(rootDir) {
+    const runtimeDir = path.join(rootDir, 'runtime');
+    try {
+        const entries = await fs.readdir(runtimeDir, { withFileTypes: true });
+        return entries
+            .filter((entry) => entry.isFile() && /^asset-manifest\..+\.json$/i.test(entry.name))
+            .map((entry) => path.join(runtimeDir, entry.name));
+    } catch {
+        return [];
+    }
+}
+
+async function collectFragmentVersionDirs(rootDir) {
+    const fragmentsDir = path.join(rootDir, '__fragments');
+    try {
+        const entries = await fs.readdir(fragmentsDir, { withFileTypes: true });
+        return entries
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => entry.name)
+            .sort();
+    } catch {
+        return [];
+    }
+}
+
+async function inspectBuildVersionContract(rootDir, rows) {
+    const issues = [];
+    let buildVersion = '';
+    const manifestPaths = await collectAssetManifestPaths(rootDir);
+    const fragmentVersionDirs = await collectFragmentVersionDirs(rootDir);
+
+    if (manifestPaths.length !== 1) {
+        issues.push(`Expected exactly one runtime asset manifest, found ${manifestPaths.length}.`);
+    }
+
+    if (manifestPaths.length > 0) {
+        try {
+            const manifestText = await fs.readFile(manifestPaths[0], 'utf8');
+            const manifest = JSON.parse(manifestText);
+            buildVersion = typeof manifest?.buildVersion === 'string' ? manifest.buildVersion : '';
+            if (!buildVersion) {
+                issues.push('runtime asset manifest is missing buildVersion.');
+            }
+        } catch (error) {
+            issues.push(`Unable to parse runtime asset manifest: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    const inlineFragmentRoots = [];
+    const staticVersionDataAttrs = [];
+    for (const row of rows) {
+        const text = await fs.readFile(row.absolutePath, 'utf8');
+        const bodyTag = text.match(/<body\b[^>]*>/i)?.[0] ?? '';
+        const fragmentRoot = extractTagAttribute(bodyTag, 'data-fragment-root');
+
+        if (fragmentRoot) {
+            inlineFragmentRoots.push(`${row.relativePath}: ${fragmentRoot}`);
+        }
+
+        if (/\bdata-site-build-version\b/i.test(text)) {
+            staticVersionDataAttrs.push(row.relativePath);
+        }
+    }
+
+    if (inlineFragmentRoots.length > 0) {
+        issues.push(`HTML must not inline versioned data-fragment-root; derive it from runtime asset manifest:\n  ${inlineFragmentRoots.slice(0, 10).join('\n  ')}`);
+    }
+    if (staticVersionDataAttrs.length > 0) {
+        issues.push(`Version menu should not duplicate buildVersion in data-site-build-version:\n  ${staticVersionDataAttrs.slice(0, 10).join('\n  ')}`);
+    }
+
+    if (buildVersion) {
+        const unexpectedFragmentDirs = fragmentVersionDirs.filter((entry) => entry !== buildVersion);
+        if (fragmentVersionDirs.length !== 1 || unexpectedFragmentDirs.length > 0) {
+            issues.push(
+                `__fragments must contain exactly the manifest buildVersion directory ${buildVersion}; found ${fragmentVersionDirs.join(', ') || '<none>'}.`
+            );
+        }
+    }
+
+    const swText = await readUtf8IfExists(path.join(rootDir, 'sw.js'));
+    if (buildVersion && swText) {
+        const swVersions = [...new Set([...swText.matchAll(/\bv\d{14}\b/g)].map((match) => match[0]))].sort();
+        const unexpectedSwVersions = swVersions.filter((entry) => entry !== buildVersion);
+        if (!swText.includes('nav-html-') || !swText.includes('asset-versioned-') || !swVersions.includes(buildVersion)) {
+            issues.push(`sw.js does not appear to use manifest buildVersion ${buildVersion}.`);
+        }
+        if (unexpectedSwVersions.length > 0) {
+            issues.push(`sw.js contains buildVersion values outside manifest buildVersion ${buildVersion}: ${unexpectedSwVersions.join(', ')}.`);
+        }
+    }
+
+    return {
+        buildVersion,
+        manifestCount: manifestPaths.length,
+        fragmentVersionDirs,
+        issues,
+    };
+}
+
 function buildJsDependencyStats(pageRelativePath, externalScriptRefs, jsAssetsByPath) {
     const scriptDependencyPaths = [];
     const missingScriptRefs = [];
@@ -728,6 +836,7 @@ async function main() {
     }
 
     const rowsByPath = new Map(rows.map((row) => [row.relativePath, row]));
+    const buildVersionContract = await inspectBuildVersionContract(publicRoot, rows);
     const rawTotal = rows.reduce((sum, row) => sum + row.rawBytes, 0);
     const gzipTotal = rows.reduce((sum, row) => sum + row.gzipBytes, 0);
     const breadcrumbTotal = rows.reduce((sum, row) => sum + row.breadcrumbPayloadBytes, 0);
@@ -753,6 +862,9 @@ async function main() {
     console.log(`Root\t${publicRoot}`);
     console.log(`Mode\t${options.check ? 'report + check' : 'report only'}`);
     console.log(`HTML files\t${rows.length}`);
+    console.log(`Build version\t${buildVersionContract.buildVersion || '<missing>'}`);
+    console.log(`Asset manifests\t${buildVersionContract.manifestCount}`);
+    console.log(`Fragment version dirs\t${buildVersionContract.fragmentVersionDirs.join(', ') || '<none>'}`);
     console.log(`Redirect pages\t${redirectCount}`);
     console.log(`Raw total\t${rawTotal}\t${formatBytes(rawTotal)}`);
     console.log(`Gzip total\t${gzipTotal}\t${formatBytes(gzipTotal)}`);
@@ -831,7 +943,10 @@ async function main() {
         productionGuardrails.map((guardrail) => rowsByPath.get(guardrail.relativePath))
     );
 
-    const integrityIssues = buildIntegrityIssues(rows);
+    const integrityIssues = [
+        ...buildIntegrityIssues(rows),
+        ...buildVersionContract.issues,
+    ];
     const guardrailIssues = options.check ? buildGuardrailIssues(rowsByPath) : [];
 
     if (integrityIssues.length > 0) {

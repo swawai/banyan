@@ -21,6 +21,7 @@ import {
     ENTRY_LINEAGE_FIELD,
     hasFieldValue,
 } from './navigation-state.contract.js';
+import { getRuntimeFragmentRoot } from './runtime-manifest.js';
 
 const BREADCRUMB_SORT_PENDING_ATTR = 'data-breadcrumb-sort-pending';
 
@@ -141,7 +142,7 @@ function normalizeBreadcrumbItemKind(item) {
 }
 
 async function updateBreadcrumbTrailMenus(pageCollectionSource) {
-    const fragmentRoot = document.body?.dataset.fragmentRoot || '';
+    const fragmentRoot = await getRuntimeFragmentRoot();
     if (!fragmentRoot || !pageCollectionSource?.provider) {
         return;
     }

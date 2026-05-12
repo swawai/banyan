@@ -25,7 +25,10 @@
 {{- end -}}
 {{- partialCached "audit/permalink-collision.html" (dict "ctx" .) "audit-permalink-collision" -}}
 {{- $primarySite := index (sort .Sites "Language.Weight") 0 -}}
-{{- $buildVersion := partialCached "build-version.html" $primarySite.Home "build-version-primary" -}}
+{{- $buildVersion := partial "build-version.html" $primarySite.Home -}}
+{{- $buildTimeISO := partial "build-time-iso.html" $primarySite.Home -}}
+{{- $buildTimeDisplay := partial "build-time-display.html" $primarySite.Home -}}
+{{- .Scratch.Set "build_version" $buildVersion -}}
 {{- with index $swConfig "cache_first_extensions" -}}
 {{- errorf "Build failed: params.service_worker.cache_first_extensions has moved to data/cache-policy.toml (or the theme default cache policy) routes[].sw config; do not keep setting it in hugo.toml." -}}
 {{- end -}}
@@ -159,6 +162,9 @@
     {{- $langListBody := partial "runtime/lang-list-body.json" . -}}
     {{- $langListResource := resources.FromString "runtime/lang-list.json" $langListBody | fingerprint -}}
     {{- $assetManifestBody := dict
+        "buildTime" $buildTimeDisplay
+        "buildTimeISO" $buildTimeISO
+        "buildVersion" $buildVersion
         "langList" $langListResource.RelPermalink
         "i18n" $runtimeI18n
         "i18nFallbacks" $runtimeI18nFallbacks
@@ -275,9 +281,6 @@
             ) -}}
             {{- $publishSw := $swScript.RelPermalink -}}
             {{- $swUrl := "sw.js" | relURL -}}
-            {{- $swUpdatePopover := resources.Get "css/sw-update-popover.css" -}}
-  {{- if not $swUpdatePopover -}}{{- errorf "Build failed: missing resource %q." "css/sw-update-popover.css" -}}{{- end -}}
-            {{- $swUpdatePopover = partial "css-process.html" (dict "resource" $swUpdatePopover "fingerprint" true) -}}
             {{- $swManagerEntryPath := "js/sw-manager.enable.entry.js.tmpl" -}}
             {{- $swManagerEntryTemplate := resources.Get $swManagerEntryPath -}}
   {{- if not $swManagerEntryTemplate -}}{{- errorf "Build failed: missing resource %q." $swManagerEntryPath -}}{{- end -}}
@@ -285,7 +288,6 @@
             {{- $swVisibilityThrottle := index $swConfig "update_visibility_throttle" | default 3 -}}
             {{- $swManagerEntryCtx := dict
                 "sw_url" $swUrl
-                "update_style_url" $swUpdatePopover.RelPermalink
                 "check_interval" $swCheckInterval
                 "visibility_throttle" $swVisibilityThrottle
             -}}
@@ -318,7 +320,7 @@
     <link rel="manifest" href="{{ $manifest.RelPermalink }}" fetchpriority="low">
     {{- end }}
 </head>
-<body data-asset-manifest-url="{{ $assetManifest.RelPermalink }}" data-fragment-root="{{ printf "/__fragments/%s/%s/" $buildVersion .Site.Language.Lang }}" data-site-root="{{ .Site.Home.RelPermalink }}"{{- if $hasBreadcrumbCapability }} data-entry-breadcrumb-sources="{{ $entryBreadcrumbSources | jsonify }}" data-page-collection-source="{{ $pageCollectionSource | jsonify }}" data-current-page-title="{{ (.Title | default .LinkTitle) | htmlEscape }}" data-current-page-href="{{ .RelPermalink }}"{{- end }}>
+<body data-asset-manifest-url="{{ $assetManifest.RelPermalink }}" data-site-root="{{ .Site.Home.RelPermalink }}"{{- if $hasBreadcrumbCapability }} data-entry-breadcrumb-sources="{{ $entryBreadcrumbSources | jsonify }}" data-page-collection-source="{{ $pageCollectionSource | jsonify }}" data-current-page-title="{{ (.Title | default .LinkTitle) | htmlEscape }}" data-current-page-href="{{ .RelPermalink }}"{{- end }}>
     {{- if and .IsPage (not .Params.slug) -}}
 {{- errorf "Build failed: page %q (title: %q) is missing the slug field." .File.Path .Title -}}
     {{- end -}}
@@ -337,7 +339,7 @@
                 {{- $hasBreadcrumbTail = gt (len $breadcrumbItems) 0 -}}
             {{- end -}}
         {{- end -}}
-        {{- $hasRail := or $hasTopbar $hasBreadcrumbRoot (index $slotSources "footer") -}}
+        {{- $hasRail := or $hasTopbar $hasBreadcrumbRoot -}}
         {{- $pageShellClasses := slice "page-shell" -}}
         {{- if $hasRail -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--has-rail" -}}{{- end -}}
         {{- if $hasTopbar -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--has-topbar" -}}{{- end -}}
@@ -345,8 +347,6 @@
         {{- if $hasBreadcrumbTail -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--has-breadcrumb-tail" -}}{{- else -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--no-breadcrumb-tail" -}}{{- end -}}
         {{- with index $slotSources "footer" -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--has-footer" -}}{{- else -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--no-footer" -}}{{- end -}}
         {{- with index $slotSources "meta" -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--has-meta" -}}{{- else -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--no-meta" -}}{{- end -}}
-        {{- $footerInRail := and (index $slotSources "footer") (not $hasBreadcrumbRoot) -}}
-        {{- if $footerInRail -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--footer-in-rail" -}}{{- else -}}{{- $pageShellClasses = $pageShellClasses | append "page-shell--footer-in-stage" -}}{{- end -}}
         <div class="{{ delimit $pageShellClasses " " }}">
             {{- if $hasRail -}}
             <div class="page-rail">
@@ -370,11 +370,6 @@
                     <div class="slot slot-breadcrumb-root slot-breadcrumb-root-rail" data-slot="breadcrumb_root">
                         {{- partial "breadcrumb/root.html" (dict "ctx" $ "slot" "breadcrumb_root" "source" . "mode" "list") -}}
                     </div>
-                </div>
-                {{- end -}}
-                {{- if $footerInRail -}}
-                <div class="slot slot-footer" data-slot="footer">
-                    {{- partial "slots/render.html" (dict "ctx" $ "slot" "footer") -}}
                 </div>
                 {{- end -}}
             {{- if $hasRail -}}
@@ -415,12 +410,10 @@
             </div>
             {{- end -}}
             </div>
-            {{- if not $footerInRail -}}
             {{- with index $slotSources "footer" -}}
             <div class="slot slot-footer" data-slot="footer">
                 {{- partial "slots/render.html" (dict "ctx" $ "slot" "footer") -}}
             </div>
-            {{- end -}}
             {{- end -}}
         </div>
     </div>

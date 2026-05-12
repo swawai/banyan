@@ -7,6 +7,7 @@
 {{ $items := index $navConfig "items" | default slice }}
 {{ $controls := index $navConfig "controls" | default dict }}
 {{ $myConfig := index $navConfig "my" | default dict }}
+{{ $versionConfig := index $navConfig "version" | default dict }}
 {{ $labelDefaults := dict
     "language" "Language"
     "theme" "Theme"
@@ -22,6 +23,24 @@
 {{ if isset $controls "theme" }}{{ $showTheme = index $controls "theme" }}{{ end }}
 {{ $showMy := true }}
 {{ if isset $myConfig "show" }}{{ $showMy = index $myConfig "show" }}{{ end }}
+{{ $versionLabelDefaults := dict
+    "label" "version"
+    "text" "Ver"
+    "checking" "Checking..."
+    "check_failed" "Check failed"
+    "status" "Status"
+    "status_current" "Up to date"
+    "status_ready" "New version available"
+    "status_offline" "Offline"
+    "status_click_update" "click update"
+    "status_click_retry" "click retry"
+}}
+{{ $versionLabels := merge $versionLabelDefaults (index $versionConfig "labels" | default dict) }}
+{{ $swConfig := $ctx.Site.Params.service_worker | default dict }}
+{{ $swMode := lower (printf "%v" (index $swConfig "mode" | default "off")) }}
+{{ $isOfflinePage := eq ($ctx.Scratch.Get "is_offline_page") true }}
+{{ $showVersion := and (eq $swMode "enable") (not $isOfflinePage) }}
+{{ if isset $versionConfig "show" }}{{ $showVersion = and $showVersion (eq (index $versionConfig "show") true) }}{{ end }}
 {{ $labelLanguage := index $labels "language" }}
 {{ $labelTheme := index $labels "theme" }}
 {{ $themeAuto := index $labels "theme_auto" }}
@@ -231,6 +250,43 @@
         "panelClass" "site-nav-utility-panel"
         "panelDataAttrs" (dict "nav-utility-panel" "true")
         "panelHTML" (delimit $themeOptionParts "")
+    ) }}
+    {{ end }}
+
+    {{ if $showVersion }}
+    <span class="site-nav-utilities-break" aria-hidden="true"></span>
+    {{ $versionLabel := printf "%v" (index $versionLabels "label") }}
+    {{ $versionText := printf "%v" (index $versionLabels "text") }}
+    {{ $versionStatus := printf "%v" (index $versionLabels "status") }}
+    {{ $versionStatusCurrent := printf "%v" (index $versionLabels "status_current") }}
+    {{ $versionLabelEsc := $versionLabel | htmlEscape }}
+    {{ $versionTextEsc := $versionText | htmlEscape }}
+    {{ $versionBuild := partial "build-version.html" $ctx }}
+    {{ $versionBuildEsc := $versionBuild | htmlEscape }}
+    {{ $versionChangelogHref := trim (printf "%v" (index $versionConfig "changelog_href" | default "")) " \r\n\t" }}
+    {{ if and $versionChangelogHref (hasPrefix $versionChangelogHref "/") }}{{ $versionChangelogHref = $versionChangelogHref | relLangURL }}{{ end }}
+    {{ $versionTriggerHTML := printf "<button type=\"button\" class=\"ui-dropdown-trigger site-nav-utility-trigger site-nav-version-trigger\" aria-label=\"%s\" aria-haspopup=\"true\" aria-expanded=\"false\" data-ui-dropdown-trigger=\"true\" data-nav-utility-trigger=\"true\" data-site-version-trigger=\"true\">%s<span class=\"ui-dropdown-caret site-nav-utility-caret\" aria-hidden=\"true\">▾</span></button>" $versionLabelEsc $versionTextEsc }}
+    {{ $versionPanelParts := slice }}
+    {{ if $versionChangelogHref }}
+        {{ $versionPanelParts = $versionPanelParts | append (printf "<a class=\"ui-dropdown-option site-nav-utility-option\" href=\"%s\" data-nav-utility-option=\"true\" data-site-version-action=\"changelog\">%s</a>" ($versionChangelogHref | htmlEscape) $versionBuildEsc) }}
+    {{ else }}
+        {{ $versionPanelParts = $versionPanelParts | append (printf "<button type=\"button\" class=\"ui-dropdown-option site-nav-utility-option\" data-nav-utility-option=\"true\" disabled>%s</button>" $versionBuildEsc) }}
+    {{ end }}
+    {{ $versionPanelParts = $versionPanelParts | append (printf "<button type=\"button\" class=\"ui-dropdown-option site-nav-utility-option\" data-nav-utility-option=\"true\" data-site-version-action=\"check\">%s</button>" ((printf "%s: %s" $versionStatus $versionStatusCurrent) | htmlEscape)) }}
+    {{ partial "ui/dropdown.html" (dict
+        "rootClass" "site-nav-utility-menu site-nav-version-menu"
+        "align" "end"
+        "rootDataAttrs" (dict
+            "nav-utility-menu" "true"
+            "nav-utility-kind" "version"
+            "nav-utility-label" $versionLabel
+            "site-version-menu" "true"
+            "site-version-changelog-href" $versionChangelogHref
+        )
+        "triggerHTML" $versionTriggerHTML
+        "panelClass" "site-nav-utility-panel"
+        "panelDataAttrs" (dict "nav-utility-panel" "true")
+        "panelHTML" (delimit $versionPanelParts "")
     ) }}
     {{ end }}
 </nav>

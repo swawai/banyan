@@ -67,3 +67,19 @@ export function getRuntimeI18nUrl(manifest, lang) {
 
     return '';
 }
+
+export function getRuntimeBuildVersion(manifest) {
+    return typeof manifest?.buildVersion === 'string' && manifest.buildVersion
+        ? manifest.buildVersion
+        : '';
+}
+
+export async function getRuntimeFragmentRoot() {
+    const manifest = await getRuntimeManifest();
+    const buildVersion = getRuntimeBuildVersion(manifest);
+    const lang = document.documentElement?.lang || '';
+    if (!buildVersion || !lang) {
+        return '';
+    }
+    return `/__fragments/${buildVersion}/${lang}/`;
+}

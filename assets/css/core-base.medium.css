@@ -15,6 +15,10 @@
         align-items: start;
     }
 
+    .page-shell.page-shell--has-rail.page-shell--has-footer {
+        grid-template-rows: max-content max-content minmax(0, 1fr);
+    }
+
     .page-shell.page-shell--has-rail .page-rail {
         grid-column: 1;
         grid-row: 1;
@@ -33,6 +37,10 @@
         grid-column: 2;
         grid-row: 1;
         min-width: 0;
+    }
+
+    .page-shell.page-shell--has-rail.page-shell--has-footer .page-stage {
+        grid-row: 1 / 4;
     }
 
     .page-shell.page-shell--has-rail .page-rail-context {
@@ -65,12 +73,7 @@
         min-width: 0;
         padding-inline-end: var(--page-rail-padding-inline-end);
         padding-block-start: 1.25rem;
-        align-self: start;
-    }
-
-    .page-shell.page-shell--footer-in-rail .page-rail > .slot-footer {
-        min-width: 0;
-        padding-block-start: 0.8rem;
         padding-block-end: 0;
+        align-self: start;
     }
 }

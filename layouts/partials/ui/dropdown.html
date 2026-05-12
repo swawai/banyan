@@ -1,5 +1,6 @@
 {{- $rootClass := trim (printf "ui-dropdown %s" (.rootClass | default "")) " " -}}
 {{- $rootDataAttrs := merge (dict "ui-dropdown" "true") (.rootDataAttrs | default dict) -}}
+{{- with .align -}}{{- $rootDataAttrs = merge $rootDataAttrs (dict "ui-dropdown-align" .) -}}{{- end -}}
 {{- $panelClass := trim (printf "ui-dropdown-panel %s" (.panelClass | default "")) " " -}}
 {{- $panelDataAttrs := merge (dict "ui-dropdown-panel" "true") (.panelDataAttrs | default dict) -}}
 {{- $triggerHTML := .triggerHTML | default "" -}}

@@ -55,10 +55,43 @@
   {{- end -}}
 {{- end -}}
 
+{{- $siteVersionLabelDefaults := dict
+  "check" "Check now"
+  "checking" "Checking..."
+  "check_failed" "Check failed"
+  "status" "Status"
+  "status_current" "Up to date"
+  "status_ready" "New version available"
+  "status_offline" "Offline"
+  "status_click_update" "click update"
+  "status_click_retry" "click retry"
+-}}
+{{- $siteVersionLabels := $siteVersionLabelDefaults -}}
+{{- $siteVersionChangelogHref := "" -}}
+{{- with .GetPage "/fragments/nav-utilities" -}}
+  {{- $navConfig := .Params.nav | default dict -}}
+  {{- $versionConfig := index $navConfig "version" | default dict -}}
+  {{- $siteVersionLabels = merge $siteVersionLabelDefaults (index $versionConfig "labels" | default dict) -}}
+  {{- $siteVersionChangelogHref = trim (printf "%v" (index $versionConfig "changelog_href" | default "")) " \r\n\t" -}}
+  {{- if and $siteVersionChangelogHref (hasPrefix $siteVersionChangelogHref "/") -}}
+    {{- $siteVersionChangelogHref = $siteVersionChangelogHref | relLangURL -}}
+  {{- end -}}
+{{- end -}}
+
 {{- dict
   "no_trans_msg" $noTrans
   "lang_suggest_msg" $langSuggest
   "site_update_prompt" $siteUpdatePrompt
   "site_update_confirm" $siteUpdateConfirm
   "site_update_later" $siteUpdateLater
+  "site_version_check" (printf "%v" (index $siteVersionLabels "check"))
+  "site_version_checking" (printf "%v" (index $siteVersionLabels "checking"))
+  "site_version_check_failed" (printf "%v" (index $siteVersionLabels "check_failed"))
+  "site_version_status" (printf "%v" (index $siteVersionLabels "status"))
+  "site_version_status_current" (printf "%v" (index $siteVersionLabels "status_current"))
+  "site_version_status_ready" (printf "%v" (index $siteVersionLabels "status_ready"))
+  "site_version_status_offline" (printf "%v" (index $siteVersionLabels "status_offline"))
+  "site_version_status_click_update" (printf "%v" (index $siteVersionLabels "status_click_update"))
+  "site_version_status_click_retry" (printf "%v" (index $siteVersionLabels "status_click_retry"))
+  "site_version_changelog_href" $siteVersionChangelogHref
 | jsonify -}}

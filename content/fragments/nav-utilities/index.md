@@ -18,4 +18,19 @@ nav:
     show: true
     page: /my
     key: my
+  version:
+    show: true
+    changelog_href: /changelog/
+    labels:
+      label: version
+      text: ver
+      check: Check now
+      checking: Checking...
+      check_failed: Check failed
+      status: Status
+      status_current: Up to date
+      status_ready: New version available
+      status_offline: Offline
+      status_click_update: click update
+      status_click_retry: click retry
 ---

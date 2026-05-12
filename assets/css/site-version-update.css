@@ -1,0 +1,22 @@
+[data-site-update="ready"] .site-nav-version-menu::after {
+    border-bottom-color: var(--focus);
+    border-bottom-width: 2px;
+}
+
+[data-site-update="ready"] .site-nav-version-trigger {
+    border-radius: 0.28rem;
+    animation: site-version-update-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes site-version-update-pulse {
+    0%,
+    100% {
+        background: color-mix(in srgb, var(--focus) 4%, transparent);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 0%, transparent);
+    }
+
+    50% {
+        background: color-mix(in srgb, var(--focus) 14%, transparent);
+        box-shadow: 0 0 0 0.24rem color-mix(in srgb, var(--focus) 10%, transparent);
+    }
+}

@@ -1,3 +1,11 @@
+.page-topbar .slot-utilities {
+    flex: 1 1 auto;
+}
+
+.page-topbar .site-nav-utilities {
+    width: 100%;
+}
+
 .site-nav-utilities .site-nav-link-account > .icon {
     position: relative;
 }
@@ -23,4 +31,40 @@
 
 .site-nav-utilities :is(.site-nav-utility-trigger, .site-nav-utility-option):disabled {
     cursor: default;
+}
+
+.site-nav .site-nav-version-menu {
+    color: var(--link-visited);
+    margin-inline-start: auto;
+    font-weight: normal;
+}
+
+.site-nav-utilities-break {
+    display: none;
+}
+
+@media (min-width: 58rem) {
+    .page-shell.page-shell--has-rail .page-topbar .slot-utilities {
+        flex: 0 1 auto;
+    }
+
+    .page-shell.page-shell--has-rail .page-topbar .site-nav-utilities {
+        display: grid;
+        grid-template-columns: repeat(3, max-content);
+        align-items: end;
+        justify-content: start;
+        width: auto;
+    }
+
+    .page-shell.page-shell--has-rail .site-nav-version-menu {
+        grid-column: 1 / -1;
+        justify-self: start;
+        margin-inline-start: 0;
+        width: fit-content;
+    }
+
+    .page-shell.page-shell--has-rail .site-nav-version-menu[data-ui-dropdown-align="end"] > .site-nav-utility-panel {
+        inset-inline-start: 0;
+        inset-inline-end: auto;
+    }
 }

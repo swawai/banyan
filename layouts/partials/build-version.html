@@ -1,14 +1,24 @@
-{{- $buildConfig := site.Params.build | default dict -}}
-{{- $buildVersion := trim (printf "%v" (index $buildConfig "version" | default "")) " \r\n\t" -}}
-{{- if ne $buildVersion "" -}}
+{{- $versionKey := "banyan.build_version" -}}
+{{- $existingVersion := hugo.Store.Get $versionKey -}}
+{{- if $existingVersion -}}
+  {{- $existingVersion -}}
+{{- else -}}
+  {{- $buildConfig := site.Params.build | default dict -}}
+  {{- $configuredVersion := trim (printf "%v" (index $buildConfig "version" | default "")) " \r\n\t" -}}
+  {{- $versionPrefix := trim (printf "%v" (index $buildConfig "version_prefix" | default "v")) " \r\n\t" -}}
+  {{- $timestampLayout := trim (printf "%v" (index $buildConfig "timestamp_layout" | default "20060102150405")) " \r\n\t" -}}
+  {{- if eq $timestampLayout "" -}}
+    {{- $timestampLayout = "20060102150405" -}}
+  {{- end -}}
+
+  {{- $buildTime := now -}}
+  {{- $buildVersion := $configuredVersion -}}
+  {{- if eq $buildVersion "" -}}
+    {{- $buildVersion = printf "%s%s" $versionPrefix ($buildTime.Format $timestampLayout) -}}
+  {{- end -}}
+
+  {{- $noop := hugo.Store.Set $versionKey $buildVersion -}}
+  {{- $noop = hugo.Store.Set "banyan.build_time_iso" ($buildTime.UTC.Format "2006-01-02T15:04:05Z") -}}
+  {{- $noop = hugo.Store.Set "banyan.build_time_display" ($buildTime.Format "2006-01-02 15:04") -}}
   {{- $buildVersion -}}
-  {{- return -}}
 {{- end -}}
-
-{{- $versionPrefix := trim (printf "%v" (index $buildConfig "version_prefix" | default "v")) " \r\n\t" -}}
-{{- $timestampLayout := trim (printf "%v" (index $buildConfig "timestamp_layout" | default "20060102150405")) " \r\n\t" -}}
-{{- if eq $timestampLayout "" -}}
-  {{- $timestampLayout = "20060102150405" -}}
-{{- end -}}
-
-{{- printf "%s%s" $versionPrefix (now.Format $timestampLayout) -}}

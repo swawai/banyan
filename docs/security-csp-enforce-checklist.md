@@ -126,7 +126,7 @@ Strict-Transport-Security: max-age=300
 
 ### 8. `sw-manager.enable.update.js` 的更新菜单渲染
 
-当前版本菜单已改为 DOM API 渲染：
+Ver 菜单已改为 DOM API 渲染：
 
 - 菜单容器由 shared `ui/dropdown` 模板输出
 - 运行时只用 `document.createElement` 与 `textContent` 写入动态文案

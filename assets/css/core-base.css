@@ -83,23 +83,7 @@ body {
     display: flow-root;
 }
 
-.page-shell--footer-in-rail {
-    display: flex;
-    flex-direction: column;
-}
-
-.page-shell--footer-in-rail .page-rail {
-    display: contents;
-}
-
-.page-shell--footer-in-rail > .page-stage {
-    order: 1;
-}
-
-/* The narrow-layout footer needs to stay after stage flow and own its scroll tail,
-   otherwise some mobile browsers settle one screen too high on short pages. */
-.page-shell--footer-in-rail .page-rail > .slot-footer {
-    order: 2;
+.page-shell--has-footer > .slot-footer {
     padding-block-end: var(--page-footer-tail-space);
 }
 

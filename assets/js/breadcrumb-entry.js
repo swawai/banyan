@@ -20,6 +20,7 @@ import {
     normalizePathname,
     readCurrentFromPath,
 } from './nav-state.js';
+import { getRuntimeFragmentRoot } from './runtime-manifest.js';
 
 const ENTRY_BREADCRUMB_PREVIEW_PENDING_ATTR = 'data-entry-breadcrumb-preview-pending';
 const ENTRY_BREADCRUMB_RUNTIME_PENDING_ATTR = 'data-entry-breadcrumb-runtime-pending';
@@ -29,10 +30,6 @@ function clearEntryBreadcrumbPending() {
     document.documentElement?.removeAttribute(ENTRY_BREADCRUMB_PREVIEW_PENDING_ATTR);
     document.documentElement?.removeAttribute(ENTRY_BREADCRUMB_RUNTIME_PENDING_ATTR);
     document.documentElement?.removeAttribute(ENTRY_BREADCRUMB_META_PENDING_ATTR);
-}
-
-function readFragmentRoot() {
-    return document.body?.dataset.fragmentRoot || '';
 }
 
 async function buildPrefixLevelItem(fragmentRoot, source, level) {
@@ -112,7 +109,7 @@ function buildBreadcrumbItems(prefixItems, currentItem) {
 }
 
 async function buildEntryState() {
-    const fragmentRoot = readFragmentRoot();
+    const fragmentRoot = await getRuntimeFragmentRoot();
     if (!fragmentRoot) {
         return null;
     }
