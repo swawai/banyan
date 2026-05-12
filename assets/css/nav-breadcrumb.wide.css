@@ -271,10 +271,4 @@
         border-radius: 0;
     }
 
-    .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb [data-site-update-anchor] .crumb-text {
-        will-change: auto;
-        animation: none;
-        opacity: 1;
-        transform: none;
-    }
 }

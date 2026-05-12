@@ -124,19 +124,14 @@ Strict-Transport-Security: max-age=300
 - 现在不必为了“形式洁癖”把它们强行搬走
 - 但继续保留“它们不是 executable inline”的认知边界
 
-### 8. `sw-manager.enable.update.js` 仍有高敏感 sink
+### 8. `sw-manager.enable.update.js` 的更新菜单渲染
 
-当前仍有：
+当前版本菜单已改为 DOM API 渲染：
 
-- `popover.innerHTML = ...`
+- 菜单容器由 shared `ui/dropdown` 模板输出
+- 运行时只用 `document.createElement` 与 `textContent` 写入动态文案
 
-它的好消息是：
-
-- 当前拼接的是固定结构
-- 动态文案已经走 `textContent`
-
-所以它现在更像“受控 sink”，不是立即阻塞项。  
-但它仍应被视为后续 code review 的敏感点。
+这里的核心边界是：runtime i18n 与 manifest 内容都按文本写入，不进入 HTML sink。
 
 ### 9. `Speculation-Rules` 支持度与重叠语义仍是次级风险
 

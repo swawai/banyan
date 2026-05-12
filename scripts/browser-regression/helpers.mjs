@@ -128,26 +128,26 @@ export async function waitForUpdateReady(page, timeoutMs = 15000) {
     });
 }
 
-export async function countUsableUpdateAnchors(page) {
+export async function countUsableVersionMenus(page) {
     return page.evaluate(() => {
-        const anchors = Array.from(document.querySelectorAll('[data-site-update-anchor]'));
-        return anchors.filter((anchor) => {
-            if (!(anchor instanceof HTMLElement)) return false;
-            const style = window.getComputedStyle(anchor);
+        const menus = Array.from(document.querySelectorAll('[data-site-version-menu]'));
+        return menus.filter((menu) => {
+            if (!(menu instanceof HTMLElement)) return false;
+            const style = window.getComputedStyle(menu);
             if (style.display === 'none' || style.visibility === 'hidden') return false;
-            return anchor.getClientRects().length > 0;
+            return menu.getClientRects().length > 0;
         }).length;
     });
 }
 
-export async function markFirstUsableUpdateAnchor(page) {
+export async function markFirstUsableVersionMenu(page) {
     const found = await page.evaluate(() => {
-        const anchors = Array.from(document.querySelectorAll('[data-site-update-anchor]'));
-        const usable = anchors.find((anchor) => {
-            if (!(anchor instanceof HTMLElement)) return false;
-            const style = window.getComputedStyle(anchor);
+        const menus = Array.from(document.querySelectorAll('[data-site-version-menu]'));
+        const usable = menus.find((menu) => {
+            if (!(menu instanceof HTMLElement)) return false;
+            const style = window.getComputedStyle(menu);
             if (style.display === 'none' || style.visibility === 'hidden') return false;
-            return anchor.getClientRects().length > 0;
+            return menu.getClientRects().length > 0;
         });
         if (!usable) return false;
         usable.setAttribute('data-browser-regression-target', 'true');
@@ -155,28 +155,27 @@ export async function markFirstUsableUpdateAnchor(page) {
     });
 
     if (!found) {
-        fail('No usable data-site-update-anchor was found on the page.');
+        fail('No usable data-site-version-menu was found on the page.');
     }
 }
 
-export async function markUsableUpdateAnchors(page) {
+export async function markUsableVersionMenus(page) {
     return page.evaluate(() => {
-        const anchors = Array.from(document.querySelectorAll('[data-site-update-anchor]'));
+        const menus = Array.from(document.querySelectorAll('[data-site-version-menu]'));
         const marked = [];
         let nextId = 0;
-        anchors.forEach((anchor) => {
-            if (!(anchor instanceof HTMLElement)) return;
-            const style = window.getComputedStyle(anchor);
+        menus.forEach((menu) => {
+            if (!(menu instanceof HTMLElement)) return;
+            const style = window.getComputedStyle(menu);
             if (style.display === 'none' || style.visibility === 'hidden') return;
-            if (anchor.getClientRects().length === 0) return;
+            if (menu.getClientRects().length === 0) return;
 
             const id = String(nextId);
             nextId += 1;
-            anchor.setAttribute('data-browser-regression-anchor-id', id);
+            menu.setAttribute('data-browser-regression-menu-id', id);
             marked.push({
                 id,
-                href: anchor.getAttribute('href') || '',
-                text: (anchor.textContent || '').trim()
+                text: (menu.textContent || '').trim()
             });
         });
         return marked;

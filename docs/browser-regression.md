@@ -64,7 +64,7 @@
 这样场景主要验证的是：
 
 - breadcrumb 稳定性
-- SW waiting / popover / fallback
+- SW waiting / version dropdown / fallback
 - 真实响应头是否被浏览器吃到
 
 而不是被无关的全局提示串台。
@@ -117,7 +117,7 @@
 - `breadcrumb-products-wide-stability`
 - `breadcrumb-tags-wide-stability`
 - `sw-home-register`
-- `sw-update-anchor-multi-target-matrix`
+- `sw-update-version-menu-single-target`
 - `security-csp-enforce-home`
 - `security-csp-enforce-breadcrumb-wide`
 - `speculation-rules-header-all`
@@ -128,10 +128,10 @@
 
 需要 `temp_workspace/public/` 下至少有两份构建产物：
 
-- `sw-update-anchor-popover`
-- `sw-update-home-fallback`
-- `sw-update-home-fallback-zh-hk`
-- `sw-update-home-fallback-zh-mo`
+- `sw-update-version-dropdown`
+- `sw-update-home-version-dropdown`
+- `sw-update-version-dropdown-zh-hk`
+- `sw-update-version-dropdown-zh-mo`
 
 upgrade 场景会：
 

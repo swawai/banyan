@@ -1,7 +1,6 @@
 export function createServiceWorkerManagerRuntime(options = {}) {
     const swUrl = typeof options.swUrl === 'string' && options.swUrl ? options.swUrl : '/sw.js';
     const swScope = typeof options.swScope === 'string' && options.swScope ? options.swScope : '/';
-    const updateStyleUrl = typeof options.updateStyleUrl === 'string' && options.updateStyleUrl ? options.updateStyleUrl : '';
     const updateCheckInterval = Number.isFinite(options.updateCheckInterval) && options.updateCheckInterval > 0
         ? options.updateCheckInterval
         : 15 * 60 * 1000;
@@ -13,7 +12,6 @@ export function createServiceWorkerManagerRuntime(options = {}) {
         existingRuntime
         && existingRuntime.swUrl === swUrl
         && existingRuntime.swScope === swScope
-        && existingRuntime.updateStyleUrl === updateStyleUrl
         && existingRuntime.updateCheckInterval === updateCheckInterval
         && existingRuntime.updateVisibilityThrottle === updateVisibilityThrottle
     ) {
@@ -21,7 +19,6 @@ export function createServiceWorkerManagerRuntime(options = {}) {
     }
 
     let activeRegistration = null;
-    let updateStylePromise = null;
 
     function supportsServiceWorker() {
         return 'serviceWorker' in navigator;
@@ -48,25 +45,6 @@ export function createServiceWorkerManagerRuntime(options = {}) {
         return activeRegistration;
     }
 
-    function ensureUpdateStyle() {
-        if (!updateStyleUrl) return Promise.resolve('');
-
-        const existingLink = document.head.querySelector(`link[rel="stylesheet"][href="${updateStyleUrl}"]`);
-        if (existingLink) return Promise.resolve(updateStyleUrl);
-        if (updateStylePromise) return updateStylePromise;
-
-        updateStylePromise = new Promise((resolve) => {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = updateStyleUrl;
-            link.addEventListener('load', () => resolve(updateStyleUrl), { once: true });
-            link.addEventListener('error', () => resolve(''), { once: true });
-            document.head.appendChild(link);
-        });
-
-        return updateStylePromise;
-    }
-
     async function getActiveWorkerRegistration() {
         if (activeRegistration?.active) return activeRegistration;
 
@@ -82,7 +60,6 @@ export function createServiceWorkerManagerRuntime(options = {}) {
     }
 
     const runtime = {
-        ensureUpdateStyle,
         getActiveRegistration,
         getActiveWorkerRegistration,
         normalizeNavigationUrl,
@@ -90,7 +67,6 @@ export function createServiceWorkerManagerRuntime(options = {}) {
         supportsServiceWorker,
         swScope,
         updateCheckInterval,
-        updateStyleUrl,
         updateVisibilityThrottle,
         swUrl
     };

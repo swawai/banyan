@@ -3,7 +3,6 @@ import { startEnableMode } from './sw-manager.enable.update.js';
 
 const runtime = createServiceWorkerManagerRuntime({
     swUrl: {{ printf "%q" .sw_url }},
-    updateStyleUrl: {{ printf "%q" .update_style_url }},
     swScope: '/',
     updateCheckInterval: {{ mul .check_interval 60000 }},
     updateVisibilityThrottle: {{ mul .visibility_throttle 60000 }}

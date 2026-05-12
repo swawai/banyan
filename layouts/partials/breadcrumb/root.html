@@ -41,7 +41,7 @@
           "text" (index $menuItem "text")
           "class" $itemClass
           "title" (index $menuItem "title")
-          "dataAttrs" (cond $isCurrentMenu (dict "site-update-anchor" "true") (dict))
+          "dataAttrs" (dict)
           "ariaCurrent" (cond $isCurrentMenu "page" "")
           "linkSlot" "crumb"
         ) }}
@@ -59,7 +59,7 @@
     "textClass" "crumb-text"
     "class" "breadcrumb-link breadcrumb-link-lead"
     "title" (index $item "title")
-    "dataAttrs" (cond (eq (index $item "current") true) (dict "site-update-anchor" "true") (dict))
+    "dataAttrs" (dict)
     "ariaCurrent" (cond (eq (index $item "current") true) "page" "")
     "linkSlot" "crumb"
   ) }}

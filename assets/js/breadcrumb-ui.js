@@ -54,7 +54,6 @@ function buildMenuPanel(menuItems) {
         applyBreadcrumbPrefetchSlot(option);
         applyBreadcrumbKind(option, menuItem);
         if (menuItem.current) {
-            option.dataset.siteUpdateAnchor = 'true';
             option.setAttribute('aria-current', 'page');
         }
         option.textContent = menuItem.text;
@@ -126,7 +125,6 @@ function buildTopBreadcrumbItem(item, index) {
     applyBreadcrumbPrefetchSlot(link);
     applyBreadcrumbKind(link, item);
     if (item.current) {
-        link.dataset.siteUpdateAnchor = 'true';
         link.setAttribute('aria-current', 'page');
     }
     if (item.title) {
@@ -260,7 +258,6 @@ function buildRootRailNav(rootItem, rootMenuItems, rootMenuLabel) {
         applyBreadcrumbKind(link, menuItem);
         link.textContent = menuItem.text;
         if (menuItem.current) {
-            link.dataset.siteUpdateAnchor = 'true';
             link.setAttribute('aria-current', 'page');
         }
         if (menuItem.title) {

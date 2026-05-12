@@ -16,7 +16,6 @@
   {{- if ne $itemKind "" -}}{{- $linkDataAttrs = merge $linkDataAttrs (dict "breadcrumb-kind" $itemKind) -}}{{- end -}}
 {{- end -}}
 {{- if $itemIsCurrent -}}
-  {{- $linkDataAttrs = merge $linkDataAttrs (dict "site-update-anchor" "true") -}}
   {{- $linkDataAttrs = merge $linkDataAttrs (dict "breadcrumb-mode-toggle" "true") -}}
 {{- end -}}
 {{- if $showCaret -}}
@@ -53,7 +52,7 @@
     {{- end -}}
     {{- $menuItemClass := "ui-dropdown-option breadcrumb-menu-option" -}}
     {{- if $menuItemIsCurrent -}}{{- $menuItemClass = printf "%s is-current" $menuItemClass -}}{{- end -}}
-    {{- $menuItemDataAttrs := cond $menuItemIsCurrent (dict "site-update-anchor" "true") (dict) -}}
+    {{- $menuItemDataAttrs := dict -}}
     {{- with index $menuItem "kind" -}}
       {{- $menuItemKind := lower (trim (printf "%v" .) " ") -}}
       {{- if ne $menuItemKind "" -}}{{- $menuItemDataAttrs = merge $menuItemDataAttrs (dict "breadcrumb-kind" $menuItemKind) -}}{{- end -}}

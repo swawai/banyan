@@ -1,15 +1,14 @@
 import path from 'node:path';
 
 import {
-    countUsableUpdateAnchors,
+    countUsableVersionMenus,
     fail,
     forceServiceWorkerUpdate,
     getLayoutShiftValue,
     getMainInlineStart,
     gotoAndWait,
-    markUsableUpdateAnchors,
-    markFirstUsableUpdateAnchor,
-    pollUntil,
+    markUsableVersionMenus,
+    markFirstUsableVersionMenu,
     readFragmentRoot,
     readSecurityPolicyViolations,
     waitForBreadcrumbSettled,
@@ -63,16 +62,10 @@ function ensureTwoBuilds(upgradePair) {
     }
 }
 
-function extractFragmentLocale(fragmentRoot) {
-    if (!fragmentRoot) return '';
-    const match = /\/([^/]+)\/?$/.exec(fragmentRoot);
-    return match ? match[1].toLowerCase() : '';
-}
-
-async function readExpectedSiteUpdatePrompt(page, lang) {
+async function readExpectedSiteVersionRefreshLabel(page, lang) {
     return page.evaluate(async (targetLang) => {
         const normalize = (value) => typeof value === 'string' ? value.toLowerCase() : '';
-        const fallbackPrompt = 'A new version is ready. Refresh now?';
+        const fallbackPrompt = 'Refresh';
         const manifestUrl = document.body?.dataset.assetManifestUrl || '';
         if (!manifestUrl) return fallbackPrompt;
 
@@ -99,10 +92,36 @@ async function readExpectedSiteUpdatePrompt(page, lang) {
         if (!resolvedUrl) return fallbackPrompt;
         const i18nResponse = await fetch(resolvedUrl, { credentials: 'same-origin' }).catch(() => null);
         const messages = i18nResponse && i18nResponse.ok ? await i18nResponse.json().catch(() => ({})) : {};
-        return typeof messages?.site_update_prompt === 'string' && messages.site_update_prompt
-            ? messages.site_update_prompt
+        return typeof messages?.site_version_refresh === 'string' && messages.site_version_refresh
+            ? messages.site_version_refresh
             : fallbackPrompt;
     }, lang);
+}
+
+async function clickMarkedVersionTrigger(page) {
+    const target = page.locator('[data-browser-regression-target="true"]').first();
+    const trigger = target.locator('[data-site-version-trigger]').first();
+    if (await trigger.count()) {
+        await trigger.click();
+        return;
+    }
+
+    await target.click();
+}
+
+async function waitForVersionDropdown(page) {
+    await page.waitForSelector('[data-site-version-menu].is-open [data-nav-utility-panel]:not([hidden])');
+}
+
+async function readVersionDropdownText(page) {
+    return (await page.locator('[data-site-version-menu] [data-nav-utility-panel]').first().textContent() || '').trim();
+}
+
+async function waitForVersionDropdownText(page, text) {
+    await page.waitForFunction((expected) => {
+        const panel = document.querySelector('[data-site-version-menu].is-open [data-nav-utility-panel]');
+        return Boolean(panel?.textContent?.includes(expected));
+    }, text);
 }
 
 async function settleDesignAuditPage(page) {
@@ -558,9 +577,9 @@ export const scenarios = [
         }
     },
     {
-        id: 'sw-update-anchor-popover',
+        id: 'sw-update-version-dropdown',
         kind: 'upgrade',
-        title: 'SW Upgrade Anchor Popover',
+        title: 'SW Upgrade Version Dropdown',
         viewport: WIDE_VIEWPORT,
         dialogPolicy: 'dismiss',
         async run({ page, baseUrl, dialogs, server, upgradePair }) {
@@ -575,35 +594,35 @@ export const scenarios = [
             await forceServiceWorkerUpdate(page);
             await waitForUpdateReady(page);
 
-            const usableAnchors = await countUsableUpdateAnchors(page);
-            if (usableAnchors < 1) {
-                fail('Update-ready page had no usable update anchor.', { usableAnchors });
+            const usableMenus = await countUsableVersionMenus(page);
+            if (usableMenus < 1) {
+                fail('Update-ready page had no usable version menu.', { usableMenus });
             }
 
-            await markFirstUsableUpdateAnchor(page);
-            await page.locator('[data-browser-regression-target="true"]').first().click();
-            await page.waitForSelector('.site-update-popover[data-open="true"]');
+            await markFirstUsableVersionMenu(page);
+            await clickMarkedVersionTrigger(page);
+            await waitForVersionDropdown(page);
             await page.waitForTimeout(250);
 
             if (dialogs.length > 0) {
-                fail('Anchor page should not fall back to dialog when a usable anchor exists.', { dialogs });
+                fail('Version menu page should not fall back to dialog when a usable menu exists.', { dialogs });
             }
 
             const fragmentRootAfter = await readFragmentRoot(page);
             return {
                 fragmentRootBefore,
                 fragmentRootAfter,
-                usableAnchors,
+                usableMenus,
                 dialogs: dialogs.slice()
             };
         }
     },
     {
-        id: 'sw-update-home-fallback',
+        id: 'sw-update-home-version-dropdown',
         kind: 'upgrade',
-        title: 'SW Upgrade Home Fallback Confirm',
+        title: 'SW Upgrade Home Version Dropdown',
         viewport: { width: 1440, height: 960 },
-        dialogPolicy: 'accept',
+        dialogPolicy: 'dismiss',
         async run({ page, baseUrl, dialogs, server, upgradePair }) {
             ensureTwoBuilds(upgradePair);
             server.setRoot(upgradePair.fromDir);
@@ -614,114 +633,94 @@ export const scenarios = [
             server.setRoot(upgradePair.toDir);
             await gotoAndWait(page, `${baseUrl}/`);
             await forceServiceWorkerUpdate(page);
+            await waitForUpdateReady(page);
 
-            await pollUntil(() => dialogs.length > 0 ? dialogs[0] : null, {
-                timeoutMs: 15000,
-                label: 'sw-update-home-fallback dialog wait'
-            });
-
-            if (dialogs.length < 1) {
-                fail('Home page should fall back to confirm dialog when no breadcrumb anchor exists.', { dialogs });
-            }
-            if (dialogs.length !== 1) {
-                fail('Home page should show exactly one update confirm dialog.', { dialogs });
+            const usableMenus = await countUsableVersionMenus(page);
+            if (usableMenus !== 1) {
+                fail('Home page should expose exactly one usable version menu.', { usableMenus });
             }
 
-            const firstDialog = dialogs[0];
-            if (!firstDialog?.message) {
-                fail('Fallback dialog did not capture a usable message.', { dialogs });
+            await markFirstUsableVersionMenu(page);
+            await clickMarkedVersionTrigger(page);
+            await waitForVersionDropdown(page);
+
+            if (dialogs.length > 0) {
+                fail('Home page should use the version dropdown instead of fallback dialog.', { dialogs });
             }
 
-            await page.waitForLoadState('load').catch(() => { });
-            const fragmentRootAfter = await pollUntil(async () => {
-                try {
-                    const current = await readFragmentRoot(page);
-                    return current && current !== fragmentRootBefore ? current : '';
-                } catch (error) {
-                    return '';
-                }
-            }, {
-                timeoutMs: 15000,
-                label: 'sw-update-home-fallback fragment root switch'
-            });
-
-            const fragmentLocaleBefore = extractFragmentLocale(fragmentRootBefore);
-            const fragmentLocaleAfter = extractFragmentLocale(fragmentRootAfter);
-            if (fragmentLocaleBefore && fragmentLocaleAfter && fragmentLocaleBefore !== fragmentLocaleAfter) {
-                fail('Home page unexpectedly switched locales during SW fallback flow.', {
-                    dialogs,
-                    fragmentLocaleAfter,
-                    fragmentLocaleBefore,
-                    fragmentRootAfter,
-                    fragmentRootBefore
-                });
-            }
+            const dropdownText = await readVersionDropdownText(page);
+            const fragmentRootAfter = await readFragmentRoot(page);
             return {
-                dialogMessage: firstDialog.message,
-                fragmentLocaleAfter,
-                fragmentLocaleBefore,
+                dropdownText,
                 fragmentRootBefore,
-                fragmentRootAfter
+                fragmentRootAfter,
+                usableMenus
             };
         }
     },
     {
-        id: 'sw-update-anchor-multi-target-matrix',
+        id: 'sw-update-version-menu-single-target',
         kind: 'single',
-        title: 'SW Update Anchor Multi-target Matrix',
+        title: 'SW Update Version Menu Single-target',
         viewport: WIDE_VIEWPORT,
         dialogPolicy: 'dismiss',
         async run({ page, baseUrl, dialogs }) {
             await gotoAndWait(page, `${baseUrl}/intent/explore/`);
-            await page.waitForSelector('[data-site-update-anchor]');
+            await page.waitForSelector('[data-site-version-menu]');
             await waitForServiceWorkerActive(page);
-            const anchors = await markUsableUpdateAnchors(page);
-            if (anchors.length < 2) {
-                fail('Expected multiple usable update anchors on the matrix page.', { anchors });
+            const menus = await markUsableVersionMenus(page);
+            if (menus.length !== 1) {
+                fail('Expected exactly one usable version menu on the page.', { menus });
             }
 
             await page.evaluate(() => {
                 document.documentElement.setAttribute('data-site-update', 'ready');
             });
 
-            const clickedAnchors = [];
-            for (const anchor of anchors) {
-                const locator = page.locator(`[data-browser-regression-anchor-id="${anchor.id}"]`).first();
-                await locator.click();
-                await page.waitForSelector('.site-update-popover[data-open="true"]');
+            const clickedMenus = [];
+            for (const menu of menus) {
+                const locator = page.locator(`[data-browser-regression-menu-id="${menu.id}"]`).first();
+                const trigger = locator.locator('[data-site-version-trigger]').first();
+                if (await trigger.count()) {
+                    await trigger.click();
+                } else {
+                    await locator.click();
+                }
+                await waitForVersionDropdown(page);
 
-                const popoverText = await page.locator('.site-update-popover__text').textContent();
-                if (!popoverText || !popoverText.trim()) {
-                    fail('Update popover opened without usable text.', { anchor, anchors, dialogs });
+                const dropdownText = await readVersionDropdownText(page);
+                if (!dropdownText) {
+                    fail('Update dropdown opened without usable text.', { menu, menus, dialogs });
                 }
                 if (dialogs.length > 0) {
-                    fail('Update anchor matrix should not fall back to dialog.', { anchor, anchors, dialogs });
+                    fail('Version menu matrix should not fall back to dialog.', { menu, menus, dialogs });
                 }
 
-                clickedAnchors.push({
-                    href: anchor.href,
-                    id: anchor.id,
-                    text: anchor.text,
-                    popoverText: popoverText.trim()
+                clickedMenus.push({
+                    id: menu.id,
+                    text: menu.text,
+                    dropdownText
                 });
 
                 await page.keyboard.press('Escape');
-                await page.waitForSelector('.site-update-popover[data-open="true"]', { state: 'hidden' });
+                await page.waitForSelector('.site-nav-version-menu.is-open', { state: 'detached' }).catch(async () => {
+                    await page.waitForFunction(() => !document.querySelector('.site-nav-version-menu.is-open'));
+                });
             }
 
             return {
-                anchorCount: anchors.length,
-                clickedAnchors,
+                menuCount: menus.length,
+                clickedMenus,
                 dialogs: dialogs.slice()
             };
         }
     },
     {
-        id: 'sw-update-home-fallback-zh-hk',
+        id: 'sw-update-version-dropdown-zh-hk',
         kind: 'upgrade',
-        title: 'SW Update Home Fallback zh-hk -> zh-tw',
+        title: 'SW Update Version Dropdown zh-hk -> zh-tw',
         viewport: { width: 1440, height: 960 },
-        dialogPolicy: 'accept',
+        dialogPolicy: 'dismiss',
         async run({ page, baseUrl, dialogs, server, upgradePair }) {
             ensureTwoBuilds(upgradePair);
             server.setRoot(upgradePair.fromDir);
@@ -730,42 +729,43 @@ export const scenarios = [
 
             server.setRoot(upgradePair.toDir);
             await gotoAndWait(page, `${baseUrl}/`);
-            const expectedDialogMessage = await readExpectedSiteUpdatePrompt(page, 'zh-hk');
+            const expectedDropdownMessage = await readExpectedSiteVersionRefreshLabel(page, 'zh-hk');
             await page.evaluate(() => {
                 document.documentElement.lang = 'zh-hk';
             });
             await forceServiceWorkerUpdate(page);
+            await waitForUpdateReady(page);
 
-            await pollUntil(() => dialogs.length > 0 ? dialogs[0] : null, {
-                timeoutMs: 15000,
-                label: 'sw-update-home-fallback-zh-hk dialog wait'
-            });
+            await markFirstUsableVersionMenu(page);
+            await clickMarkedVersionTrigger(page);
+            await waitForVersionDropdown(page);
+            await waitForVersionDropdownText(page, expectedDropdownMessage);
 
-            if (dialogs.length !== 1) {
-                fail('zh-hk fallback should show exactly one update dialog.', { dialogs, expectedDialogMessage });
+            if (dialogs.length > 0) {
+                fail('zh-hk update flow should use the version dropdown instead of dialog.', { dialogs, expectedDropdownMessage });
             }
 
-            const actualDialogMessage = dialogs[0]?.message || '';
-            if (actualDialogMessage !== expectedDialogMessage) {
-                fail('zh-hk fallback dialog did not resolve to the expected localized copy.', {
-                    actualDialogMessage,
+            const actualDropdownText = await readVersionDropdownText(page);
+            if (!actualDropdownText.includes(expectedDropdownMessage)) {
+                fail('zh-hk version dropdown did not resolve to the expected localized copy.', {
+                    actualDropdownText,
                     dialogs,
-                    expectedDialogMessage
+                    expectedDropdownMessage
                 });
             }
 
             return {
-                actualDialogMessage,
-                expectedDialogMessage
+                actualDropdownText,
+                expectedDropdownMessage
             };
         }
     },
     {
-        id: 'sw-update-home-fallback-zh-mo',
+        id: 'sw-update-version-dropdown-zh-mo',
         kind: 'upgrade',
-        title: 'SW Update Home Fallback zh-mo -> zh-tw',
+        title: 'SW Update Version Dropdown zh-mo -> zh-tw',
         viewport: { width: 1440, height: 960 },
-        dialogPolicy: 'accept',
+        dialogPolicy: 'dismiss',
         async run({ page, baseUrl, dialogs, server, upgradePair }) {
             ensureTwoBuilds(upgradePair);
             server.setRoot(upgradePair.fromDir);
@@ -774,33 +774,34 @@ export const scenarios = [
 
             server.setRoot(upgradePair.toDir);
             await gotoAndWait(page, `${baseUrl}/`);
-            const expectedDialogMessage = await readExpectedSiteUpdatePrompt(page, 'zh-mo');
+            const expectedDropdownMessage = await readExpectedSiteVersionRefreshLabel(page, 'zh-mo');
             await page.evaluate(() => {
                 document.documentElement.lang = 'zh-mo';
             });
             await forceServiceWorkerUpdate(page);
+            await waitForUpdateReady(page);
 
-            await pollUntil(() => dialogs.length > 0 ? dialogs[0] : null, {
-                timeoutMs: 15000,
-                label: 'sw-update-home-fallback-zh-mo dialog wait'
-            });
+            await markFirstUsableVersionMenu(page);
+            await clickMarkedVersionTrigger(page);
+            await waitForVersionDropdown(page);
+            await waitForVersionDropdownText(page, expectedDropdownMessage);
 
-            if (dialogs.length !== 1) {
-                fail('zh-mo fallback should show exactly one update dialog.', { dialogs, expectedDialogMessage });
+            if (dialogs.length > 0) {
+                fail('zh-mo update flow should use the version dropdown instead of dialog.', { dialogs, expectedDropdownMessage });
             }
 
-            const actualDialogMessage = dialogs[0]?.message || '';
-            if (actualDialogMessage !== expectedDialogMessage) {
-                fail('zh-mo fallback dialog did not resolve to the expected localized copy.', {
-                    actualDialogMessage,
+            const actualDropdownText = await readVersionDropdownText(page);
+            if (!actualDropdownText.includes(expectedDropdownMessage)) {
+                fail('zh-mo version dropdown did not resolve to the expected localized copy.', {
+                    actualDropdownText,
                     dialogs,
-                    expectedDialogMessage
+                    expectedDropdownMessage
                 });
             }
 
             return {
-                actualDialogMessage,
-                expectedDialogMessage
+                actualDropdownText,
+                expectedDropdownMessage
             };
         }
     }

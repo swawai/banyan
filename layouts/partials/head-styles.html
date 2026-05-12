@@ -20,7 +20,7 @@
 {{ $siteNavUtilities := resources.Get "css/site-nav-utilities.css" }}
 {{ $siteHeader := resources.Get "css/site-header.css" }}
 {{ $uiDropdown := resources.Get "css/ui-dropdown.css" }}
-{{ $swUpdateAnchor := resources.Get "css/sw-update-anchor.css" }}
+{{ $siteVersionUpdate := resources.Get "css/site-version-update.css" }}
 {{ $swModeRaw := $ctx.Site.Params.service_worker.mode | default "off" }}
 {{ $swMode := lower (printf "%v" $swModeRaw) }}
 {{ $pageBundleParts := slice $coreBase $coreBaseMedium $coreBaseWide $siteHeader }}
@@ -29,6 +29,7 @@
 {{ $pageBundleParts = $pageBundleParts | append $siteNavWide }}
 {{ $pageBundleParts = $pageBundleParts | append $siteNavUtilities }}
 {{ $pageBundleParts = $pageBundleParts | append $uiDropdown }}
+{{ if eq $swMode "enable" }}{{ $pageBundleParts = $pageBundleParts | append $siteVersionUpdate }}{{ end }}
 {{ $pageBundleParts = $pageBundleParts | append $coreA11y }}
 {{ $pageBundleParts = $pageBundleParts | append $coreMotion }}
 {{ $pageBundle := $pageBundleParts | resources.Concat "css/bundle-page.css" }}
@@ -36,7 +37,6 @@
 {{ $pageCrumbBundleParts := $pageBundleParts | append $navBreadcrumb }}
 {{ $pageCrumbBundleParts = $pageCrumbBundleParts | append $navBreadcrumbMedium }}
 {{ $pageCrumbBundleParts = $pageCrumbBundleParts | append $navBreadcrumbWide }}
-{{ if eq $swMode "enable" }}{{ $pageCrumbBundleParts = $pageCrumbBundleParts | append $swUpdateAnchor }}{{ end }}
 {{ $pageCrumbBundle := $pageCrumbBundleParts | resources.Concat "css/bundle-page-crumb.css" }}
 {{ $pageCrumbBundle = partial "css-process.html" (dict "resource" $pageCrumbBundle "fingerprint" true) }}
 {{ $listBundleParts := $pageCrumbBundleParts | append $gridList }}

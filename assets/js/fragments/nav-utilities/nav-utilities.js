@@ -8,7 +8,8 @@ void getRuntimeManifest();
 document.addEventListener('DOMContentLoaded', () => {
     const themeMenu = document.querySelector('[data-nav-utility-kind="theme"]');
     const langMenu = document.querySelector('[data-nav-utility-kind="language"]');
-    if (!themeMenu && !langMenu) return;
+    const hasUtilityMenu = Boolean(document.querySelector('[data-nav-utility-menu]'));
+    if (!hasUtilityMenu) return;
     if (!initNavUtilityMenus()) return;
 
     if (langMenu) {

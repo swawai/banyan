@@ -8,8 +8,8 @@
 
 - 新 worker 能否被发现
 - waiting -> activate -> reload 这条链是否稳定
-- 更新提示是否挂在正确的 breadcrumb 锚点上
-- 没有可用锚点时，是否正确退化到 `confirm`
+- 更新提示是否挂在固定 Version/Ver 菜单上
+- 没有可用菜单时，是否正确退化到 `confirm`
 - 失败恢复是否会误伤正常用户
 
 一个重要心智：
@@ -44,17 +44,19 @@
   - `scope: /`
   - `updateViaCache: 'none'`
 
-### 更新提示锚点
+### 更新提示菜单
 
-- 当前更新提示优先挂到 `data-site-update-anchor`
-- 这个锚点可能不止一个
+- 当前更新提示挂到固定 Version/Ver 菜单上的 `data-site-version-menu`
+- 常规页面应只有一个可用更新菜单
 - 当前逻辑应当：
-  - fallback 检查时，找任意一个“可用锚点”
-  - 点击时，认用户实际点击的那个锚点
+  - fallback 检查时，优先找 `data-site-version-menu`
+  - 点击 Version/Ver 按钮时打开版本 dropdown
+  - dropdown 只保留两项：当前版本、最后检查
+  - update ready 时，最后检查项的值显示刷新动作
 
 ### 语言文案
 
-- 更新提示文案来自 runtime i18n JSON
+- 更新 fallback 文案来自 runtime i18n JSON；Version 菜单文案来自 `content/fragments/nav-utilities`
 - 语言 fallback 依赖 `runtime/asset-manifest.json` 内的 `i18nFallbacks`
 - `language-menu` 与 `sw-manager` 现在共用同一条 `runtime-manifest.js` 主路径
 
@@ -161,10 +163,11 @@
 - 新 build 已部署，但浏览器长时间没有 waiting worker
 - `registration.update()` 后仍停留旧 worker 且无错误线索
 
-### 4. 有 breadcrumb 锚点时的更新提示
+### 4. Version 菜单的更新提示
 
 建议页面：
 
+- `/`
 - `/all/`
 - `/d/`
 - `/p/xvenv/?from=tags/tooling/devtools/windows/xvenv&sorts=date-desc,date-desc,date-desc,date-desc`
@@ -172,26 +175,26 @@
 操作：
 
 1. 让页面进入 update ready 状态
-2. 点击一个可见的 breadcrumb 当前项更新锚点
+2. 点击可见的 Version/Ver 更新菜单
 
 预期：
 
-- 点击该锚点会出现 update popover
+- 点击该菜单会出现 version dropdown
 - 不会错误退化为 `window.confirm`
-- 如果同页有多个锚点，点击任意一个可见当前锚点都应生效
+- breadcrumb 下拉菜单不会被更新提示抢占或遮挡
 
 失败信号：
 
-- 页面上明明有更新高亮锚点，但点击无反应
-- 只有某一个锚点能点，其他可见锚点失效
-- 可见锚点存在，但仍直接弹 `confirm`
+- 页面上明明有 Version/Ver 菜单，但点击无反应
+- breadcrumb 当前项仍带有更新提示入口数据属性
+- 可见菜单存在，但仍直接弹 `confirm`
 
-### 5. 无可用锚点时的 fallback
+### 5. 无可用菜单时的兜底 fallback
 
 建议页面：
 
-- 首页 `/`
-- 或临时让当前页没有可见 breadcrumb current link 的场景
+- 临时让当前页没有可见 Version/Ver 菜单的场景
+- offline 页面不属于这个场景，因为它不注入 enable manager
 
 操作：
 
@@ -200,12 +203,12 @@
 
 预期：
 
-- 没有可用锚点时，fallback confirm 会出现
+- 真正没有可用菜单时，fallback confirm 会出现
 - 点击确认后，会继续走 waiting worker 应用链
 
 失败信号：
 
-- 无锚点也无任何提示
+- 无菜单也无任何提示
 - fallback 连续反复弹出
 - fallback 出现后不能真正进入激活链
 
@@ -271,20 +274,21 @@
 操作：
 
 1. 分别让页面进入 update ready
-2. 打开 popover 或 fallback confirm
+2. 打开 version dropdown 或 fallback confirm
 
 预期：
 
-- 文案来自对应语言的 runtime i18n
-- 三个字段都正确：
+- fallback confirm 文案来自对应语言的 runtime i18n
+- fallback confirm 的三个字段都正确：
   - `site_update_prompt`
   - `site_update_confirm`
   - `site_update_later`
+- Version dropdown 的字段来自 `nav-utilities.version.labels`
 
 失败信号：
 
 - 某语言退回英文但其实有本地化资源
-- 三个字段只部分本地化
+- fallback confirm 字段只部分本地化，或 Version dropdown 没有读到 nav-utilities 文案
 
 ### 9. fallback 语言链
 
@@ -334,8 +338,8 @@
 如果不想每次都全测，至少覆盖这 4 组：
 
 1. 首页首次访问
-2. breadcrumb 页面出现 waiting 后，点击更新锚点
-3. 无锚点页面的 fallback confirm
+2. breadcrumb 页面出现 waiting 后，点击 Version/Ver 菜单
+3. Version/Ver 无更新时的当前版本 dropdown
 4. `zh-hk` 或 `zh-mo` 的文案 fallback
 
 ## 出问题时先怀疑哪一层
@@ -346,8 +350,8 @@
 
 1. 新 worker 根本没进入 `waiting`
 2. `data-site-update="ready"` 没被设置
-3. 当前页没有可用锚点
-4. 锚点存在但点击命中的不是可用 anchor
+3. 当前页没有可用 Version/Ver 菜单
+4. 菜单存在但点击命中的不是可用 Version/Ver 入口
 
 ### 文案语言不对
 
@@ -376,15 +380,10 @@
 
 ## 当前已知敏感点
 
-### 多锚点页面
+### 固定版本菜单
 
-当前页面可能同时生成多个 `data-site-update-anchor`，例如：
-
-- rail root current
-- stage root current
-- menu panel current option
-
-所以不要再假设“更新锚点只有一个”。
+常规页面应由固定 Version/Ver 菜单独占 `data-site-version-menu`。
+breadcrumb、root rail、menu panel current option 不应再承担更新提示职责。
 
 ### 4 秒激活超时
 

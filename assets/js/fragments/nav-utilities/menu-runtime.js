@@ -114,6 +114,15 @@ function closeOpenMenu({ restoreFocus = false } = {}) {
     dropdown?.close({ restoreFocus });
 }
 
+function closeMenuRoot(menuRoot, { restoreFocus = false } = {}) {
+    if (!(menuRoot instanceof Element) || !dropdown?.isOpen(menuRoot)) {
+        return false;
+    }
+
+    dropdown.close({ restoreFocus });
+    return true;
+}
+
 function openMenu(menuRoot, { focusSelected = false } = {}) {
     if (!(menuRoot instanceof Element) || !dropdown) {
         return false;
@@ -204,6 +213,10 @@ export function initNavUtilityMenus() {
     if (!ensureDropdown()) {
         return false;
     }
+
+    window.__banyanNavUtilityMenus = {
+        closeRoot: closeMenuRoot
+    };
 
     document.querySelectorAll('[data-nav-utility-menu]').forEach((menuRoot) => {
         const trigger = getMenuTrigger(menuRoot);

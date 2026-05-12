@@ -203,7 +203,6 @@ async function updateBreadcrumbTrailMenus(pageCollectionSource) {
             option.textContent = menuItem.text;
             if (menuItem.current) {
                 option.classList.add('is-current');
-                option.dataset.siteUpdateAnchor = 'true';
                 option.setAttribute('aria-current', 'page');
             }
 
