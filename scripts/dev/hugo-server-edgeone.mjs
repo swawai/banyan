@@ -4,6 +4,8 @@ import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 
+import { createHugoEnv } from '../build/hugo-env.mjs';
+
 const repoRoot = process.cwd();
 const publicEdgeonePath = path.join(repoRoot, 'public', 'edgeone.json');
 const repoEdgeonePath = path.join(repoRoot, 'edgeone.json');
@@ -14,28 +16,150 @@ const hugoBin = path.join(
     process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
 );
 const cliArgs = process.argv.slice(2);
-const publicBind = readOptionValue(cliArgs, ['--bind', '-b']) || '127.0.0.1';
-const publicPort = normalizePort(readOptionValue(cliArgs, ['--port', '-p']));
 const backendHost = '127.0.0.1';
+const proxyOptions = readProxyOptions(cliArgs, process.env);
+const publicBind = proxyOptions.bind || '127.0.0.1';
+const publicPort = normalizePort(proxyOptions.port);
 
-function readOptionValue(args, names) {
+function consumeOptionValue(args, names) {
+    const remaining = [];
+    let value = '';
+
     for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
+        let matchedName = '';
+
         for (const name of names) {
             if (!name) {
                 continue;
             }
-            if (arg === name) {
-                const nextArg = args[index + 1];
-                return nextArg && !nextArg.startsWith('-') ? nextArg : 'true';
+            if (arg === name || arg.startsWith(`${name}=`)) {
+                matchedName = name;
+                break;
             }
-            if (arg.startsWith(`${name}=`)) {
-                return arg.slice(name.length + 1);
+        }
+
+        if (!matchedName) {
+            remaining.push(arg);
+            continue;
+        }
+
+        if (arg === matchedName) {
+            const nextArg = args[index + 1];
+            value = nextArg && !nextArg.startsWith('-') ? nextArg : 'true';
+            if (nextArg && !nextArg.startsWith('-')) {
+                index += 1;
             }
+            continue;
+        }
+
+        value = arg.slice(matchedName.length + 1);
+    }
+
+    return { value, args: remaining };
+}
+
+function readEnvOption(env, names) {
+    for (const name of names) {
+        const value = env[name];
+        if (typeof value === 'string' && value.trim() && value !== 'true') {
+            return value.trim();
         }
     }
 
     return '';
+}
+
+function isPlainArg(arg) {
+    return Boolean(arg) && arg !== '--' && !arg.startsWith('-');
+}
+
+function looksLikePort(value) {
+    const parsed = Number.parseInt(value ?? '', 10);
+    return String(parsed) === String(value) && parsed > 0 && parsed < 65536;
+}
+
+function looksLikeBindHost(value) {
+    if (!value || looksLikePort(value)) {
+        return false;
+    }
+
+    return value === 'localhost'
+        || value === '0.0.0.0'
+        || value === '::'
+        || value.includes('.')
+        || value.includes(':');
+}
+
+function removeFirstPlainValue(args, value) {
+    if (!value) {
+        return args;
+    }
+
+    let removed = false;
+    return args.filter((arg) => {
+        if (!removed && isPlainArg(arg) && arg === value) {
+            removed = true;
+            return false;
+        }
+        return true;
+    });
+}
+
+function consumePositionalProxyArgs(args, bind, port) {
+    const consumedIndexes = new Set();
+    const plainArgs = args
+        .map((arg, index) => ({ arg, index }))
+        .filter(({ arg }) => isPlainArg(arg));
+
+    if (!port) {
+        const portCandidate = [...plainArgs].reverse().find(({ arg }) => looksLikePort(arg));
+        if (portCandidate) {
+            port = portCandidate.arg;
+            consumedIndexes.add(portCandidate.index);
+        }
+    }
+
+    if (!bind) {
+        const bindCandidate = plainArgs.find(({ arg, index }) =>
+            !consumedIndexes.has(index) && looksLikeBindHost(arg)
+        );
+        if (bindCandidate) {
+            bind = bindCandidate.arg;
+            consumedIndexes.add(bindCandidate.index);
+        }
+    }
+
+    return {
+        bind,
+        port,
+        args: args.filter((arg, index) => arg !== '--' && !consumedIndexes.has(index))
+    };
+}
+
+function readProxyOptions(args, env) {
+    let parsed = consumeOptionValue(args, ['--bind', '-b']);
+    let bind = parsed.value;
+    parsed = consumeOptionValue(parsed.args, ['--port', '-p']);
+    let port = parsed.value;
+    let hugoArgs = parsed.args;
+
+    if (!bind) {
+        bind = readEnvOption(env, ['BANYAN_DEV_BIND', 'HUGO_DEV_BIND', 'npm_config_bind']);
+        hugoArgs = removeFirstPlainValue(hugoArgs, bind);
+    }
+
+    if (!port) {
+        port = readEnvOption(env, ['BANYAN_DEV_PORT', 'HUGO_DEV_PORT', 'npm_config_port']);
+        hugoArgs = removeFirstPlainValue(hugoArgs, port);
+    }
+
+    const positional = consumePositionalProxyArgs(hugoArgs, bind, port);
+    return {
+        bind: positional.bind,
+        port: positional.port,
+        hugoArgs: positional.args
+    };
 }
 
 function stripOptions(args, names) {
@@ -217,13 +341,13 @@ async function syncEdgeone() {
 
 async function main() {
     const backendPort = await findAvailablePort();
-    let hugoArgs = stripOptions(cliArgs, ['--bind', '-b']);
-    hugoArgs = stripOptions(hugoArgs, ['--port', '-p']);
+    let hugoArgs = proxyOptions.hugoArgs;
     hugoArgs = stripOptions(hugoArgs, ['--appendPort']);
     hugoArgs = ['server', ...hugoArgs, '--bind', backendHost, '--port', String(backendPort), '--appendPort=false'];
 
     const child = spawn(hugoBin, hugoArgs, {
         cwd: repoRoot,
+        env: createHugoEnv({ cwd: repoRoot }),
         shell: process.platform === 'win32',
         stdio: 'inherit'
     });

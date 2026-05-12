@@ -3,8 +3,16 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { createHugoEnv } from '../build/hugo-env.mjs';
+
 const repoRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const tempPublicRoot = path.join(repoRoot, 'temp_workspace', 'public');
+const hugoBin = path.join(
+    repoRoot,
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
+);
 
 function parseCli(argv) {
     const options = {
@@ -82,28 +90,11 @@ function buildDestination(note) {
     return path.join(tempPublicRoot, candidate);
 }
 
-function runProcess(command, args) {
+function runProcess(command, args, options = {}) {
     const result = spawnSync(command, args, {
         cwd: repoRoot,
-        stdio: 'inherit'
-    });
-
-    if (typeof result.status === 'number' && result.status !== 0) {
-        process.exit(result.status);
-    }
-    if (result.error) {
-        throw result.error;
-    }
-}
-
-function quoteForShell(value) {
-    return `"${String(value).replace(/"/g, '\\"')}"`;
-}
-
-function runShellCommand(commandLine) {
-    const result = spawnSync(commandLine, {
-        cwd: repoRoot,
-        shell: true,
+        env: options.env ?? process.env,
+        shell: options.shell ?? false,
         stdio: 'inherit'
     });
 
@@ -127,7 +118,14 @@ if (options.help) {
 
 const destinationDir = buildDestination(options.note);
 const destinationRel = relFromRepo(destinationDir);
-runShellCommand(`npx hugo --gc --cleanDestinationDir --minify --destination ${quoteForShell(destinationRel)}`);
+runProcess(
+    hugoBin,
+    ['--gc', '--cleanDestinationDir', '--minify', '--destination', destinationRel],
+    {
+        env: createHugoEnv({ cwd: repoRoot }),
+        shell: process.platform === 'win32'
+    }
+);
 runProcess(process.execPath, ['themes/banyan/scripts/build/patch-csp.mjs', destinationRel]);
 runProcess(process.execPath, ['themes/banyan/scripts/build/emit-speculation-rules-headers.mjs', destinationRel]);
 
