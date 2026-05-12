@@ -20,9 +20,11 @@ nav:
     key: my
   version:
     show: true
+    icon: info
+    caret: false
     changelog_href: /changelog/
     labels:
-      label: version
+      label: Version & updates
       text: ver
       check: Check now
       checking: Checking...

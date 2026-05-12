@@ -5,6 +5,9 @@
         --page-rail-inline: 10rem;
         --page-shell-gap-inline: .5rem;
         --page-rail-padding-inline-end: .5rem;
+        --page-rail-footer-sticky-top: calc(var(--page-edge-block-start) + 10.15rem);
+        --page-rail-layer: 30;
+        --page-rail-footer-layer: 20;
         --page-shell-rail-divider: color-mix(in srgb, var(--focus) 24%, transparent);
     }
 
@@ -24,7 +27,7 @@
         grid-row: 1;
         position: sticky;
         top: var(--page-edge-block-start);
-        z-index: 1;
+        z-index: var(--page-rail-layer);
         min-width: 0;
         display: flex;
         flex-direction: column;
@@ -75,5 +78,8 @@
         padding-block-start: 1.25rem;
         padding-block-end: 0;
         align-self: start;
+        position: sticky;
+        top: var(--page-rail-footer-sticky-top);
+        z-index: var(--page-rail-footer-layer);
     }
 }
