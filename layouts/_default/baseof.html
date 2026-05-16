@@ -51,7 +51,7 @@
     {{- $filteredCachePolicyHeaderRoutes := slice -}}
     {{- range $route := $cachePolicyHeaderRoutes -}}
         {{- $path := printf "%v" (index $route "path" | default "") -}}
-        {{- if ne $path "/site/*.webmanifest" -}}
+        {{- if ne $path "/pwa/*.webmanifest" -}}
             {{- $filteredCachePolicyHeaderRoutes = $filteredCachePolicyHeaderRoutes | append $route -}}
         {{- end -}}
     {{- end -}}
@@ -136,20 +136,20 @@
     {{- end }}>
 
 <head>
-    {{- $faviconSvg := resources.Get "site/favicon.svg" -}}
-{{- if not $faviconSvg -}}{{- errorf "Build failed: missing resource %q." "site/favicon.svg" -}}{{- end -}}
+    {{- $faviconSvg := resources.Get "pwa/favicon.svg" -}}
+{{- if not $faviconSvg -}}{{- errorf "Build failed: missing resource %q." "pwa/favicon.svg" -}}{{- end -}}
     {{- $faviconSvg = $faviconSvg | fingerprint -}}
-    {{- $appleTouchIcon := resources.Get "site/swaw180x180.png" -}}
-{{- if not $appleTouchIcon -}}{{- errorf "Build failed: missing resource %q." "site/swaw180x180.png" -}}{{- end -}}
+    {{- $appleTouchIcon := resources.Get "pwa/icon-180.png" -}}
+{{- if not $appleTouchIcon -}}{{- errorf "Build failed: missing resource %q." "pwa/icon-180.png" -}}{{- end -}}
     {{- $appleTouchIcon = $appleTouchIcon | fingerprint -}}
     {{- $defaultSite := $primarySite -}}
     {{- $manifest := "" -}}
     {{- if and $defaultSite (ne $webAppManifestMode "off") -}}
-        {{- $manifestTmpl := resources.Get "site/manifest.webmanifest.tmpl" -}}
+        {{- $manifestTmpl := resources.Get "pwa/manifest.webmanifest.tmpl" -}}
         {{- if $manifestTmpl -}}
-            {{- $manifest = $manifestTmpl | resources.ExecuteAsTemplate "site/site.webmanifest" $defaultSite.Home | fingerprint -}}
+            {{- $manifest = $manifestTmpl | resources.ExecuteAsTemplate "pwa/site.webmanifest" $defaultSite.Home | fingerprint -}}
         {{- else -}}
-{{- errorf "Build failed: missing resource %q." "site/manifest.webmanifest.tmpl" -}}
+{{- errorf "Build failed: missing resource %q." "pwa/manifest.webmanifest.tmpl" -}}
         {{- end -}}
     {{- end -}}
     {{- $runtimeI18n := dict -}}
@@ -196,12 +196,17 @@
       {{- errorf "Build failed: params.link_prefetch has been split into params.prefetch_runtime and params.speculation_rules; update your site config instead of keeping the old unified stack." -}}
     {{- end -}}
     {{- $prefetchRuntimeConfig := site.Params.prefetch_runtime | default dict -}}
+    {{- $prefetchRuntimeModeRaw := index $prefetchRuntimeConfig "mode" | default "off" -}}
+    {{- $prefetchRuntimeMode := lower (printf "%v" $prefetchRuntimeModeRaw) -}}
     {{- $speculationRulesConfig := site.Params.speculation_rules | default dict -}}
     {{- $speculationRulesModeRaw := index $speculationRulesConfig "mode" | default "off" -}}
     {{- $speculationRulesMode := lower (printf "%v" $speculationRulesModeRaw) -}}
     {{- $speculationRuntimeCoordinationRaw := index $speculationRulesConfig "runtime_coordination" | default "independent" -}}
     {{- $speculationRuntimeCoordination := lower (printf "%v" $speculationRuntimeCoordinationRaw) -}}
     {{- $prefetchLabels := slice "menu" "nav" "crumb" "sort_siblings" "descendants" "post" -}}
+    {{- if not (in (slice "off" "enable") $prefetchRuntimeMode) -}}
+      {{- errorf "Build failed: params.prefetch_runtime.mode only supports off/enable; got %q." $prefetchRuntimeModeRaw -}}
+    {{- end -}}
     {{- range $label := $prefetchLabels -}}
         {{- if isset $prefetchRuntimeConfig $label -}}
           {{- errorf "Build failed: params.prefetch_runtime.%s global defaults have been removed. Use explicit runtime environment tables such as params.prefetch_runtime.env.TT.%s or params.prefetch_runtime.env.FT.%s instead." $label $label $label -}}
@@ -222,8 +227,10 @@
     {{- if not (in (slice "independent" "preempt_runtime_when_supported") $speculationRuntimeCoordination) -}}
       {{- errorf "Build failed: params.speculation_rules.runtime_coordination only supports independent/preempt_runtime_when_supported; got %q." $speculationRuntimeCoordinationRaw -}}
     {{- end -}}
-    {{- $prefetchRuntimeEnvConfig := partial "prefetch-runtime-env-config-map.html" (dict "prefetch_config" $prefetchRuntimeConfig "prefetch_labels" $prefetchLabels) -}}
-    {{- range $envKey, $envConfig := $prefetchRuntimeEnvConfig -}}
+    {{- $prefetchRuntimeEnvConfig := dict -}}
+    {{- if eq $prefetchRuntimeMode "enable" -}}
+      {{- $prefetchRuntimeEnvConfig = partial "prefetch-runtime-env-config-map.html" (dict "prefetch_config" $prefetchRuntimeConfig "prefetch_labels" $prefetchLabels) -}}
+      {{- range $envKey, $envConfig := $prefetchRuntimeEnvConfig -}}
         {{- range $label := $prefetchLabels -}}
             {{- if isset $envConfig $label -}}
                 {{- $parsed := partial "prefetch-runtime-mode.html" (index $envConfig $label) -}}
@@ -241,6 +248,7 @@
                 {{- end -}}
             {{- end -}}
         {{- end -}}
+      {{- end -}}
     {{- end -}}
     {{- hugo.Generator -}}
     {{- partial "seo.html" . -}}
@@ -432,12 +440,14 @@
       "runtime_env_config_map" $prefetchRuntimeEnvConfig
       "runtime_sw_mode" $swMode
     ) -}}
-    {{- partial "prefetch-runtime-embed.html" (dict
-      "ctx" .
-      "sw_mode" $swMode
-      "env_config_map" $prefetchRuntimeEnvConfig
-      "speculation_runtime_coordination" $speculationRuntimeCoordination
-    ) -}}
+    {{- if eq $prefetchRuntimeMode "enable" -}}
+      {{- partial "prefetch-runtime-embed.html" (dict
+        "ctx" .
+        "sw_mode" $swMode
+        "env_config_map" $prefetchRuntimeEnvConfig
+        "speculation_runtime_coordination" $speculationRuntimeCoordination
+      ) -}}
+    {{- end -}}
     {{- end -}}
     {{- partial "icon-sprite-dynamic.html" . -}}
 </body>

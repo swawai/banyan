@@ -12,7 +12,7 @@ nav:
   items:
     - page: /
       key: home
-      text: 人不工
+      text: Banyan
       fallback_when_none: true
     - page: /products/first-party
       key: products

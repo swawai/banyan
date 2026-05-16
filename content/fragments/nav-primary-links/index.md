@@ -12,7 +12,7 @@ nav:
   items:
     - page: /
       key: home
-      text: Swaw
+      text: Banyan
       fallback_when_none: true
     - page: /products/first-party
       key: products

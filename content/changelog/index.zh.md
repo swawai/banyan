@@ -11,7 +11,7 @@ changelog:
   git_commit: "Git 提交"
   page_source_revision: "页面来源提交"
   theme_source: "主题源码"
-  theme_repo: "https://github.com/swawai/hugo-theme-banyan"
+  theme_repo: "https://github.com/swawai/banyan"
   release_notes: "发布说明"
   release_notes_fallback: "这里暂不维护人工发布说明；当前页面先用于确认已部署构建，以及构建时可取得的来源信息。"
 slots:

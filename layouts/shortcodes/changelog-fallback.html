@@ -10,10 +10,10 @@
   "theme_source" "Theme source"
   "release_notes" "Release notes"
   "release_notes_fallback" "Curated release notes are not maintained here yet. For now, this page confirms the deployed build and the source information available at build time."
-  "theme_repo" "https://github.com/swawai/hugo-theme-banyan"
+  "theme_repo" "https://github.com/swawai/banyan"
 -}}
 {{- $copy := merge $copyDefaults ($page.Params.changelog | default dict) -}}
-{{- $themeRepo := trim (printf "%v" (index $copy "theme_repo" | default (site.Params.theme_repo | default "https://github.com/swawai/hugo-theme-banyan"))) " \r\n\t" -}}
+{{- $themeRepo := trim (printf "%v" (index $copy "theme_repo" | default (site.Params.theme_repo | default "https://github.com/swawai/banyan"))) " \r\n\t" -}}
 {{- $buildCommit := index $buildConfig "commit" | default dict -}}
 {{- $buildRevision := trim (printf "%v" (index $buildConfig "revision" | default "")) " \r\n\t" -}}
 {{- $buildCommitShort := trim (printf "%v" (index $buildCommit "short" | default "")) " \r\n\t" -}}

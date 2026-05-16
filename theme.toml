@@ -8,5 +8,5 @@ features = []
 min_version = "0.120.0"
 
 [author]
-  name = "swaw"
-  homepage = "swaw.com"
+  name = "Banyan maintainers"
+  homepage = "https://github.com/swawai/banyan/"

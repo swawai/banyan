@@ -42,14 +42,14 @@ bucket = "fingerprinted"
 
 [[routes]]
 scope = "asset"
-path = "/site/*.webmanifest"
+path = "/pwa/*.webmanifest"
 
 [routes.headers]
 Content-Type = "application/manifest+json; charset=utf-8"
 
 [[routes]]
 scope = "asset"
-path = "/site/*"
+path = "/pwa/*"
 
 [routes.headers]
 Cache-Control = "public, max-age=31536000, immutable"

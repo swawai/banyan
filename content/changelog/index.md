@@ -11,7 +11,7 @@ changelog:
   git_commit: "Git commit"
   page_source_revision: "Page source commit"
   theme_source: "Theme source"
-  theme_repo: "https://github.com/swawai/hugo-theme-banyan"
+  theme_repo: "https://github.com/swawai/banyan"
   release_notes: "Release notes"
   release_notes_fallback: "Curated release notes are not maintained here yet. For now, this page confirms the deployed build and the source information available at build time."
 slots:

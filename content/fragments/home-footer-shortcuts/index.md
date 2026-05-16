@@ -5,10 +5,8 @@ build:
   render: never
 footer:
   aria_label: Site footer shortcuts
-  brand_label: 2026 人不工&middot;Swaw
-  icp_number: ICP备2024338434号
+  brand_label: 2026 Banyan
   about_label: About
-  github_href: https://github.com/swawai
+  github_href: https://github.com/swawai/banyan
   github_label: GitHub
-  icp_prefix: 粤
 ---

@@ -37,6 +37,16 @@ Banyan 当前的预取体系已经明确拆成两栈：
 
 - `params.prefetch_runtime`
 
+顶层开关：
+
+```toml
+[params.prefetch_runtime]
+mode = "off" # off | enable
+```
+
+- `off`：跳过 runtime env 校验、payload 生成和 runtime 脚本注入
+- `enable`：读取 `params.prefetch_runtime.env.*` 并启用 runtime stack
+
 ### 环境键
 
 runtime stack 当前只使用两位环境键：

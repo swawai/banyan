@@ -1,11 +1,11 @@
-{{- $icon192 := resources.Get "site/swaw192x192.png" -}}
-{{- if not $icon192 }}{{ errorf "Build failed: missing resource %q." "site/swaw192x192.png" }}{{ end -}}
+{{- $icon192 := resources.Get "pwa/icon-192.png" -}}
+{{- if not $icon192 }}{{ errorf "Build failed: missing resource %q." "pwa/icon-192.png" }}{{ end -}}
 {{- $icon192 = $icon192 | fingerprint -}}
-{{- $icon256 := resources.Get "site/swaw256x256.png" -}}
-{{- if not $icon256 }}{{ errorf "Build failed: missing resource %q." "site/swaw256x256.png" }}{{ end -}}
+{{- $icon256 := resources.Get "pwa/icon-256.png" -}}
+{{- if not $icon256 }}{{ errorf "Build failed: missing resource %q." "pwa/icon-256.png" }}{{ end -}}
 {{- $icon256 = $icon256 | fingerprint -}}
-{{- $icon512 := resources.Get "site/swaw512x512.png" -}}
-{{- if not $icon512 }}{{ errorf "Build failed: missing resource %q." "site/swaw512x512.png" }}{{ end -}}
+{{- $icon512 := resources.Get "pwa/icon-512.png" -}}
+{{- if not $icon512 }}{{ errorf "Build failed: missing resource %q." "pwa/icon-512.png" }}{{ end -}}
 {{- $icon512 = $icon512 | fingerprint -}}
 {{- dict
   "id" "/"
