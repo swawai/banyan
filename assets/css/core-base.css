@@ -9,6 +9,7 @@
     --link-visited: #5F5F5F;
     --border: #838383; /*弹窗窗口的边框线条*/
     --focus: #9E685F;
+    --accent-secondary: #5F759E;
     --page-edge-inline: 8px;
     --page-edge-block-start: 12px;
     --page-edge-block-end: 6rem;
@@ -28,6 +29,7 @@
     --link-visited: #D0D0D0;
     --border: #CCCCCC;
     --focus: #AC7B73;
+    --accent-secondary: #7388AC;
     /* E3E3E3 #9B9B9B 505050 333333 323232  313131 303030 2C2C2C 282828 202020
     --bg-surface:#2A2A2A; */
 }

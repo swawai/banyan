@@ -1,0 +1,195 @@
+.page {
+    --page-edge-block-end: 1.5rem;
+}
+
+.page-shell {
+    --page-footer-tail-space: 3rem;
+}
+
+.home-brand {
+    box-sizing: border-box;
+    block-size: 34rem;
+    padding-block-start: var(--home-brand-wind-field-start-offset, 18rem);
+}
+
+.home-brand__scene {
+    position: relative;
+    container-type: inline-size;
+    inline-size: min(36rem, calc(100% - 3rem));
+    block-size: calc(var(--home-brand-wind-field-height, 13.2rem) + var(--home-brand-ground-space, 2.8rem));
+    margin-inline: 1.5rem auto;
+}
+
+.home-brand__horizon {
+    position: absolute;
+    inset-block-start: var(--home-brand-wind-field-height, 13.2rem);
+    inset-inline: 0;
+    border-block-start: 1px solid currentColor;
+}
+
+.home-brand__signals {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+    pointer-events: none;
+}
+
+.home-brand__signal {
+    position: absolute;
+    --home-brand-signal-travel: calc(100cqi + 8rem);
+    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) - var(--home-brand-signal-lift));
+    inset-inline-start: 0;
+    display: inline-flex;
+    align-items: center;
+    column-gap: 0.28rem;
+    color: var(--accent-secondary);
+    font-size: var(--home-brand-signal-font-size, 0.72rem);
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+    opacity: 0;
+}
+
+.home-brand__signal--linked {
+    pointer-events: auto;
+}
+
+.home-brand__signal-link,
+.home-brand__signal-link:visited {
+    color: inherit;
+    text-decoration: none;
+    text-underline-offset: 0.16em;
+    text-decoration-thickness: 1px;
+}
+
+.home-brand__signal-link {
+    pointer-events: auto;
+}
+
+.home-brand__signal-link:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 0.16rem;
+}
+
+.home-brand__signal.is-selected {
+    z-index: 2;
+    opacity: 0.78 !important;
+    animation-play-state: paused;
+}
+
+.home-brand__signal.is-selected .home-brand__signal-link {
+    color: var(--focus);
+    text-decoration-line: underline;
+}
+
+.home-brand.is-paused .home-brand__signal,
+.home-brand.is-paused .home-brand__windsock-sock {
+    animation-play-state: paused;
+}
+
+.home-brand__signal--guided::after {
+    content: "";
+    inline-size: 1.25rem;
+    border-block-start: 1px solid currentColor;
+    opacity: 0.45;
+}
+
+.home-brand__windsock {
+    position: absolute;
+    display: block;
+    inline-size: 1.9rem;
+    block-size: 1.9rem;
+    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) - 1.72rem);
+    inset-inline-start: 78%;
+    overflow: visible;
+}
+
+.home-brand__windsock-sock {
+    transform-box: view-box;
+    transform-origin: 14% 32%;
+}
+
+.home-brand__windsock-body {
+    fill: var(--focus);
+}
+
+.home-brand__windsock-stripes {
+    fill: var(--bg);
+}
+
+.home-brand__windsock-pole {
+    fill: currentColor;
+}
+
+/* This scene communicates through motion. Keep it animated until there is a deliberate static fallback. */
+.home-brand__windsock-sock {
+    animation: home-brand-windsock-sock 4.1s ease-in-out infinite;
+}
+
+.home-brand__signal {
+    animation-name: home-brand-signal-drift;
+    animation-duration: var(--home-brand-signal-duration);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-delay: var(--home-brand-signal-delay);
+}
+
+@keyframes home-brand-windsock-sock {
+    0% {
+        transform: rotate(-2deg) skewX(-1deg) translate(0, 0);
+    }
+
+    34% {
+        transform: rotate(-9deg) skewX(-4deg) translate(0.16rem, -0.12rem);
+    }
+
+    58% {
+        transform: rotate(-6deg) skewX(-2deg) translate(0.1rem, -0.08rem);
+    }
+
+    82% {
+        transform: rotate(2deg) skewX(1deg) translate(0.03rem, 0.02rem);
+    }
+
+    100% {
+        transform: rotate(-2deg) skewX(-1deg) translate(0, 0);
+    }
+}
+
+@keyframes home-brand-signal-drift {
+    0% {
+        opacity: 0;
+        transform: translate(-8rem, 0.08rem) rotate(-2deg);
+    }
+
+    8%,
+    22% {
+        opacity: 0.42;
+    }
+
+    28% {
+        opacity: 0;
+        transform: translate(calc(100cqi + 1rem), -0.08rem) rotate(1deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(var(--home-brand-signal-travel), 0.04rem) rotate(1deg);
+    }
+}
+
+@media (min-width: 58rem) {
+    .home-brand__scene {
+        inline-size: min(36rem, 100%);
+        margin-inline: 3rem auto;
+    }
+
+    .page-shell.page-shell--has-rail .page-rail,
+    .page-shell.page-shell--has-rail > .slot-footer {
+        position: relative;
+        top: auto;
+    }
+}

@@ -1,0 +1,96 @@
+{{ define "styles" }}
+{{ partial "head-styles.html" (dict "ctx" .) }}
+{{ end }}
+
+{{ define "head-extra" }}
+{{- $homeBrand := resources.Get "css/home-brand.css" -}}
+{{- if not $homeBrand -}}{{- errorf "Build failed: missing resource %q." "assets/css/home-brand.css" -}}{{- end -}}
+{{- $homeBrand = partial "css-process.html" (dict "resource" $homeBrand "fingerprint" true) -}}
+<link rel="stylesheet" href="{{ $homeBrand.RelPermalink }}">
+{{ end }}
+
+{{ define "main" }}
+{{- $windsock := resources.Get "home-brand/windsock.svg" -}}
+{{- if not $windsock -}}{{- errorf "Build failed: missing resource %q." "themes/banyan/assets/home-brand/windsock.svg" -}}{{- end -}}
+{{- $signals := .Params.home_signals | default slice -}}
+{{- $guideChance := .Params.home_signal_guide_chance | default 0 -}}
+{{- $horizonOffsetRem := 31.2 -}}
+{{- $groundSpaceRem := 2.8 -}}
+{{- $signalFontSizeRem := 0.72 -}}
+{{- $signalMinLiftRem := 0.9 -}}
+{{- $signalSlotStepRem := div $signalFontSizeRem 2 -}}
+{{- $windFieldStartOffsetRem := 6.0 -}}
+{{- if isset .Params "home_wind_field_start_offset_rem" -}}
+{{- $windFieldStartOffsetRem = .Params.home_wind_field_start_offset_rem -}}
+{{- end -}}
+{{- if lt $windFieldStartOffsetRem 0 -}}
+{{- errorf "%s: home_wind_field_start_offset_rem must be greater than or equal to 0; got %v." .File.Path $windFieldStartOffsetRem -}}
+{{- end -}}
+{{- $windFieldHeightRem := sub $horizonOffsetRem $windFieldStartOffsetRem -}}
+{{- $signalSlotCount := int (div (sub $windFieldHeightRem $signalMinLiftRem) $signalSlotStepRem) -}}
+{{- if lt $signalSlotCount 1 -}}
+{{- $maxStartOffsetRem := sub $horizonOffsetRem (add $signalMinLiftRem $signalSlotStepRem) -}}
+{{- errorf "%s: home_wind_field_start_offset_rem must be less than or equal to %.2f; got %v." .File.Path $maxStartOffsetRem $windFieldStartOffsetRem -}}
+{{- end -}}
+{{- $signalSlotStride := 13 -}}
+{{- $signalDriftSeconds := 90 -}}
+{{- if isset .Params "home_signal_drift_seconds" -}}
+{{- $signalDriftSeconds = int .Params.home_signal_drift_seconds -}}
+{{- end -}}
+{{- if lt $signalDriftSeconds 24 -}}{{- $signalDriftSeconds = 24 -}}{{- end -}}
+{{- $signalLaunchGapSeconds := 4 -}}
+{{- if isset .Params "home_signal_launch_gap_seconds" -}}
+{{- $signalLaunchGapSeconds = int .Params.home_signal_launch_gap_seconds -}}
+{{- end -}}
+{{- if lt $signalLaunchGapSeconds 1 -}}{{- $signalLaunchGapSeconds = 1 -}}{{- end -}}
+{{- $signalDurationSpreadSeconds := 16 -}}
+{{- $signalDurationBaseSeconds := sub $signalDriftSeconds (div $signalDurationSpreadSeconds 2) -}}
+{{- $sceneStyle := printf "--home-brand-wind-field-start-offset: %vrem; --home-brand-wind-field-height: %vrem; --home-brand-ground-space: %vrem; --home-brand-signal-font-size: %vrem;" $windFieldStartOffsetRem $windFieldHeightRem $groundSpaceRem $signalFontSizeRem -}}
+<section class="home-brand" style="{{ $sceneStyle | safeCSS }}" aria-labelledby="home-brand-title">
+  <h1 id="home-brand-title" class="sr-only">{{ .Title }}</h1>
+  <div class="home-brand__scene">
+    <span class="home-brand__horizon" aria-hidden="true"></span>
+    {{- with $signals }}
+    <ul class="home-brand__signals">
+      {{- range $index, $signal := . }}
+      {{- $signalName := $signal -}}
+      {{- $signalURL := "" -}}
+      {{- if reflect.IsMap $signal -}}
+      {{- $signalName = index $signal "name" | default (index $signal "title") | default (index $signal "label") -}}
+      {{- $signalURL = index $signal "url" | default (index $signal "href") -}}
+      {{- end -}}
+      {{- $isExternalSignalURL := or (hasPrefix $signalURL "http://") (hasPrefix $signalURL "https://") (hasPrefix $signalURL "//") -}}
+      {{- $signalSlot := mod (add 2 (mul $index $signalSlotStride)) $signalSlotCount -}}
+      {{- $signalLiftRem := add $signalMinLiftRem (mul $signalSlotStepRem $signalSlot) -}}
+      {{- $signalLift := printf "%.2frem" $signalLiftRem -}}
+      {{- $signalSlotGroup := div $signalSlot 2 -}}
+      {{- $duration := add $signalDurationBaseSeconds (mod (add (mul $signalSlot 5) (mul $index 3)) $signalDurationSpreadSeconds) -}}
+      {{- $delayJitter := mod (mul $signalSlotGroup 2) $signalLaunchGapSeconds -}}
+      {{- $delay := add 2 (add (mul $index $signalLaunchGapSeconds) $delayJitter) -}}
+      {{- $guideBucket := mod (add 15 (mul $index 37)) 100 -}}
+      {{- $signalClasses := slice "home-brand__signal" -}}
+      {{- if gt $guideChance $guideBucket -}}{{- $signalClasses = $signalClasses | append "home-brand__signal--guided" -}}{{- end -}}
+      {{- with $signalURL -}}{{- $signalClasses = $signalClasses | append "home-brand__signal--linked" -}}{{- end -}}
+      {{- $signalStyle := printf "--home-brand-signal-lift: %s; --home-brand-signal-duration: %ds; --home-brand-signal-delay: -%ds;" $signalLift $duration $delay -}}
+      <li class="{{ delimit $signalClasses " " }}" style="{{ $signalStyle | safeCSS }}">
+        {{- with $signalURL -}}
+        <a class="home-brand__signal-link" href="{{ . | safeURL }}"{{ if $isExternalSignalURL }} target="_blank" rel="noopener noreferrer"{{ end }} data-home-brand-signal-link>{{ $signalName }}</a>
+        {{- else -}}
+        <span class="home-brand__signal-text">{{ $signalName }}</span>
+        {{- end -}}
+      </li>
+      {{- end }}
+    </ul>
+    {{- end }}
+    {{- $windsock.Content | safeHTML -}}
+  </div>
+</section>
+{{ end }}
+
+{{ define "body-extra" }}
+{{- $homeBrandScript := resources.Get "js/home-brand.js" -}}
+{{- if not $homeBrandScript -}}{{- errorf "Build failed: missing resource %q." "assets/js/home-brand.js" -}}{{- end -}}
+{{- if not hugo.IsServer -}}{{- $homeBrandScript = $homeBrandScript | minify -}}{{- end -}}
+{{- $homeBrandScript = $homeBrandScript | fingerprint -}}
+<script src="{{ $homeBrandScript.RelPermalink }}" integrity="{{ $homeBrandScript.Data.Integrity }}" defer></script>
+{{ end }}

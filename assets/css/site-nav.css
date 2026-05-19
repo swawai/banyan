@@ -1,5 +1,4 @@
 .site-nav {
-    --site-nav-secondary: #5F759E;
     display: flex;
     flex-wrap: nowrap;
     align-items: flex-end;
@@ -8,10 +7,6 @@
     margin-bottom: 22px;
     line-height: 1;
     font-weight: bold;
-}
-
-[data-theme="dark"] .site-nav {
-    --site-nav-secondary: #7388AC;
 }
 
 .site-nav > * {
@@ -61,7 +56,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 1px solid var(--site-nav-secondary);
+    border-bottom: 1px solid var(--accent-secondary);
 }
 
 
