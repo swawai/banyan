@@ -51,6 +51,8 @@
         selectedControl = null;
     };
 
+    const isLinkControl = (control) => control instanceof HTMLAnchorElement && control.hasAttribute("href");
+
     document.addEventListener("click", (event) => {
         const target = event.target;
 
@@ -71,13 +73,18 @@
             return;
         }
 
-        event.preventDefault();
-
         if (control === selectedControl) {
+            if (isLinkControl(control)) {
+                clearSelected();
+                return;
+            }
+
+            event.preventDefault();
             clearSelected();
             return;
         }
 
+        event.preventDefault();
         clearSelected();
         selectedControl = control;
         setSelected(control, true);

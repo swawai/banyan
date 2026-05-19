@@ -10,12 +10,10 @@
     --home-brand-anchor-color: var(--link-visited);
     --home-brand-horizon-color: currentColor;
     --home-brand-signal-color: color-mix(in srgb, var(--accent-secondary) 84%, var(--fg));
-    --home-brand-signal-peak-opacity: 0.48;
-    --home-brand-signal-exit-opacity: 0.04;
+    --home-brand-signal-peak-opacity: 0.9;
     --home-brand-signal-guide-opacity: 0.45;
-    --home-brand-signal-primary-peak-opacity: 0.66;
-    --home-brand-signal-primary-exit-opacity: 0.12;
-    --home-brand-signal-selected-opacity: 0.78;
+    --home-brand-signal-primary-peak-opacity: 0.9;
+    --home-brand-signal-selected-opacity: 1;
     --home-brand-signal-selected-color: var(--focus);
     --home-brand-windsock-body-color: var(--focus);
     --home-brand-windsock-stripe-color: var(--bg);
@@ -30,12 +28,10 @@
     --home-brand-anchor-color: color-mix(in srgb, var(--fg) 58%, var(--bg));
     --home-brand-horizon-color: color-mix(in srgb, var(--border) 38%, var(--bg));
     --home-brand-signal-color: color-mix(in srgb, var(--accent-secondary) 78%, var(--fg));
-    --home-brand-signal-peak-opacity: 0.6;
-    --home-brand-signal-exit-opacity: 0.1;
+    --home-brand-signal-peak-opacity: 0.79;
     --home-brand-signal-guide-opacity: 0.32;
-    --home-brand-signal-primary-peak-opacity: 0.74;
-    --home-brand-signal-primary-exit-opacity: 0.16;
-    --home-brand-signal-selected-opacity: 0.86;
+    --home-brand-signal-primary-peak-opacity: 0.79;
+    --home-brand-signal-selected-opacity: 0.82;
     --home-brand-signal-selected-color: color-mix(in srgb, var(--focus) 82%, var(--fg));
     --home-brand-windsock-body-color: var(--focus);
     --home-brand-windsock-stripe-color: var(--bg);
@@ -135,7 +131,6 @@
 
 .home-brand__signal.is-primary {
     --home-brand-signal-peak-opacity: var(--home-brand-signal-primary-peak-opacity);
-    --home-brand-signal-exit-opacity: var(--home-brand-signal-primary-exit-opacity);
 }
 
 .home-brand__signal > :is(a, button),
@@ -224,7 +219,7 @@
 
 /* This scene communicates through motion. Keep it animated until there is a deliberate static fallback. */
 .home-brand__windsock-sock {
-    animation: home-brand-windsock-sock 4.1s ease-in-out infinite;
+    animation: home-brand-windsock-sock 3.6s ease-in-out infinite;
 }
 
 .home-brand__signal {
@@ -261,21 +256,37 @@
     0% {
         opacity: 0;
         transform: translate(-8rem, 0.08rem) rotate(-2deg);
+        visibility: hidden;
+    }
+
+    7.99% {
+        opacity: 0;
+        transform: translate(-8rem, 0.08rem) rotate(-2deg);
+        visibility: hidden;
     }
 
     8%,
     22% {
         opacity: var(--home-brand-signal-peak-opacity);
+        visibility: visible;
     }
 
     28% {
-        opacity: var(--home-brand-signal-exit-opacity);
+        opacity: var(--home-brand-signal-peak-opacity);
         transform: translate(calc(100cqi + 1rem), -0.08rem) rotate(1deg);
+        visibility: visible;
+    }
+
+    28.01% {
+        opacity: 0;
+        transform: translate(var(--home-brand-signal-travel), 0.04rem) rotate(1deg);
+        visibility: hidden;
     }
 
     100% {
         opacity: 0;
         transform: translate(var(--home-brand-signal-travel), 0.04rem) rotate(1deg);
+        visibility: hidden;
     }
 }
 
