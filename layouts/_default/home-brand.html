@@ -47,17 +47,28 @@
 {{- $signalDurationBaseSeconds := sub $signalDriftSeconds (div $signalDurationSpreadSeconds 2) -}}
 {{- $sceneStyle := printf "--home-brand-wind-field-start-offset: %vrem; --home-brand-wind-field-height: %vrem; --home-brand-ground-space: %vrem; --home-brand-signal-font-size: %vrem;" $windFieldStartOffsetRem $windFieldHeightRem $groundSpaceRem $signalFontSizeRem -}}
 <section class="home-brand" style="{{ $sceneStyle | safeCSS }}" aria-labelledby="home-brand-title">
-  <h1 id="home-brand-title" class="sr-only">{{ .Title }}</h1>
+  <div class="home-brand__anchor">
+    <h1 id="home-brand-title" class="home-brand__anchor-title">{{ .Title }}</h1>
+    {{- with .Params.brand_line }}
+    <p class="home-brand__anchor-line">{{ . }}</p>
+    {{- end }}
+  </div>
   <div class="home-brand__scene">
-    <span class="home-brand__horizon" aria-hidden="true"></span>
+    <span class="home-brand__horizon" aria-hidden="true">
+      <svg class="home-brand__horizon-arc" viewBox="0 0 100 6" preserveAspectRatio="none" focusable="false">
+        <path d="M0 4.6 C 28 1.8 72 1.8 100 4.6"></path>
+      </svg>
+    </span>
     {{- with $signals }}
     <ul class="home-brand__signals">
       {{- range $index, $signal := . }}
       {{- $signalName := $signal -}}
       {{- $signalURL := "" -}}
+      {{- $signalIsPrimary := false -}}
       {{- if reflect.IsMap $signal -}}
       {{- $signalName = index $signal "name" | default (index $signal "title") | default (index $signal "label") -}}
       {{- $signalURL = index $signal "url" | default (index $signal "href") -}}
+      {{- if isset $signal "primary" -}}{{- $signalIsPrimary = index $signal "primary" -}}{{- end -}}
       {{- end -}}
       {{- $isExternalSignalURL := or (hasPrefix $signalURL "http://") (hasPrefix $signalURL "https://") (hasPrefix $signalURL "//") -}}
       {{- $signalSlot := mod (add 2 (mul $index $signalSlotStride)) $signalSlotCount -}}
@@ -69,14 +80,16 @@
       {{- $delay := add 2 (add (mul $index $signalLaunchGapSeconds) $delayJitter) -}}
       {{- $guideBucket := mod (add 15 (mul $index 37)) 100 -}}
       {{- $signalClasses := slice "home-brand__signal" -}}
-      {{- if gt $guideChance $guideBucket -}}{{- $signalClasses = $signalClasses | append "home-brand__signal--guided" -}}{{- end -}}
-      {{- with $signalURL -}}{{- $signalClasses = $signalClasses | append "home-brand__signal--linked" -}}{{- end -}}
-      {{- $signalStyle := printf "--home-brand-signal-lift: %s; --home-brand-signal-duration: %ds; --home-brand-signal-delay: -%ds;" $signalLift $duration $delay -}}
+      {{- if $signalIsPrimary -}}{{- $signalClasses = $signalClasses | append "is-primary" -}}{{- end -}}
+      {{- if gt $guideChance $guideBucket -}}{{- $signalClasses = $signalClasses | append "is-guided" -}}{{- end -}}
+      {{- $signalDuration := $duration -}}
+      {{- if $signalIsPrimary -}}{{- $signalDuration = mul $duration 2 -}}{{- end -}}
+      {{- $signalStyle := printf "--lift:%s;--dur:%ds;--lag:-%ds;" $signalLift $signalDuration $delay -}}
       <li class="{{ delimit $signalClasses " " }}" style="{{ $signalStyle | safeCSS }}">
         {{- with $signalURL -}}
-        <a class="home-brand__signal-link" href="{{ . | safeURL }}"{{ if $isExternalSignalURL }} target="_blank" rel="noopener noreferrer"{{ end }} data-home-brand-signal-link>{{ $signalName }}</a>
+        <a href="{{ . | safeURL }}"{{ if $isExternalSignalURL }} target="_blank" rel="noopener noreferrer"{{ end }} data-home-signal>{{ $signalName }}</a>
         {{- else -}}
-        <span class="home-brand__signal-text">{{ $signalName }}</span>
+        <button data-home-signal>{{ $signalName }}</button>
         {{- end -}}
       </li>
       {{- end }}

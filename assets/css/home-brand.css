@@ -7,9 +7,71 @@
 }
 
 .home-brand {
+    --home-brand-anchor-color: var(--link-visited);
+    --home-brand-horizon-color: currentColor;
+    --home-brand-signal-color: color-mix(in srgb, var(--accent-secondary) 84%, var(--fg));
+    --home-brand-signal-peak-opacity: 0.48;
+    --home-brand-signal-exit-opacity: 0.04;
+    --home-brand-signal-guide-opacity: 0.45;
+    --home-brand-signal-primary-peak-opacity: 0.66;
+    --home-brand-signal-primary-exit-opacity: 0.12;
+    --home-brand-signal-selected-opacity: 0.78;
+    --home-brand-signal-selected-color: var(--focus);
+    --home-brand-windsock-body-color: var(--focus);
+    --home-brand-windsock-stripe-color: var(--bg);
+    --home-brand-windsock-pole-color: currentColor;
+    position: relative;
     box-sizing: border-box;
     block-size: 34rem;
     padding-block-start: var(--home-brand-wind-field-start-offset, 18rem);
+}
+
+[data-theme="dark"] .home-brand {
+    --home-brand-anchor-color: color-mix(in srgb, var(--fg) 58%, var(--bg));
+    --home-brand-horizon-color: color-mix(in srgb, var(--border) 38%, var(--bg));
+    --home-brand-signal-color: color-mix(in srgb, var(--accent-secondary) 78%, var(--fg));
+    --home-brand-signal-peak-opacity: 0.6;
+    --home-brand-signal-exit-opacity: 0.1;
+    --home-brand-signal-guide-opacity: 0.32;
+    --home-brand-signal-primary-peak-opacity: 0.74;
+    --home-brand-signal-primary-exit-opacity: 0.16;
+    --home-brand-signal-selected-opacity: 0.86;
+    --home-brand-signal-selected-color: color-mix(in srgb, var(--focus) 82%, var(--fg));
+    --home-brand-windsock-body-color: var(--focus);
+    --home-brand-windsock-stripe-color: var(--bg);
+    --home-brand-windsock-pole-color: color-mix(in srgb, var(--border) 52%, var(--bg));
+}
+
+.home-brand__anchor {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: calc(var(--home-brand-wind-field-start-offset, 18rem) + var(--home-brand-wind-field-height, 13.2rem) + 0.62rem);
+    inset-inline-start: 1.5rem;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.34rem;
+    max-inline-size: min(28rem, calc(100% - 3rem));
+    margin: 0;
+    color: var(--home-brand-anchor-color);
+    font-size: 0.68rem;
+    line-height: 1.2;
+}
+
+.home-brand__anchor-title,
+.home-brand__anchor-line {
+    margin: 0;
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: 0;
+}
+
+.home-brand__anchor-title {
+    font-weight: 600;
+}
+
+.home-brand__anchor-line {
+    font-weight: 400;
 }
 
 .home-brand__scene {
@@ -24,7 +86,24 @@
     position: absolute;
     inset-block-start: var(--home-brand-wind-field-height, 13.2rem);
     inset-inline: 0;
-    border-block-start: 1px solid currentColor;
+    display: block;
+    block-size: 0.48rem;
+    color: var(--home-brand-horizon-color);
+}
+
+.home-brand__horizon-arc {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: visible;
+}
+
+.home-brand__horizon-arc path {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
 }
 
 .home-brand__signals {
@@ -40,48 +119,67 @@
 .home-brand__signal {
     position: absolute;
     --home-brand-signal-travel: calc(100cqi + 8rem);
-    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) - var(--home-brand-signal-lift));
+    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) - var(--lift));
     inset-inline-start: 0;
     display: inline-flex;
     align-items: center;
     column-gap: 0.28rem;
-    color: var(--accent-secondary);
+    color: var(--home-brand-signal-color);
     font-size: var(--home-brand-signal-font-size, 0.72rem);
     line-height: 1;
     letter-spacing: 0;
     white-space: nowrap;
     opacity: 0;
-}
-
-.home-brand__signal--linked {
     pointer-events: auto;
 }
 
-.home-brand__signal-link,
-.home-brand__signal-link:visited {
+.home-brand__signal.is-primary {
+    --home-brand-signal-peak-opacity: var(--home-brand-signal-primary-peak-opacity);
+    --home-brand-signal-exit-opacity: var(--home-brand-signal-primary-exit-opacity);
+}
+
+.home-brand__signal > :is(a, button),
+.home-brand__signal > a:visited {
     color: inherit;
     text-decoration: none;
     text-underline-offset: 0.16em;
     text-decoration-thickness: 1px;
 }
 
-.home-brand__signal-link {
+.home-brand__signal > :is(a, button) {
+    box-sizing: border-box;
+    display: inline;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    appearance: none;
+    background: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: default;
     pointer-events: auto;
 }
 
-.home-brand__signal-link:focus-visible {
+.home-brand__signal > button {
+    text-align: inherit;
+}
+
+.home-brand__signal > :is(a, button):focus-visible {
     outline: 1px solid currentColor;
     outline-offset: 0.16rem;
 }
 
 .home-brand__signal.is-selected {
     z-index: 2;
-    opacity: 0.78 !important;
+    opacity: var(--home-brand-signal-selected-opacity) !important;
     animation-play-state: paused;
 }
 
-.home-brand__signal.is-selected .home-brand__signal-link {
-    color: var(--focus);
+.home-brand__signal.is-selected > :is(a, button) {
+    color: var(--home-brand-signal-selected-color);
+}
+
+.home-brand__signal.is-selected > a {
     text-decoration-line: underline;
 }
 
@@ -90,11 +188,11 @@
     animation-play-state: paused;
 }
 
-.home-brand__signal--guided::after {
+.home-brand__signal.is-guided::after {
     content: "";
     inline-size: 1.25rem;
     border-block-start: 1px solid currentColor;
-    opacity: 0.45;
+    opacity: var(--home-brand-signal-guide-opacity);
 }
 
 .home-brand__windsock {
@@ -113,15 +211,15 @@
 }
 
 .home-brand__windsock-body {
-    fill: var(--focus);
+    fill: var(--home-brand-windsock-body-color);
 }
 
 .home-brand__windsock-stripes {
-    fill: var(--bg);
+    fill: var(--home-brand-windsock-stripe-color);
 }
 
 .home-brand__windsock-pole {
-    fill: currentColor;
+    fill: var(--home-brand-windsock-pole-color);
 }
 
 /* This scene communicates through motion. Keep it animated until there is a deliberate static fallback. */
@@ -131,10 +229,10 @@
 
 .home-brand__signal {
     animation-name: home-brand-signal-drift;
-    animation-duration: var(--home-brand-signal-duration);
+    animation-duration: var(--dur);
     animation-timing-function: linear;
     animation-iteration-count: infinite;
-    animation-delay: var(--home-brand-signal-delay);
+    animation-delay: var(--lag);
 }
 
 @keyframes home-brand-windsock-sock {
@@ -167,11 +265,11 @@
 
     8%,
     22% {
-        opacity: 0.42;
+        opacity: var(--home-brand-signal-peak-opacity);
     }
 
     28% {
-        opacity: 0;
+        opacity: var(--home-brand-signal-exit-opacity);
         transform: translate(calc(100cqi + 1rem), -0.08rem) rotate(1deg);
     }
 
@@ -185,6 +283,10 @@
     .home-brand__scene {
         inline-size: min(36rem, 100%);
         margin-inline: 3rem auto;
+    }
+
+    .home-brand__anchor {
+        inset-inline-start: 3rem;
     }
 
     .page-shell.page-shell--has-rail .page-rail,

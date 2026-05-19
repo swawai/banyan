@@ -1,8 +1,8 @@
 (function () {
-    const linkSelector = "[data-home-brand-signal-link]";
+    const controlSelector = "[data-home-signal]";
     const homeBrands = Array.from(document.querySelectorAll(".home-brand"));
     const pauseStates = new Map();
-    let selectedLink = null;
+    let selectedControl = null;
 
     const setPaused = (homeBrand, source, paused) => {
         if (!homeBrand) {
@@ -25,19 +25,30 @@
         });
     };
 
-    const setSelected = (link, selected) => {
-        const signal = link.closest(".home-brand__signal");
-        link.toggleAttribute("data-home-brand-signal-selected", selected);
+    const initButtons = () => {
+        homeBrands.forEach((homeBrand) => {
+            homeBrand.querySelectorAll("button[data-home-signal]").forEach((button) => {
+                button.setAttribute("aria-pressed", "false");
+            });
+        });
+    };
+
+    const setSelected = (control, selected) => {
+        const signal = control.closest(".home-brand__signal");
+        control.toggleAttribute("data-home-signal-selected", selected);
+        if (control instanceof HTMLButtonElement) {
+            control.setAttribute("aria-pressed", selected ? "true" : "false");
+        }
         signal?.classList.toggle("is-selected", selected);
     };
 
     const clearSelected = () => {
-        if (!selectedLink) {
+        if (!selectedControl) {
             return;
         }
 
-        setSelected(selectedLink, false);
-        selectedLink = null;
+        setSelected(selectedControl, false);
+        selectedControl = null;
     };
 
     document.addEventListener("click", (event) => {
@@ -47,9 +58,9 @@
             return;
         }
 
-        const link = target.closest(linkSelector);
+        const control = target.closest(controlSelector);
 
-        if (!link) {
+        if (!control) {
             if (!target.closest(".home-brand__signals")) {
                 clearSelected();
             }
@@ -60,15 +71,16 @@
             return;
         }
 
-        if (link === selectedLink) {
+        event.preventDefault();
+
+        if (control === selectedControl) {
             clearSelected();
             return;
         }
 
-        event.preventDefault();
         clearSelected();
-        selectedLink = link;
-        setSelected(link, true);
+        selectedControl = control;
+        setSelected(control, true);
     });
 
     document.addEventListener("keydown", (event) => {
@@ -78,6 +90,7 @@
     });
 
     document.addEventListener("visibilitychange", updateDocumentPause);
+    initButtons();
     updateDocumentPause();
 
     if ("IntersectionObserver" in window) {
