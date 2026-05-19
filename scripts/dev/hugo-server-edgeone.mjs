@@ -341,9 +341,22 @@ async function syncEdgeone() {
 
 async function main() {
     const backendPort = await findAvailablePort();
+    const publicBaseUrl = formatPublicUrl(publicBind, publicPort);
     let hugoArgs = proxyOptions.hugoArgs;
-    hugoArgs = stripOptions(hugoArgs, ['--appendPort']);
-    hugoArgs = ['server', ...hugoArgs, '--bind', backendHost, '--port', String(backendPort), '--appendPort=false'];
+    hugoArgs = stripOptions(hugoArgs, ['--appendPort', '--baseURL', '--liveReloadPort']);
+    hugoArgs = [
+        'server',
+        ...hugoArgs,
+        '--bind',
+        backendHost,
+        '--port',
+        String(backendPort),
+        '--baseURL',
+        publicBaseUrl,
+        '--liveReloadPort',
+        String(publicPort),
+        '--appendPort=false'
+    ];
 
     const child = spawn(hugoBin, hugoArgs, {
         cwd: repoRoot,
