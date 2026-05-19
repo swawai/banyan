@@ -1,0 +1,9 @@
+{{- $src := trim (printf "%v" (.Get "src" | default (.Get 0) | default "")) " \r\n\t" -}}
+{{- if eq $src "" -}}{{- errorf "Build failed: asset-image shortcode requires src." -}}{{- end -}}
+{{- $asset := resources.Get $src -}}
+{{- if not $asset -}}{{- errorf "Build failed: asset-image shortcode cannot resolve asset %q." $src -}}{{- end -}}
+{{- $asset = $asset | fingerprint -}}
+{{- $alt := .Get "alt" | default "" -}}
+{{- $width := trim (printf "%v" (.Get "width" | default "")) " \r\n\t" -}}
+{{- $height := trim (printf "%v" (.Get "height" | default "")) " \r\n\t" -}}
+<img src="{{ $asset.RelPermalink | safeURL }}" alt="{{ $alt }}"{{ with $width }} width="{{ . }}"{{ end }}{{ with $height }} height="{{ . }}"{{ end }} loading="lazy" decoding="async">
