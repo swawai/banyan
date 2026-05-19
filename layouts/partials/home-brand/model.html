@@ -1,0 +1,64 @@
+{{- $page := . -}}
+{{- $signals := $page.Params.home_signals | default slice -}}
+{{- $guideChance := $page.Params.home_signal_guide_chance | default 0 -}}
+{{- $horizonOffsetRem := 31.2 -}}
+{{- $groundSpaceRem := 2.8 -}}
+{{- $signalFontSizeRem := 0.72 -}}
+{{- $signalMinLiftRem := 0.9 -}}
+{{- $signalSlotStepRem := div $signalFontSizeRem 2 -}}
+{{- $windFieldStartOffsetRem := 6.0 -}}
+{{- if isset $page.Params "home_wind_field_start_offset_rem" -}}
+{{- $windFieldStartOffsetRem = $page.Params.home_wind_field_start_offset_rem -}}
+{{- end -}}
+{{- if lt $windFieldStartOffsetRem 0 -}}
+{{- errorf "%s: home_wind_field_start_offset_rem must be greater than or equal to 0; got %v." $page.File.Path $windFieldStartOffsetRem -}}
+{{- end -}}
+{{- $windFieldHeightRem := sub $horizonOffsetRem $windFieldStartOffsetRem -}}
+{{- $signalSlotCount := int (div (sub $windFieldHeightRem $signalMinLiftRem) $signalSlotStepRem) -}}
+{{- if lt $signalSlotCount 1 -}}
+{{- $maxStartOffsetRem := sub $horizonOffsetRem (add $signalMinLiftRem $signalSlotStepRem) -}}
+{{- errorf "%s: home_wind_field_start_offset_rem must be less than or equal to %.2f; got %v." $page.File.Path $maxStartOffsetRem $windFieldStartOffsetRem -}}
+{{- end -}}
+{{- $signalSlotStride := 13 -}}
+{{- $signalDriftSeconds := 90 -}}
+{{- if isset $page.Params "home_signal_drift_seconds" -}}
+{{- $signalDriftSeconds = int $page.Params.home_signal_drift_seconds -}}
+{{- end -}}
+{{- if lt $signalDriftSeconds 24 -}}{{- $signalDriftSeconds = 24 -}}{{- end -}}
+{{- $signalLaunchGapSeconds := 4 -}}
+{{- if isset $page.Params "home_signal_launch_gap_seconds" -}}
+{{- $signalLaunchGapSeconds = int $page.Params.home_signal_launch_gap_seconds -}}
+{{- end -}}
+{{- if lt $signalLaunchGapSeconds 1 -}}{{- $signalLaunchGapSeconds = 1 -}}{{- end -}}
+{{- $signalDurationSpreadSeconds := 16 -}}
+{{- $signalDurationBaseSeconds := sub $signalDriftSeconds (div $signalDurationSpreadSeconds 2) -}}
+{{- $sceneRule := printf ".home-brand{--home-brand-wind-field-start-offset:%vrem;--home-brand-wind-field-height:%vrem;--home-brand-ground-space:%vrem;--home-brand-signal-font-size:%vrem}" $windFieldStartOffsetRem $windFieldHeightRem $groundSpaceRem $signalFontSizeRem -}}
+{{- $rules := slice $sceneRule -}}
+{{- $items := slice -}}
+{{- range $index, $signal := $signals -}}
+{{- $signalName := $signal -}}
+{{- $signalURL := "" -}}
+{{- $signalIsPrimary := false -}}
+{{- if reflect.IsMap $signal -}}
+{{- $signalName = index $signal "name" | default (index $signal "title") | default (index $signal "label") -}}
+{{- $signalURL = index $signal "url" | default (index $signal "href") -}}
+{{- if isset $signal "primary" -}}{{- $signalIsPrimary = index $signal "primary" -}}{{- end -}}
+{{- end -}}
+{{- $signalSlot := mod (add 2 (mul $index $signalSlotStride)) $signalSlotCount -}}
+{{- $signalLiftRem := add $signalMinLiftRem (mul $signalSlotStepRem $signalSlot) -}}
+{{- $signalLift := printf "%.2frem" $signalLiftRem -}}
+{{- $signalSlotGroup := div $signalSlot 2 -}}
+{{- $duration := add $signalDurationBaseSeconds (mod (add (mul $signalSlot 5) (mul $index 3)) $signalDurationSpreadSeconds) -}}
+{{- $signalDuration := $duration -}}
+{{- if $signalIsPrimary -}}{{- $signalDuration = mul $duration 2 -}}{{- end -}}
+{{- $delayJitter := mod (mul $signalSlotGroup 2) $signalLaunchGapSeconds -}}
+{{- $delay := add 2 (add (mul $index $signalLaunchGapSeconds) $delayJitter) -}}
+{{- $guideBucket := mod (add 15 (mul $index 37)) 100 -}}
+{{- $signalClasses := slice "home-brand__signal" -}}
+{{- if $signalIsPrimary -}}{{- $signalClasses = $signalClasses | append "is-primary" -}}{{- end -}}
+{{- if gt $guideChance $guideBucket -}}{{- $signalClasses = $signalClasses | append "is-guided" -}}{{- end -}}
+{{- $isExternalSignalURL := or (hasPrefix $signalURL "http://") (hasPrefix $signalURL "https://") (hasPrefix $signalURL "//") -}}
+{{- $items = $items | append (dict "name" $signalName "url" $signalURL "isExternalURL" $isExternalSignalURL "classes" (delimit $signalClasses " ")) -}}
+{{- $rules = $rules | append (printf ".home-brand__signal:nth-child(%d){--lift:%s;--dur:%ds;--lag:-%ds}" (add $index 1) $signalLift $signalDuration $delay) -}}
+{{- end -}}
+{{- return (dict "signals" $items "css" (delimit $rules "")) -}}

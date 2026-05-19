@@ -509,6 +509,7 @@ async function inspectHtmlFile(rootDir, absolutePath) {
     const text = buffer.toString('utf8');
     const relativePath = path.relative(rootDir, absolutePath).split(path.sep).join('/');
     const encodedBreadcrumbSources = extractAttribute(text, 'data-entry-breadcrumb-sources');
+    const inlineStyleAttrCount = (text.match(/\sstyle\s*=/gi) ?? []).length;
 
     let breadcrumbPayloadBytes = 0;
     let breadcrumbSourceCount = 0;
@@ -551,6 +552,7 @@ async function inspectHtmlFile(rootDir, absolutePath) {
         hasCanonical: hasCanonical(text),
         hasMainBundle: hasMainBundle(text),
         hasPrefetchRuntimeBundle: hasPrefetchRuntimeBundle(text),
+        inlineStyleAttrCount,
         breadcrumbPayloadBytes,
         breadcrumbSourceCount,
         breadcrumbSourcePaths,
@@ -706,6 +708,9 @@ function buildIntegrityIssues(rows) {
         if (row.breadcrumbParseError) {
             issues.push(`Invalid breadcrumb payload on ${row.relativePath}: ${row.breadcrumbParseError}`);
         }
+        if (row.inlineStyleAttrCount > 0) {
+            issues.push(`Inline style attributes violate production style-src on ${row.relativePath}: ${row.inlineStyleAttrCount}`);
+        }
         for (const issue of row.breadcrumbPrefetchIssues || []) {
             issues.push(
                 `Breadcrumb anchor must use data-prefetch-slot="crumb": ${row.relativePath} href=${issue.href || '<empty>'} slot=${issue.slot} class=${issue.className || '<none>'}`
@@ -843,6 +848,7 @@ async function main() {
     const breadcrumbAnchorTotal = rows.reduce((sum, row) => sum + row.breadcrumbAnchorCount, 0);
     const breadcrumbCrumbAnchorTotal = rows.reduce((sum, row) => sum + row.breadcrumbCrumbAnchorCount, 0);
     const breadcrumbPrefetchIssueTotal = rows.reduce((sum, row) => sum + row.breadcrumbPrefetchIssues.length, 0);
+    const inlineStyleAttrTotal = rows.reduce((sum, row) => sum + row.inlineStyleAttrCount, 0);
     const prefetchTotal = rows.reduce((sum, row) => sum + row.prefetchPayloadBytes, 0);
     const prefetchPages = rows.filter((row) => row.prefetchPayloadBytes > 0);
     const prefetchEnvTotal = rows.reduce((sum, row) => sum + row.prefetchEnvCount, 0);
@@ -872,6 +878,7 @@ async function main() {
     console.log(`Breadcrumb prefetch anchors\t${breadcrumbAnchorTotal}`);
     console.log(`Breadcrumb crumb anchors\t${breadcrumbCrumbAnchorTotal}`);
     console.log(`Breadcrumb prefetch issues\t${breadcrumbPrefetchIssueTotal}`);
+    console.log(`Inline style attributes\t${inlineStyleAttrTotal}`);
     console.log(`Prefetch payload total\t${prefetchTotal}\t${formatBytes(prefetchTotal)}`);
     console.log(`Prefetch pages\t${prefetchPages.length}`);
     console.log(`Prefetch env entries\t${prefetchEnvTotal}`);
