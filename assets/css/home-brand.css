@@ -18,6 +18,9 @@
     --home-brand-windsock-body-color: var(--focus);
     --home-brand-windsock-stripe-color: var(--bg);
     --home-brand-windsock-pole-color: currentColor;
+    --home-brand-windsock-size: 1.9rem;
+    --home-brand-windsock-foot-offset: 1.715rem;
+    --home-brand-horizon-windsock-contact-offset: 0.26rem;
     position: relative;
     box-sizing: border-box;
     block-size: 34rem;
@@ -193,9 +196,10 @@
 .home-brand__windsock {
     position: absolute;
     display: block;
-    inline-size: 1.9rem;
-    block-size: 1.9rem;
-    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) - 1.72rem);
+    inline-size: var(--home-brand-windsock-size);
+    block-size: var(--home-brand-windsock-size);
+    /* Align the pole foot to the visible horizon curve, with a tiny stroke overlap. */
+    inset-block-start: calc(var(--home-brand-wind-field-height, 13.2rem) + var(--home-brand-horizon-windsock-contact-offset) - var(--home-brand-windsock-foot-offset));
     inset-inline-start: 78%;
     overflow: visible;
 }
