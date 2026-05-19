@@ -15,10 +15,17 @@
 }
 
 .site-nav-utilities .site-nav-utility-trigger > .icon,
-.site-nav-utilities .site-nav-link-account > .icon {
+.site-nav-utilities .site-nav-link-account > .icon,
+.site-nav-utilities .site-nav-brand-icon {
     display: block;
     flex: none;
     transform-origin: center center;
+}
+
+.site-nav-utilities .site-nav-brand-icon {
+    inline-size: 1em;
+    block-size: 1em;
+    object-fit: contain;
 }
 
 .site-nav-utilities .site-nav-utility-caret {

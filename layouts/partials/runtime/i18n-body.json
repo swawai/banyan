@@ -87,6 +87,7 @@
   "site_version_check" (printf "%v" (index $siteVersionLabels "check"))
   "site_version_checking" (printf "%v" (index $siteVersionLabels "checking"))
   "site_version_check_failed" (printf "%v" (index $siteVersionLabels "check_failed"))
+  "site_version_home" (printf "%v" (index $siteVersionLabels "home"))
   "site_version_status" (printf "%v" (index $siteVersionLabels "status"))
   "site_version_status_current" (printf "%v" (index $siteVersionLabels "status_current"))
   "site_version_status_ready" (printf "%v" (index $siteVersionLabels "status_ready"))

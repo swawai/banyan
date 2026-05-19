@@ -1,0 +1,3 @@
+{{- $faviconSvg := resources.Get "pwa/favicon.svg" -}}
+{{- if not $faviconSvg -}}{{- errorf "Build failed: missing resource %q." "pwa/favicon.svg" -}}{{- end -}}
+{{- return ($faviconSvg | fingerprint) -}}

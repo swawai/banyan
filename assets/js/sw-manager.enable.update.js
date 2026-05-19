@@ -93,6 +93,7 @@ function getFallbackUpdateCopy() {
         versionCheck: 'Check now',
         versionChecking: 'Checking...',
         versionCheckFailed: 'Check failed',
+        versionHome: 'Home',
         versionStatus: 'Status',
         versionStatusCurrent: 'Up to date',
         versionStatusReady: 'New version available',
@@ -114,6 +115,7 @@ function normalizeUpdateCopy(messages) {
         versionCheck: typeof messages.site_version_check === 'string' && messages.site_version_check ? messages.site_version_check : fallback.versionCheck,
         versionChecking: typeof messages.site_version_checking === 'string' && messages.site_version_checking ? messages.site_version_checking : fallback.versionChecking,
         versionCheckFailed: typeof messages.site_version_check_failed === 'string' && messages.site_version_check_failed ? messages.site_version_check_failed : fallback.versionCheckFailed,
+        versionHome: typeof messages.site_version_home === 'string' && messages.site_version_home ? messages.site_version_home : fallback.versionHome,
         versionStatus: typeof messages.site_version_status === 'string' && messages.site_version_status ? messages.site_version_status : fallback.versionStatus,
         versionStatusCurrent: typeof messages.site_version_status_current === 'string' && messages.site_version_status_current ? messages.site_version_status_current : fallback.versionStatusCurrent,
         versionStatusReady: typeof messages.site_version_status_ready === 'string' && messages.site_version_status_ready ? messages.site_version_status_ready : fallback.versionStatusReady,
@@ -167,6 +169,18 @@ function getVersionChangelogHref(copy, menuRoot) {
     return menuHref || copy.versionChangelogHref || '';
 }
 
+function getVersionHomeOption(copy, menuRoot) {
+    const homeHref = menuRoot instanceof HTMLElement ? menuRoot.dataset.siteVersionHomeHref || '' : '';
+    const homeLabel = menuRoot instanceof HTMLElement ? menuRoot.dataset.siteVersionHomeLabel || '' : '';
+    if (!homeHref) return null;
+
+    return createOption({
+        text: homeLabel || copy.versionHome,
+        href: homeHref,
+        action: 'home'
+    });
+}
+
 function getVersionStatusValue(copy, status) {
     if (status === 'checking') return copy.versionChecking;
     if (status === 'failed') return `${copy.versionCheckFailed} · ${copy.versionStatusClickRetry}`;
@@ -204,8 +218,8 @@ async function renderVersionMenu(menuRoot, status = versionMenuStatus) {
     const version = getRuntimeBuildVersion(manifest) || '-';
     const changelogHref = getVersionChangelogHref(copy, menuRoot);
     const statusValue = getVersionStatusValue(copy, status);
-
-    panel.replaceChildren(
+    const homeOption = getVersionHomeOption(copy, menuRoot);
+    const options = [
         createOption({
             text: version,
             href: changelogHref,
@@ -217,7 +231,10 @@ async function renderVersionMenu(menuRoot, status = versionMenuStatus) {
             disabled: status === 'checking',
             title: root.getAttribute(UPDATE_STATE_ATTR) === UPDATE_STATE_READY ? copy.versionStatusClickUpdate : copy.versionCheck
         })
-    );
+    ];
+    if (homeOption) options.unshift(homeOption);
+
+    panel.replaceChildren(...options);
 }
 
 async function renderVersionMenus(status = versionMenuStatus, { onlyOpen = false } = {}) {

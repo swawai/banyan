@@ -136,9 +136,7 @@
     {{- end }}>
 
 <head>
-    {{- $faviconSvg := resources.Get "pwa/favicon.svg" -}}
-{{- if not $faviconSvg -}}{{- errorf "Build failed: missing resource %q." "pwa/favicon.svg" -}}{{- end -}}
-    {{- $faviconSvg = $faviconSvg | fingerprint -}}
+    {{- $faviconSvg := partialCached "pwa/favicon-svg.html" . "pwa:favicon-svg" -}}
     {{- $appleTouchIcon := resources.Get "pwa/icon-180.png" -}}
 {{- if not $appleTouchIcon -}}{{- errorf "Build failed: missing resource %q." "pwa/icon-180.png" -}}{{- end -}}
     {{- $appleTouchIcon = $appleTouchIcon | fingerprint -}}

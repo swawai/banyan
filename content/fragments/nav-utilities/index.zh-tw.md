@@ -20,12 +20,12 @@ nav:
     key: my
   version:
     show: true
-    icon: info
     caret: false
     changelog_href: /changelog/
     labels:
       label: 版本與更新
       text: ver
+      home: 首頁
       check: 立即檢查
       checking: 檢查中...
       check_failed: 檢查失敗
