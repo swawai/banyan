@@ -1,7 +1,7 @@
-.prose strong {
-    /* color: var(--focus); */
+/* .prose strong {
+    color: var(--focus);
     padding: 0 2px;
-}
+} */
 
 .prose em {
     color: inherit;
