@@ -54,13 +54,13 @@
 }
 
 
-.prose h2 + :is(blockquote, table) { margin-top: 40px; }
-.prose :is(blockquote, table) + h2 { margin-top: 38px; }
-.prose h2 + p:has(img) { margin-top: 44px; }
-.prose p:has(img) + h2 { margin-top: 42px; }
+.prose h2 + :is(blockquote, table) { margin-top: 50px; }
+.prose :is(blockquote, table) + h2 { margin-top: 50px; }
+.prose h2 + p:has(img) { margin-top: 50px; }
+.prose p:has(img) + h2 { margin-top: 50px; }
 
 .prose h3 + :is(blockquote, table),
-.prose :is(blockquote, table) + h3 { margin-top: 18px; }
+.prose :is(blockquote, table) + h3 { margin-top: 22px; }
 .prose h3 + p:has(img),
 .prose p:has(img) + h3 { margin-top: 22px; }
 
