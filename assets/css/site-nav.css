@@ -60,7 +60,10 @@
 }
 
 
-.site-nav > a.site-nav-link-primary.is-current::after {
+.site-nav > :is(
+    a.site-nav-link-primary.is-current,
+    .site-nav-utility-menu.is-current
+)::after {
     border-bottom-color: var(--focus);
     border-bottom-width: 2px;
 }

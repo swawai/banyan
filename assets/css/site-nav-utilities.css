@@ -51,6 +51,11 @@
     min-inline-size: 1em;
 }
 
+.site-nav-utilities .site-nav-version-trigger .site-nav-brand-icon {
+    inline-size: 0.86em;
+    block-size: 0.86em;
+}
+
 
 
 .site-nav-utilities-break {

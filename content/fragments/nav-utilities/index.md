@@ -23,7 +23,7 @@ nav:
     caret: false
     changelog_href: /changelog/
     labels:
-      label: Version & updates
+      label: Site & updates
       text: ver
       home: Home
       check: Check now

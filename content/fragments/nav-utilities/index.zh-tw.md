@@ -23,7 +23,7 @@ nav:
     caret: false
     changelog_href: /changelog/
     labels:
-      label: 版本與更新
+      label: 站點與更新
       text: ver
       home: 首頁
       check: 立即檢查
