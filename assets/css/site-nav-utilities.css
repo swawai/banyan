@@ -40,6 +40,10 @@
     cursor: default;
 }
 
+.site-nav-utilities .site-nav-utility-panel {
+    font-weight: bold;
+}
+
 .site-nav .site-nav-version-menu {
     color: var(--link-visited);
     margin-inline-start: auto;
