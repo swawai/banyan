@@ -270,9 +270,13 @@
     {{ $versionHomeHref := $ctx.Site.Home.RelPermalink }}
     {{ $versionIsHome := eq $ctx.RelPermalink $versionHomeHref }}
     {{ $versionBuild := partial "build-version.html" $ctx }}
+    {{ $versionBuildLabel := partial "build-time-display.html" $ctx | default $versionBuild }}
     {{ $versionBuildEsc := $versionBuild | htmlEscape }}
+    {{ $versionBuildLabelEsc := $versionBuildLabel | htmlEscape }}
     {{ $versionChangelogHref := trim (printf "%v" (index $versionConfig "changelog_href" | default "")) " \r\n\t" }}
     {{ if and $versionChangelogHref (hasPrefix $versionChangelogHref "/") }}{{ $versionChangelogHref = $versionChangelogHref | relLangURL }}{{ end }}
+    {{ $versionIsChangelog := and (ne $versionChangelogHref "") (eq $ctx.RelPermalink $versionChangelogHref) }}
+    {{ $versionIsCurrent := or $versionIsHome $versionIsChangelog }}
     {{ $versionBrandIcon := partialCached "pwa/favicon-svg.html" $ctx "pwa:favicon-svg" }}
     {{ $versionTriggerContent := $versionTextEsc }}
     {{ if $versionBrandIcon }}
@@ -282,20 +286,22 @@
     {{ end }}
     {{ $versionCaretHTML := "" }}
     {{ if $versionCaret }}{{ $versionCaretHTML = "<span class=\"ui-dropdown-caret site-nav-utility-caret\" aria-hidden=\"true\">▾</span>" }}{{ end }}
-    {{ $versionTriggerCurrentAttr := cond $versionIsHome " aria-current=\"page\"" "" }}
+    {{ $versionTriggerCurrentAttr := cond $versionIsCurrent " aria-current=\"page\"" "" }}
     {{ $versionTriggerHTML := printf "<button type=\"button\" class=\"ui-dropdown-trigger site-nav-utility-trigger site-nav-version-trigger\" aria-label=\"%s\" title=\"%s\" aria-haspopup=\"true\" aria-expanded=\"false\"%s data-ui-dropdown-trigger=\"true\" data-nav-utility-trigger=\"true\" data-site-version-trigger=\"true\">%s%s</button>" $versionLabelEsc $versionLabelEsc $versionTriggerCurrentAttr $versionTriggerContent $versionCaretHTML }}
     {{ $versionPanelParts := slice }}
     {{ $versionHomeClass := cond $versionIsHome "ui-dropdown-option site-nav-utility-option is-current" "ui-dropdown-option site-nav-utility-option" }}
     {{ $versionHomeCurrentAttr := cond $versionIsHome " aria-current=\"page\"" "" }}
     {{ $versionPanelParts = $versionPanelParts | append (printf "<a class=\"%s\" href=\"%s\"%s data-nav-utility-option=\"true\" data-site-version-action=\"home\">%s</a>" $versionHomeClass ($versionHomeHref | htmlEscape) $versionHomeCurrentAttr $versionHomeEsc) }}
     {{ if $versionChangelogHref }}
-        {{ $versionPanelParts = $versionPanelParts | append (printf "<a class=\"ui-dropdown-option site-nav-utility-option\" href=\"%s\" data-nav-utility-option=\"true\" data-site-version-action=\"changelog\">%s</a>" ($versionChangelogHref | htmlEscape) $versionBuildEsc) }}
+        {{ $versionChangelogClass := cond $versionIsChangelog "ui-dropdown-option site-nav-utility-option is-current" "ui-dropdown-option site-nav-utility-option" }}
+        {{ $versionChangelogCurrentAttr := cond $versionIsChangelog " aria-current=\"page\"" "" }}
+        {{ $versionPanelParts = $versionPanelParts | append (printf "<a class=\"%s\" href=\"%s\" title=\"%s\"%s data-nav-utility-option=\"true\" data-site-version-action=\"changelog\">%s</a>" $versionChangelogClass ($versionChangelogHref | htmlEscape) $versionBuildEsc $versionChangelogCurrentAttr $versionBuildLabelEsc) }}
     {{ else }}
-        {{ $versionPanelParts = $versionPanelParts | append (printf "<button type=\"button\" class=\"ui-dropdown-option site-nav-utility-option\" data-nav-utility-option=\"true\" disabled>%s</button>" $versionBuildEsc) }}
+        {{ $versionPanelParts = $versionPanelParts | append (printf "<button type=\"button\" class=\"ui-dropdown-option site-nav-utility-option\" title=\"%s\" data-nav-utility-option=\"true\" disabled>%s</button>" $versionBuildEsc $versionBuildLabelEsc) }}
     {{ end }}
     {{ $versionPanelParts = $versionPanelParts | append (printf "<button type=\"button\" class=\"ui-dropdown-option site-nav-utility-option\" data-nav-utility-option=\"true\" data-site-version-action=\"check\">%s</button>" ((printf "%s: %s" $versionStatus $versionStatusCurrent) | htmlEscape)) }}
     {{ partial "ui/dropdown.html" (dict
-        "rootClass" (cond $versionIsHome "site-nav-utility-menu site-nav-version-menu is-current" "site-nav-utility-menu site-nav-version-menu")
+        "rootClass" (cond $versionIsCurrent "site-nav-utility-menu site-nav-version-menu is-current" "site-nav-utility-menu site-nav-version-menu")
         "align" "end"
         "rootDataAttrs" (dict
             "nav-utility-menu" "true"

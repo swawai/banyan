@@ -74,6 +74,12 @@ export function getRuntimeBuildVersion(manifest) {
         : '';
 }
 
+export function getRuntimeBuildTime(manifest) {
+    return typeof manifest?.buildTime === 'string' && manifest.buildTime
+        ? manifest.buildTime
+        : '';
+}
+
 export async function getRuntimeFragmentRoot() {
     const manifest = await getRuntimeManifest();
     const buildVersion = getRuntimeBuildVersion(manifest);

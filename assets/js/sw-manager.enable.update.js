@@ -1,4 +1,4 @@
-import { fetchRuntimeJson, getRuntimeBuildVersion, getRuntimeI18nUrl, getRuntimeManifest } from './runtime-manifest.js';
+import { fetchRuntimeJson, getRuntimeBuildTime, getRuntimeBuildVersion, getRuntimeI18nUrl, getRuntimeManifest } from './runtime-manifest.js';
 
 const UPDATE_STATE_ATTR = 'data-site-update';
 const UPDATE_STATE_READY = 'ready';
@@ -177,7 +177,8 @@ function getVersionHomeOption(copy, menuRoot) {
     return createOption({
         text: homeLabel || copy.versionHome,
         href: homeHref,
-        action: 'home'
+        action: 'home',
+        current: isCurrentHref(homeHref)
     });
 }
 
@@ -193,9 +194,31 @@ function getVersionStatusValue(copy, status) {
     return `${copy.versionStatusCurrent}${latency}`;
 }
 
-function createOption({ text, href = '', action = '', disabled = false, title = '' }) {
+function normalizePathname(href) {
+    try {
+        const url = new URL(href, window.location.href);
+        let path = url.pathname || '/';
+        if (!path.endsWith('/')) path = `${path}/`;
+        return path;
+    } catch (error) {
+        return '';
+    }
+}
+
+function isCurrentHref(href) {
+    if (!href) return false;
+    const target = normalizePathname(href);
+    const current = normalizePathname(window.location.href);
+    return Boolean(target && current && target === current);
+}
+
+function createOption({ text, href = '', action = '', disabled = false, title = '', current = false }) {
     const option = href ? document.createElement('a') : document.createElement('button');
     option.className = 'ui-dropdown-option site-nav-utility-option';
+    if (current) {
+        option.classList.add('is-current');
+        option.setAttribute('aria-current', 'page');
+    }
     option.dataset.navUtilityOption = 'true';
     option.textContent = text;
     if (href) {
@@ -216,14 +239,17 @@ async function renderVersionMenu(menuRoot, status = versionMenuStatus) {
     const copy = await hydrateUpdateCopy();
     const manifest = await getRuntimeManifest();
     const version = getRuntimeBuildVersion(manifest) || '-';
+    const versionLabel = getRuntimeBuildTime(manifest) || version;
     const changelogHref = getVersionChangelogHref(copy, menuRoot);
     const statusValue = getVersionStatusValue(copy, status);
     const homeOption = getVersionHomeOption(copy, menuRoot);
     const options = [
         createOption({
-            text: version,
+            text: versionLabel,
             href: changelogHref,
-            disabled: !changelogHref
+            disabled: !changelogHref,
+            title: version,
+            current: isCurrentHref(changelogHref)
         }),
         createOption({
             text: `${copy.versionStatus}: ${statusValue}`,

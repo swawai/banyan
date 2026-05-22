@@ -13,7 +13,7 @@
     flex-shrink: 0;
 }
 
-.site-nav :is(a, a:visited, .site-nav-utility-menu) {
+.site-nav > :is(a, a:visited, .site-nav-utility-menu) {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -32,7 +32,7 @@
     color: var(--focus);
 }
 
-.site-nav a:hover {
+.site-nav > a:hover {
     color: var(--focus);
     opacity: 1;
 }
@@ -45,8 +45,8 @@
     color: var(--focus);
 }
 
-.site-nav a.site-nav-link-primary.is-current:hover,
-.site-nav a.site-nav-link-primary.is-current:visited:hover {
+.site-nav > a.site-nav-link-primary.is-current:hover,
+.site-nav > a.site-nav-link-primary.is-current:visited:hover {
     opacity: 1;
 }
 
