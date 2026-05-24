@@ -22,6 +22,11 @@
         grid-template-rows: max-content max-content minmax(0, 1fr);
     }
 
+    .page-shell.page-shell--has-rail:has(.site-nav-utilities):not(:has(.site-nav-version-menu)) {
+        /* Version-less utilities occupy one fewer rail row; keep the sticky footer anchored to the visible rail. */
+        --page-rail-footer-sticky-top: calc(var(--page-edge-block-start) + 7.9rem);
+    }
+
     .page-shell.page-shell--has-rail .page-rail {
         grid-column: 1;
         grid-row: 1;
