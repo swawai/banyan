@@ -19,6 +19,9 @@ nav:
     page: /my
     key: my
   version:
+    # This only allows the version/update menu. The menu renders only when
+    # params.service_worker.mode is "enable" and the current page is not the
+    # offline fallback page.
     show: true
     caret: false
     changelog_href: /changelog/

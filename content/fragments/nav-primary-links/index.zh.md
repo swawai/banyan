@@ -10,14 +10,13 @@ nav:
   my:
     show: false
   items:
-    - page: /
-      key: home
-      text: Banyan
-      fallback_when_none: true
     - page: /products/first-party
       key: products
       text: 产品
-    - page: /d
-      key: signals
-      text: 信号
+    - page: /all
+      key: blog
+      text: 博客
+    - page: /about
+      key: about
+      text: 关于
 ---

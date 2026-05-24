@@ -10,14 +10,13 @@ nav:
   my:
     show: false
   items:
-    - page: /
-      key: home
-      text: Banyan
-      fallback_when_none: true
     - page: /products/first-party
       key: products
       text: Products
-    - page: /d
-      key: signals
-      text: Signals
+    - page: /all
+      key: blog
+      text: Blog
+    - page: /about
+      key: about
+      text: About
 ---

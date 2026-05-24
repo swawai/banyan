@@ -1,32 +1,28 @@
 {
-  "name": "swaw.com",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "sync:edgeone": "node themes/banyan/scripts/sync-edgeone.mjs",
-    "build": "hugo --gc --cleanDestinationDir --minify && npm run sync:edgeone",
-    "report:assets": "node themes/banyan/scripts/report-assets.mjs",
-    "server": "node themes/banyan/scripts/hugo-server-edgeone.mjs",
-    "dev": "node themes/banyan/scripts/hugo-server-edgeone.mjs -D"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/swawai/hugo-theme-banyan.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "banyan-example-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Example consumer site for the Banyan Hugo theme.",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/swawai/hugo-theme-banyan/issues"
+  "scripts": {
+    "build": "hugo --gc --cleanDestinationDir --minify",
+    "build:browser:temp": "node ../scripts/dev/build-browser-temp.mjs",
+    "dev": "hugo server -D --printPathWarnings --disableFastRender --bind 127.0.0.1 --port 13241",
+    "check:public": "node ../scripts/checks/check-public-html.mjs public",
+    "check:public:prod": "node ../scripts/checks/check-public-html.mjs public --check",
+    "check:browser": "node ../scripts/browser-regression/browser-smoke.mjs",
+    "check:browser:public": "node ../scripts/browser-regression/run-entry-with-build.mjs public browser-smoke.mjs",
+    "check:browser:latest-temp": "node ../scripts/browser-regression/run-entry-with-build.mjs latest-temp browser-smoke.mjs",
+    "check:browser:speculation:latest-temp": "node ../scripts/browser-regression/run-entry-with-build.mjs latest-temp browser-speculation-rules.mjs",
+    "report:assets": "node ../scripts/checks/report-assets.mjs public"
   },
-  "homepage": "https://github.com/swawai/hugo-theme-banyan#readme",
   "devDependencies": {
     "hugo-extended": "^0.157.0",
+    "playwright": "^1.59.1",
     "workbox-core": "^7.4.0",
     "workbox-expiration": "^7.4.0",
     "workbox-routing": "^7.4.0",
-    "workbox-strategies": "^7.4.0"
+    "workbox-strategies": "^7.4.0",
+    "workbox-window": "^7.4.0"
   }
 }

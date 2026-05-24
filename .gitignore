@@ -3,11 +3,13 @@
 
 # Hugo 编译输出和本地缓存
 public/
+temp_workspace/
 /resources/
 .hugo_build.lock
 
 # 针对 exampleSite 文件夹忽略那些本地生成的编译和缓存文件
 exampleSite/public/
+exampleSite/temp_workspace/
 exampleSite/resources/
 exampleSite/.hugo_build.lock
 # 必须忽略我们刚才创建的名叫 banyan 的软链接，否则会导致 Git 产生死循环或冗杂文件

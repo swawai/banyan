@@ -4,6 +4,8 @@ import path from 'node:path';
 import { runBrowserRegression } from './run.mjs';
 import { fail, gotoAndWait, pollUntil, readSecurityPolicyViolations, waitForBreadcrumbSettled } from './helpers.mjs';
 
+const SPECULATION_BREADCRUMB_PATH = process.env.BANYAN_SPECULATION_BREADCRUMB_PATH || '/intent/explore/';
+
 function recordRuntimePrefetchTraceScript() {
     return `
         (() => {
@@ -700,9 +702,9 @@ const speculationHeaderScenarios = [
         expectedEagerSlots: ['nav']
     }),
     createSpeculationHeaderScenario({
-        id: 'speculation-rules-header-xvenv',
-        path: '/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc',
-        title: 'Speculation-Rules Header: Xvenv Breadcrumb Path',
+        id: 'speculation-rules-header-breadcrumb',
+        path: SPECULATION_BREADCRUMB_PATH,
+        title: 'Speculation-Rules Header: Breadcrumb Path',
         waitForSelector: '.slot-row-breadcrumb',
         expectedEagerSlots: ['nav', 'sort'],
         async afterLoad(page) {

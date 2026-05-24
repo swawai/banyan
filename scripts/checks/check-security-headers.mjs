@@ -1,4 +1,4 @@
-const defaultBaseUrl = 'https://swaw.com/';
+const defaultBaseUrl = process.env.BANYAN_SECURITY_BASE_URL || 'http://127.0.0.1:8787/';
 
 function printHelp() {
     console.log(`Usage:
@@ -6,7 +6,8 @@ function printHelp() {
 
 Examples:
   npm run check:security:headers
-  node themes/banyan/scripts/checks/check-security-headers.mjs https://swaw.com/
+  BANYAN_SECURITY_BASE_URL=https://example.com/ npm run check:security:headers
+  node themes/banyan/scripts/checks/check-security-headers.mjs https://example.com/
   node themes/banyan/scripts/checks/check-security-headers.mjs http://127.0.0.1:8787/
 
 Notes:

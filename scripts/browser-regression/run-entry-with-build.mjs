@@ -1,4 +1,4 @@
-import { explicitPrimaryBuildEnv, relFromRepo, resolveLatestTempBuild } from './paths.mjs';
+import { explicitPrimaryBuildEnv, relFromSite, resolveLatestTempBuild } from './paths.mjs';
 
 function failUsage(message) {
     throw new Error(`${message}\nUsage: node run-entry-with-build.mjs <public|latest-temp> <entry-module>`);
@@ -14,7 +14,7 @@ if (selection === 'public') {
     process.env[explicitPrimaryBuildEnv] = 'public';
 } else if (selection === 'latest-temp') {
     const latestTempBuild = resolveLatestTempBuild();
-    process.env[explicitPrimaryBuildEnv] = relFromRepo(latestTempBuild.dirPath);
+    process.env[explicitPrimaryBuildEnv] = relFromSite(latestTempBuild.dirPath);
 } else {
     failUsage(`Unsupported build selection ${JSON.stringify(selectionRaw)}.`);
 }

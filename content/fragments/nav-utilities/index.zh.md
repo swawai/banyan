@@ -19,6 +19,8 @@ nav:
     page: /my
     key: my
   version:
+    # 这里只是允许显示版本/更新菜单；只有 params.service_worker.mode 为
+    # "enable"，且当前页不是离线兜底页时，菜单才会真正渲染。
     show: true
     caret: false
     changelog_href: /changelog/

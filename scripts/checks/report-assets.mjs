@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const repoRoot = process.cwd();
+const siteRoot = process.cwd();
 const reportTarget = process.argv[2] ?? 'public';
-const reportRoot = path.resolve(repoRoot, reportTarget);
+const reportRoot = path.resolve(siteRoot, reportTarget);
 const hashPattern = /\.[0-9a-f]{8,}(?:\.[0-9a-f]{8,})*\./i;
 
 async function collectFiles(rootDir, currentDir = rootDir) {

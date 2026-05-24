@@ -1,13 +1,84 @@
-# -------------------------------------------------------------------
-# Banyan Theme - Example Site Configuration
-# -------------------------------------------------------------------
-# INSTRUCTIONS:
-# Copy this entire file to your Hugo project's root directory and
-# rename it to `hugo.toml` (replacing your existing one).
-# Then customize the values under "Site-Specific Overrides" to match your site.
-# -------------------------------------------------------------------
+# Banyan example site.
+#
+# This file intentionally includes Hugo structural settings that are not
+# inherited from theme configuration. Copy the relevant parts into a real site's
+# root hugo.toml when adopting Banyan.
 
-baseURL = 'http://localhost:1313/'
-languageCode = 'en-us'
-title = 'Your Site Name'
+baseURL = "http://localhost:1313/"
+languageCode = "en-us"
+title = "Banyan Example"
 theme = "banyan"
+
+# exampleSite-only: this file lives at themes/banyan/exampleSite, so ../..
+# points Hugo back to the parent themes directory. Remove this line in a normal
+# site that has themes/banyan under its root.
+themesDir = "../.."
+
+preserveTaxonomyNames = true
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+enableRobotsTXT = true
+timeZone = "Asia/Shanghai"
+panicOnWarning = true
+
+[build]
+noJSConfigInAssets = true
+
+[params.prefetch_runtime]
+mode = "off"
+
+[params.service_worker]
+mode = "off"
+
+[frontmatter]
+lastmod = ["lastmod", ":git", ":fileModTime", ":default"]
+
+[pagination]
+pagerSize = 30
+
+[taxonomies]
+intent = "intent"
+tag = "tags"
+
+[markup]
+[markup.highlight]
+noClasses = false
+style = "vs"
+[markup.goldmark]
+[markup.goldmark.renderer]
+unsafe = false
+[markup.minify]
+disableXML = true
+
+[outputs]
+section  = ["HTML","RSS"]
+home     = ["HTML","RSS"]
+taxonomy = ["HTML","RSS"]
+term     = ["HTML","RSS"]
+
+[languages]
+[languages.en]
+languageName = "English"
+weight = 1
+[languages.en.outputs]
+section  = ["HTML","RSS"]
+home     = ["HTML","RSS"]
+taxonomy = ["HTML","RSS"]
+term     = ["HTML","RSS"]
+[languages.en.params]
+locale = "en_US"
+
+[languages.zh]
+languageName = "中文"
+weight = 2
+[languages.zh.params]
+locale = "zh_CN"
+
+[languages.zh-tw]
+languageName = "繁體"
+weight = 3
+[languages.zh-tw.params]
+locale = "zh_TW"
+
+[permalinks]
+d = "/p/:slug/"

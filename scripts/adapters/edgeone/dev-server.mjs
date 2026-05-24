@@ -1,20 +1,24 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 
-import { createHugoEnv } from '../build/hugo-env.mjs';
+import { createHugoEnv } from '../../build/hugo-env.mjs';
 
-const repoRoot = process.cwd();
-const publicEdgeonePath = path.join(repoRoot, 'public', 'edgeone.json');
-const repoEdgeonePath = path.join(repoRoot, 'edgeone.json');
-const hugoBin = path.join(
-    repoRoot,
+// EdgeOne adapter: runs Hugo behind a local proxy and mirrors generated
+// public/edgeone.json to the site root for EdgeOne-style deployment workflows.
+const siteRoot = path.resolve(process.cwd());
+const publicEdgeonePath = path.join(siteRoot, 'public', 'edgeone.json');
+const siteEdgeonePath = path.join(siteRoot, 'edgeone.json');
+const localHugoBin = path.join(
+    siteRoot,
     'node_modules',
     '.bin',
     process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
 );
+const hugoCommand = existsSync(localHugoBin) ? localHugoBin : 'hugo';
 const cliArgs = process.argv.slice(2);
 const backendHost = '127.0.0.1';
 const proxyOptions = readProxyOptions(cliArgs, process.env);
@@ -324,7 +328,7 @@ async function syncEdgeone() {
     }
 
     try {
-        repoBody = await fs.readFile(repoEdgeonePath, 'utf8');
+        repoBody = await fs.readFile(siteEdgeonePath, 'utf8');
     } catch (error) {
         if (!error || error.code !== 'ENOENT') {
             throw error;
@@ -335,7 +339,7 @@ async function syncEdgeone() {
         return;
     }
 
-    await fs.writeFile(repoEdgeonePath, publicBody, 'utf8');
+    await fs.writeFile(siteEdgeonePath, publicBody, 'utf8');
     console.log('[edgeone-sync] Synced public/edgeone.json -> edgeone.json');
 }
 
@@ -358,9 +362,9 @@ async function main() {
         '--appendPort=false'
     ];
 
-    const child = spawn(hugoBin, hugoArgs, {
-        cwd: repoRoot,
-        env: createHugoEnv({ cwd: repoRoot }),
+    const child = spawn(hugoCommand, hugoArgs, {
+        cwd: siteRoot,
+        env: createHugoEnv({ cwd: siteRoot }),
         shell: process.platform === 'win32',
         stdio: 'inherit'
     });

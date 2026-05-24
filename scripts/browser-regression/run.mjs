@@ -8,7 +8,7 @@ import {
     explicitPrimaryBuildEnv,
     explicitUpgradeFromEnv,
     explicitUpgradeToEnv,
-    relFromRepo,
+    relFromSite,
     resolvePrimaryBuild,
     resolveUpgradeBuildPair
 } from './paths.mjs';
@@ -166,13 +166,13 @@ async function runScenario(scenario, runtime) {
         }
         const screenshotPath = path.join(scenarioOutputDir, 'failure.png');
         await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => { });
-        result.artifacts.screenshot = relFromRepo(screenshotPath);
+        result.artifacts.screenshot = relFromSite(screenshotPath);
         console.log(`[FAIL] ${scenario.id}: ${result.message}`);
     } finally {
         if (runtime.trace) {
             const tracePath = path.join(scenarioOutputDir, 'trace.zip');
             await context.tracing.stop({ path: tracePath }).catch(() => { });
-            result.artifacts.trace = relFromRepo(tracePath);
+            result.artifacts.trace = relFromSite(tracePath);
         }
         await context.close().catch(() => { });
         result.durationMs = Date.now() - startedAt;
@@ -201,12 +201,12 @@ export async function runBrowserRegression(options = {}) {
     const report = {
         generatedAt: nowIso(),
         mode: modeName,
-        outputDir: relFromRepo(outputDir),
-        primaryBuildDir: relFromRepo(primaryBuildDir),
+        outputDir: relFromSite(outputDir),
+        primaryBuildDir: relFromSite(primaryBuildDir),
         primaryBuildSelection: describeBuildSelection(primaryBuild),
         primaryBuildSelectionEnv: process.env[explicitPrimaryBuildEnv] || '',
-        upgradeFromDir: upgradePair ? relFromRepo(upgradePair.fromDir) : '',
-        upgradeToDir: upgradePair ? relFromRepo(upgradePair.toDir) : '',
+        upgradeFromDir: upgradePair ? relFromSite(upgradePair.fromDir) : '',
+        upgradeToDir: upgradePair ? relFromSite(upgradePair.toDir) : '',
         upgradeBuildSelection: upgradePair
             ? `${describeBuildSelection({
                 dirPath: upgradePair.fromDir,
@@ -261,7 +261,7 @@ export async function runBrowserRegression(options = {}) {
     const summaryText = fs.readFileSync(files.summaryPath, 'utf8');
     console.log(summaryText);
     console.log('');
-    console.log(`JSON report: ${relFromRepo(files.reportJsonPath)}`);
+    console.log(`JSON report: ${relFromSite(files.reportJsonPath)}`);
 
     if (report.totals.failed > 0) {
         process.exitCode = 1;

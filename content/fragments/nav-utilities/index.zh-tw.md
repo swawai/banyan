@@ -19,6 +19,8 @@ nav:
     page: /my
     key: my
   version:
+    # 這裡只是允許顯示版本/更新選單；只有 params.service_worker.mode 為
+    # "enable"，且目前頁面不是離線備援頁時，選單才會真正渲染。
     show: true
     caret: false
     changelog_href: /changelog/

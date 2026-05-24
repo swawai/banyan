@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const repoRoot = process.cwd();
+const siteRoot = process.cwd();
 const defaultPublicDir = 'public';
 const defaultTop = 8;
 
@@ -13,25 +13,25 @@ const productionGuardrails = [
     {
         label: 'home',
         relativePath: 'index.html',
-        maxRawBytes: 16_000,
-        maxGzipBytes: 5_500,
+        maxRawBytes: 20_000,
+        maxGzipBytes: 7_000,
         maxBreadcrumbPayloadBytes: 16,
         maxBreadcrumbSourceCount: 0
     },
     {
-        label: 'xvenv',
-        relativePath: 'p/xvenv/index.html',
-        maxRawBytes: 58_000,
-        maxGzipBytes: 17_000,
-        maxBreadcrumbPayloadBytes: 9_000,
-        maxBreadcrumbSourceCount: 6
+        label: 'all',
+        relativePath: 'all/index.html',
+        maxRawBytes: 42_000,
+        maxGzipBytes: 12_000,
+        maxBreadcrumbPayloadBytes: 2_500,
+        maxBreadcrumbSourceCount: 1
     },
     {
-        label: 'zh-products',
-        relativePath: 'zh/d/products/index.html',
-        maxRawBytes: 38_000,
-        maxGzipBytes: 11_000,
-        maxBreadcrumbPayloadBytes: 1_600,
+        label: 'products',
+        relativePath: 'products/first-party/index.html',
+        maxRawBytes: 42_000,
+        maxGzipBytes: 12_000,
+        maxBreadcrumbPayloadBytes: 2_500,
         maxBreadcrumbSourceCount: 1
     }
 ];
@@ -774,7 +774,7 @@ async function main() {
         return;
     }
 
-    const publicRoot = path.resolve(repoRoot, options.publicDir);
+    const publicRoot = path.resolve(siteRoot, options.publicDir);
     await fs.access(publicRoot);
 
     const htmlPaths = await collectHtmlFiles(publicRoot);

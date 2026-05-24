@@ -15,9 +15,13 @@ import {
     waitForServiceWorkerActive,
     waitForUpdateReady
 } from './helpers.mjs';
-import { relFromRepo } from './paths.mjs';
+import { relFromSite } from './paths.mjs';
 
 const WIDE_VIEWPORT = { width: 1600, height: 1100 };
+const EXPECTED_HOME_TITLE = process.env.BANYAN_BROWSER_HOME_TITLE || '';
+const ARTICLE_PAGE_PATH = process.env.BANYAN_BROWSER_ARTICLE_PATH || '/about/';
+const BREADCRUMB_PRODUCTS_PATH = process.env.BANYAN_BROWSER_BREADCRUMB_PRODUCTS_PATH || '/intent/explore/';
+const BREADCRUMB_TAGS_PATH = process.env.BANYAN_BROWSER_BREADCRUMB_TAGS_PATH || '/intent/explore/';
 const DESIGN_AUDIT_VIEWPORTS = [
     {
         id: 'mobile',
@@ -49,9 +53,9 @@ const DESIGN_AUDIT_PAGES = [
         waitForSelector: '.grid-list'
     },
     {
-        id: 'xvenv',
-        path: '/p/xvenv/',
-        title: 'Xvenv',
+        id: 'article',
+        path: ARTICLE_PAGE_PATH,
+        title: 'Article',
         waitForSelector: '.article'
     }
 ];
@@ -194,7 +198,7 @@ function createDesignAuditScenario(pageConfig, viewportConfig) {
 
             return {
                 artifacts: {
-                    screenshot: relFromRepo(screenshotPath)
+                    screenshot: relFromSite(screenshotPath)
                 },
                 details: await readDesignAuditMetrics(page, viewportConfig.id),
                 message: `Captured ${pageConfig.id} at ${viewportConfig.id}.`
@@ -401,13 +405,13 @@ export const securityScenarios = [
         async run({ page, baseUrl }) {
             const consoleEntries = [];
             createConsoleRecorder(page, consoleEntries);
-            const url = `${baseUrl}/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc`;
+            const url = `${baseUrl}${BREADCRUMB_PRODUCTS_PATH}`;
             const response = await gotoAndWait(page, url);
             await page.waitForSelector('.slot-row-breadcrumb');
             await waitForBreadcrumbSettled(page);
 
             return collectSecurityOutcome(page, response, consoleEntries, {
-                path: '/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc'
+                path: BREADCRUMB_PRODUCTS_PATH
             });
         }
     }
@@ -465,8 +469,14 @@ export const scenarios = [
         async run({ page, baseUrl }) {
             await gotoAndWait(page, `${baseUrl}/`);
             const title = await page.title();
-            if (!title.includes('Swaw')) {
-                fail('Home page title did not contain "Swaw".', { title });
+            if (EXPECTED_HOME_TITLE && !title.includes(EXPECTED_HOME_TITLE)) {
+                fail('Home page title did not contain the expected configured text.', {
+                    expected: EXPECTED_HOME_TITLE,
+                    title
+                });
+            }
+            if (!EXPECTED_HOME_TITLE && !title) {
+                fail('Home page title was empty.', { title });
             }
             const breadcrumbRuntimeCount = await page.locator('script[src*="breadcrumb-runtime"]').count();
             if (breadcrumbRuntimeCount !== 0) {
@@ -484,7 +494,7 @@ export const scenarios = [
         title: 'Breadcrumb Wide Stability (Products)',
         viewport: WIDE_VIEWPORT,
         async run({ page, baseUrl }) {
-            await gotoAndWait(page, `${baseUrl}/p/xvenv/?from=products/first-party/xvenv&sorts=_,name-asc`);
+            await gotoAndWait(page, `${baseUrl}${BREADCRUMB_PRODUCTS_PATH}`);
             await page.waitForSelector('.slot-row-breadcrumb');
             await waitForBreadcrumbSettled(page);
             const mainX1 = await getMainInlineStart(page);
@@ -537,7 +547,7 @@ export const scenarios = [
         title: 'Breadcrumb Wide Stability (Tags)',
         viewport: WIDE_VIEWPORT,
         async run({ page, baseUrl }) {
-            await gotoAndWait(page, `${baseUrl}/p/xvenv/?from=tags/tooling/devtools/windows/xvenv&sorts=date-desc,date-desc,date-desc,date-desc`);
+            await gotoAndWait(page, `${baseUrl}${BREADCRUMB_TAGS_PATH}`);
             await page.waitForSelector('.slot-row-breadcrumb');
             await waitForBreadcrumbSettled(page);
             const mainX1 = await getMainInlineStart(page);

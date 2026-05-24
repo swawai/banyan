@@ -107,6 +107,45 @@ article_mode = "all"
 
 term bundle 则可以继续在 `content/intent/reference/_index.<lang>.md` 里写 title / body / page resources。
 
+## Starter Bundles
+
+Banyan intentionally does not keep `content/intent` or `content/tags` under
+theme live content. Taxonomy root bundles are site information architecture:
+they decide which taxonomy names exist, how those taxonomies render, and which
+terms deserve their own pages.
+
+Use the runnable starter bundles in `exampleSite/content/` as the copy source:
+
+```text
+themes/banyan/exampleSite/content/intent/
+themes/banyan/exampleSite/content/tags/
+```
+
+For a real site, copy only the plural bundle you declared in the site root
+`hugo.toml`:
+
+```toml
+[taxonomies]
+intent = "intent"
+tag = "tags"
+```
+
+Then place the copied bundles in the site root:
+
+```text
+content/intent/_index.md
+content/intent/_index.zh.md
+content/intent/_index.zh-tw.md
+content/tags/_index.md
+content/tags/_index.zh.md
+content/tags/_index.zh-tw.md
+```
+
+Do not copy taxonomy bundles into `themes/banyan/content/` unless you are
+intentionally changing theme live content. If a taxonomy is not declared in the
+site root, a same-named content directory is just a normal section and may create
+unexpected routes.
+
 ## 自定义其他 Taxonomy
 
 若需要 `udc`、`categories`、`authors` 等其他 taxonomy，先在站点根 `hugo.toml` 的 `[taxonomies]` 中声明，再创建对应的 `content/<plural>/_index.<lang>.md` root bundle。

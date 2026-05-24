@@ -3,17 +3,17 @@ import path from 'node:path';
 
 import { createHugoEnv } from './hugo-env.mjs';
 
-const repoRoot = process.cwd();
+const siteRoot = process.cwd();
 const hugoBin = path.join(
-    repoRoot,
+    siteRoot,
     'node_modules',
     '.bin',
     process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
 );
 
 const child = spawn(hugoBin, process.argv.slice(2), {
-    cwd: repoRoot,
-    env: createHugoEnv({ cwd: repoRoot }),
+    cwd: siteRoot,
+    env: createHugoEnv({ cwd: siteRoot }),
     shell: process.platform === 'win32',
     stdio: 'inherit'
 });

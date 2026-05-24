@@ -5,14 +5,18 @@ import { fileURLToPath } from 'node:url';
 
 import { createHugoEnv } from '../build/hugo-env.mjs';
 
-const repoRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
-const tempPublicRoot = path.join(repoRoot, 'temp_workspace', 'public');
-const hugoBin = path.join(
-    repoRoot,
+const siteRoot = path.resolve(process.cwd());
+const themeRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
+const tempPublicRoot = path.join(siteRoot, 'temp_workspace', 'public');
+const localHugoBin = path.join(
+    siteRoot,
     'node_modules',
     '.bin',
     process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
 );
+const hugoCommand = fs.existsSync(localHugoBin) ? localHugoBin : 'hugo';
+const patchCspScript = path.join(themeRoot, 'scripts', 'build', 'patch-csp.mjs');
+const emitSpeculationHeadersScript = path.join(themeRoot, 'scripts', 'build', 'emit-speculation-rules-headers.mjs');
 
 function parseCli(argv) {
     const options = {
@@ -92,7 +96,7 @@ function buildDestination(note) {
 
 function runProcess(command, args, options = {}) {
     const result = spawnSync(command, args, {
-        cwd: repoRoot,
+        cwd: siteRoot,
         env: options.env ?? process.env,
         shell: options.shell ?? false,
         stdio: 'inherit'
@@ -106,8 +110,8 @@ function runProcess(command, args, options = {}) {
     }
 }
 
-function relFromRepo(absPath) {
-    return path.relative(repoRoot, absPath).replace(/\\/g, '/');
+function relFromSite(absPath) {
+    return path.relative(siteRoot, absPath).replace(/\\/g, '/');
 }
 
 const options = parseCli(process.argv.slice(2));
@@ -117,17 +121,17 @@ if (options.help) {
 }
 
 const destinationDir = buildDestination(options.note);
-const destinationRel = relFromRepo(destinationDir);
+const destinationRel = relFromSite(destinationDir);
 runProcess(
-    hugoBin,
+    hugoCommand,
     ['--gc', '--cleanDestinationDir', '--minify', '--destination', destinationRel],
     {
-        env: createHugoEnv({ cwd: repoRoot }),
+        env: createHugoEnv({ cwd: siteRoot }),
         shell: process.platform === 'win32'
     }
 );
-runProcess(process.execPath, ['themes/banyan/scripts/build/patch-csp.mjs', destinationRel]);
-runProcess(process.execPath, ['themes/banyan/scripts/build/emit-speculation-rules-headers.mjs', destinationRel]);
+runProcess(process.execPath, [patchCspScript, destinationRel]);
+runProcess(process.execPath, [emitSpeculationHeadersScript, destinationRel]);
 
 console.log('');
 console.log(`Temp browser-regression build ready: ${destinationRel}`);

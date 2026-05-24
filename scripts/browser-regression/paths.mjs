@@ -1,11 +1,10 @@
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-export const repoRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
-export const publicDir = path.join(repoRoot, 'public');
-export const tempPublicRoot = path.join(repoRoot, 'temp_workspace', 'public');
-export const regressionRoot = path.join(repoRoot, 'temp_workspace', 'regression');
+export const siteRoot = path.resolve(process.cwd());
+export const publicDir = path.join(siteRoot, 'public');
+export const tempPublicRoot = path.join(siteRoot, 'temp_workspace', 'public');
+export const regressionRoot = path.join(siteRoot, 'temp_workspace', 'regression');
 const explicitPrimaryBuildEnv = 'BANYAN_BROWSER_BUILD_DIR';
 const explicitUpgradeFromEnv = 'BANYAN_BROWSER_UPGRADE_FROM_DIR';
 const explicitUpgradeToEnv = 'BANYAN_BROWSER_UPGRADE_TO_DIR';
@@ -31,15 +30,15 @@ function sortByMtimeDesc(paths) {
         .map((item) => item.dirPath);
 }
 
-export function relFromRepo(absPath) {
-    return path.relative(repoRoot, absPath).replace(/\\/g, '/');
+export function relFromSite(absPath) {
+    return path.relative(siteRoot, absPath).replace(/\\/g, '/');
 }
 
 function toAbsoluteBuildDir(rawPath) {
     if (!rawPath || typeof rawPath !== 'string') return '';
     return path.isAbsolute(rawPath)
         ? path.normalize(rawPath)
-        : path.resolve(repoRoot, rawPath);
+        : path.resolve(siteRoot, rawPath);
 }
 
 function buildCandidate(dirPath, kind) {
@@ -58,8 +57,8 @@ function listTempBuildCandidates() {
 
 function describeBuildSelection(selection) {
     if (!selection) return '';
-    const relPath = relFromRepo(selection.dirPath);
-    const kindLabel = selection.kind === 'public' ? 'root public/' : 'temp build';
+    const relPath = relFromSite(selection.dirPath);
+    const kindLabel = selection.kind === 'public' ? 'site public/' : 'temp build';
     return `${kindLabel}: ${relPath} (${selection.reason})`;
 }
 
@@ -92,7 +91,7 @@ export function resolvePrimaryBuild() {
         };
     }
 
-    throw new Error('No browser-regression build root found. Expected public/index.html or a temp_workspace/public/<build>/index.html.');
+    throw new Error('No browser-regression build root found. Expected site public/index.html or site temp_workspace/public/<build>/index.html.');
 }
 
 export function resolvePrimaryBuildDir() {
@@ -103,7 +102,7 @@ export function resolveLatestTempBuild() {
     const latest = listTempBuildCandidates()
         .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
     if (!latest) {
-        throw new Error('No temp browser-regression build root found. Expected temp_workspace/public/<build>/index.html.');
+        throw new Error('No temp browser-regression build root found. Expected site temp_workspace/public/<build>/index.html.');
     }
     return {
         dirPath: latest.dirPath,

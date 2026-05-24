@@ -14,25 +14,44 @@ git clone https://github.com/swawai/banyan.git themes/banyan
 
 Due to Hugo's configuration merging rules, structural configurations like `[outputs]`, `[outputFormats]`, and `[taxonomies]` **must** be defined in your site's root configuration file. They will not be inherited from the theme.
 
-To use all features of the Banyan theme, **you must copy the provided example configuration to your root directory**:
+Use `exampleSite/hugo.toml` as the starter shape for a real site root:
 
 ```bash
 cp themes/banyan/exampleSite/hugo.toml ./hugo.toml
 ```
 
-Once copied, open your root `hugo.toml` and customize the `baseURL` and `title`.
+Once copied, open your root `hugo.toml` and customize `baseURL`, `title`,
+`themesDir`, language settings, and deployment-specific params. If your site
+root is not inside the theme directory, remove `themesDir = "../.."`; a normal
+consumer site only needs `theme = "banyan"`.
+
 Customize site-level SEO descriptions by overriding
 `content/fragments/site-meta/index.<lang>.md` in your site root.
 Keep each language's social locale in `languages.<lang>.params.locale`; Banyan
 uses it for Open Graph locale tags.
 
 If you need to customize cache routes, SW cache behavior, or deployment metadata,
-copy the optional cache policy starter into your site's `data` directory:
+create a site-owned `data/cache-policy.toml`. Banyan falls back to
+`themes/banyan/data/cache-policy-default.toml` when that file is absent.
 
 ```bash
 mkdir -p data
-cp themes/banyan/exampleSite/data/cache-policy.toml ./data/cache-policy.toml
+# create data/cache-policy.toml only when your site needs route overrides
 ```
+
+## Example Site
+
+`themes/banyan/exampleSite` is a minimal consumer site used to verify that the
+theme can run outside swaw.com content. From the repository root, you can build
+it with:
+
+```bash
+hugo --source themes/banyan/exampleSite --gc --cleanDestinationDir --minify
+```
+
+The example site deliberately avoids product, legal, or brand-specific content.
+Treat it as a runnable reference for required root config and small demo content,
+not as a place to store theme internals.
 
 ## Features
 

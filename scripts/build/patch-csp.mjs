@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
-const repoRoot = process.cwd();
+const siteRoot = process.cwd();
 const defaultPublicDir = 'public';
 const cspHeaderName = 'Content-Security-Policy';
 // Keep report-only here only so upgrading older generated outputs removes stale CSP variants.
@@ -260,7 +260,7 @@ async function main() {
         return;
     }
 
-    const publicRoot = path.resolve(repoRoot, options.publicDir);
+    const publicRoot = path.resolve(siteRoot, options.publicDir);
     const headersPath = path.join(publicRoot, '_headers');
     const edgeonePath = path.join(publicRoot, 'edgeone.json');
     await Promise.all([fs.access(publicRoot), fs.access(headersPath), fs.access(edgeonePath)]);
