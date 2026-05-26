@@ -70,7 +70,15 @@
 .prose p:has(img) + p:has(img) { margin-top: 24px; }
 
 
+.prose h2 + :is(pre, .highlight) { margin-top: 42px; }
+.prose :is(pre, .highlight) + h2 { margin-top: 46px; }
 
+.prose h3 + :is(pre, .highlight),
+.prose :is(pre, .highlight) + h3 { margin-block-start: 20px; }
+
+
+.prose :is(blockquote,table) + :is(pre, .highlight),
+.prose :is(pre, .highlight) + :is(blockquote,table) { margin-top: 18px; }
 
 
 /* --- 自定义占位与间隙控制类（通过 theme-owned shortcodes 输出） --- */
