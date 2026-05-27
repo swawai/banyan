@@ -24,6 +24,10 @@ panicOnWarning = true
 [build]
 noJSConfigInAssets = true
 
+[cascade.build]
+# Page bundle resources should be published only through explicit theme pipelines.
+publishResources = false
+
 [params.prefetch_runtime]
 mode = "off"
 
