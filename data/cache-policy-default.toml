@@ -82,6 +82,17 @@ bucket = "fingerprinted"
 
 [[routes]]
 scope = "asset"
+path = "/media/content/*"
+
+[routes.headers]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[routes.sw]
+mode = "cache-first"
+bucket = "fingerprinted"
+
+[[routes]]
+scope = "asset"
 path = "/__fragments/*"
 
 [routes.headers]

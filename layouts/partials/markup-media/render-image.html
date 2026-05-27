@@ -1,0 +1,3 @@
+{{- $published := partial "markup-media/publish.html" (dict "ctx" . "src" .Destination) -}}
+{{- $src := index $published "src" -}}
+<img src="{{ $src | safeURL }}" alt="{{ .PlainText }}"{{ with .Title }} title="{{ . }}"{{ end }} loading="lazy" decoding="async">
