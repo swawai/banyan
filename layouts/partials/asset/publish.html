@@ -1,0 +1,45 @@
+{{- $ctx := .ctx -}}
+{{- $src := trim (printf "%v" (.src | default "")) " \r\n\t" -}}
+{{- if eq $src "" -}}{{- errorf "Build failed: asset publisher requires src." -}}{{- end -}}
+{{- $result := dict -}}
+
+{{- $isExternal := or (hasPrefix $src "//") (ne (replaceRE `^[A-Za-z][A-Za-z0-9+.-]*:.*$` "" $src) $src) -}}
+{{- if or $isExternal (hasPrefix $src "/") -}}
+  {{- errorf "Build failed: asset src %q must be a local page bundle resource or a Hugo asset path; static and remote URLs are not supported." $src -}}
+{{- end -}}
+
+{{- if in $src "\\" -}}
+  {{- errorf "Build failed: asset src %q must use forward slashes." $src -}}
+{{- end -}}
+
+{{- $resourcePath := replaceRE `[#?].*$` "" $src -}}
+{{- $explicitPageResource := hasPrefix $resourcePath "./" -}}
+{{- $resourcePath = strings.TrimPrefix "./" $resourcePath -}}
+{{- if or (eq $resourcePath "") (in (split $resourcePath "/") "..") -}}
+  {{- errorf "Build failed: asset src %q must not be empty or contain parent path segments." $src -}}
+{{- end -}}
+
+{{- $page := $ctx.Page -}}
+{{- $pagePublished := partial "page-resource/publish.html" (dict "ctx" $ctx "src" $src "required" false) -}}
+{{- if index $pagePublished "resolved" -}}
+  {{- $result = $pagePublished -}}
+{{- else -}}
+  {{- if $explicitPageResource -}}
+    {{- errorf "Build failed: page %q cannot resolve page bundle asset %q." ($page.File.Path | default $page.RelPermalink) $src -}}
+  {{- end -}}
+
+  {{- $globalResource := resources.Get $resourcePath -}}
+  {{- if not $globalResource -}}
+    {{- errorf "Build failed: asset src %q was not found in page bundle %q or Hugo assets." $src ($page.File.Path | default $page.RelPermalink) -}}
+  {{- end -}}
+
+  {{- $published := $globalResource | fingerprint -}}
+  {{- $result = dict
+    "resource" $globalResource
+    "published" $published
+    "src" $published.RelPermalink
+    "source" "assets"
+  -}}
+{{- end -}}
+
+{{- return $result -}}

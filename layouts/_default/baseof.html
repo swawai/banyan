@@ -51,7 +51,7 @@
     {{- $filteredCachePolicyHeaderRoutes := slice -}}
     {{- range $route := $cachePolicyHeaderRoutes -}}
         {{- $path := printf "%v" (index $route "path" | default "") -}}
-        {{- if ne $path "/pwa/*.webmanifest" -}}
+        {{- if ne $path "/site/pwa/*.webmanifest" -}}
             {{- $filteredCachePolicyHeaderRoutes = $filteredCachePolicyHeaderRoutes | append $route -}}
         {{- end -}}
     {{- end -}}
@@ -137,17 +137,17 @@
 
 <head>
     {{- $faviconSvg := partialCached "pwa/favicon-svg.html" . "pwa:favicon-svg" -}}
-    {{- $appleTouchIcon := resources.Get "pwa/icon-180.png" -}}
-{{- if not $appleTouchIcon -}}{{- errorf "Build failed: missing resource %q." "pwa/icon-180.png" -}}{{- end -}}
+    {{- $appleTouchIcon := resources.Get "site/pwa/icon-180.png" -}}
+{{- if not $appleTouchIcon -}}{{- errorf "Build failed: missing resource %q." "site/pwa/icon-180.png" -}}{{- end -}}
     {{- $appleTouchIcon = $appleTouchIcon | fingerprint -}}
     {{- $defaultSite := $primarySite -}}
     {{- $manifest := "" -}}
     {{- if and $defaultSite (ne $webAppManifestMode "off") -}}
-        {{- $manifestTmpl := resources.Get "pwa/manifest.webmanifest.tmpl" -}}
+        {{- $manifestTmpl := resources.Get "site/pwa/manifest.webmanifest.tmpl" -}}
         {{- if $manifestTmpl -}}
-            {{- $manifest = $manifestTmpl | resources.ExecuteAsTemplate "pwa/site.webmanifest" $defaultSite.Home | fingerprint -}}
+            {{- $manifest = $manifestTmpl | resources.ExecuteAsTemplate "site/pwa/site.webmanifest" $defaultSite.Home | fingerprint -}}
         {{- else -}}
-{{- errorf "Build failed: missing resource %q." "pwa/manifest.webmanifest.tmpl" -}}
+{{- errorf "Build failed: missing resource %q." "site/pwa/manifest.webmanifest.tmpl" -}}
         {{- end -}}
     {{- end -}}
     {{- $runtimeI18n := dict -}}

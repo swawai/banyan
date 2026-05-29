@@ -1,0 +1,45 @@
+{{- $ctx := .ctx -}}
+{{- $src := trim (printf "%v" (.src | default "")) " \r\n\t" -}}
+{{- $required := true -}}
+{{- if isset . "required" -}}{{- $required = .required -}}{{- end -}}
+{{- $result := dict "resolved" false "src" $src -}}
+
+{{- $isExternal := or (hasPrefix $src "//") (ne (replaceRE `^[A-Za-z][A-Za-z0-9+.-]*:.*$` "" $src) $src) -}}
+{{- $isRootRelative := hasPrefix $src "/" -}}
+{{- if and (ne $src "") (not $isExternal) (not $isRootRelative) -}}
+  {{- $resourcePath := replaceRE `[#?].*$` "" $src -}}
+  {{- $resourcePath = strings.TrimPrefix "./" $resourcePath -}}
+  {{- $page := $ctx.Page -}}
+  {{- $resource := "" -}}
+  {{- with $page.Resources -}}
+    {{- $resource = .Get $resourcePath -}}
+  {{- end -}}
+  {{- if not $resource -}}
+    {{- if $required -}}
+      {{- errorf "Build failed: page %q cannot resolve local page resource %q. Put the file in the same page bundle, or use an absolute/remote URL." ($page.File.Path | default $page.RelPermalink) $src -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $pageDir := "" -}}
+    {{- with $page.File -}}
+      {{- $pageDir = strings.TrimSuffix "/" .Dir -}}
+    {{- end -}}
+    {{- if eq $pageDir "" -}}
+      {{- $pageDir = strings.Trim (printf "%v" ($page.RelPermalink | default "root")) "/" -}}
+    {{- end -}}
+    {{- if eq $pageDir "" -}}
+      {{- $pageDir = "root" -}}
+    {{- end -}}
+
+    {{- $targetPath := path.Join "media/content" $pageDir $resource.Name -}}
+    {{- $published := $resource | resources.Copy $targetPath | fingerprint -}}
+    {{- $result = dict
+      "resolved" true
+      "resource" $resource
+      "published" $published
+      "src" $published.RelPermalink
+      "source" "page"
+    -}}
+  {{- end -}}
+{{- end -}}
+
+{{- return $result -}}

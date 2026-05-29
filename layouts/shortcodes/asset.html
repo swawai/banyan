@@ -1,0 +1,17 @@
+{{- $src := trim (printf "%v" (.Get "src" | default (.Get 0) | default "")) " \r\n\t" -}}
+{{- if eq $src "" -}}{{- errorf "Build failed: asset shortcode requires src." -}}{{- end -}}
+{{- $published := partial "asset/publish.html" (dict "ctx" . "src" $src) -}}
+{{- $href := index $published "src" -}}
+{{- $alt := trim (printf "%v" (.Get "alt" | default "")) " \r\n\t" -}}
+{{- $text := trim (printf "%v" (.Get "text" | default (.Get 1) | default "")) " \r\n\t" -}}
+{{- $title := trim (printf "%v" (.Get "title" | default "")) " \r\n\t" -}}
+{{- $width := trim (printf "%v" (.Get "width" | default "")) " \r\n\t" -}}
+{{- $height := trim (printf "%v" (.Get "height" | default "")) " \r\n\t" -}}
+{{- $downloadValue := trim (printf "%v" (.Get "download" | default "")) " \r\n\t" -}}
+{{- $downloadLower := lower $downloadValue -}}
+{{- if ne $alt "" -}}
+  <img src="{{ $href | safeURL }}" alt="{{ $alt }}"{{ with $title }} title="{{ . }}"{{ end }}{{ with $width }} width="{{ . }}"{{ end }}{{ with $height }} height="{{ . }}"{{ end }} loading="lazy" decoding="async">
+{{- else -}}
+  {{- if eq $text "" -}}{{- $text = path.Base $src -}}{{- end -}}
+  <a href="{{ $href | safeURL }}"{{ with $title }} title="{{ . }}"{{ end }}{{ if eq $downloadLower "true" }} download{{ else if and (ne $downloadValue "") (ne $downloadLower "false") }} download="{{ $downloadValue }}"{{ end }}>{{ $text }}</a>
+{{- end -}}

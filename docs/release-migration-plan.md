@@ -54,8 +54,8 @@ Keep as site-owned:
 - `content/fragments/site-meta/*`
 - `content/fragments/nav-primary-links/*`
 - `content/fragments/home-footer-shortcuts/*`
-- `assets/brand/*`
-- `assets/pwa/*`
+- `assets/site/brand/*`
+- `assets/site/pwa/*`
 - `static/favicon.*`
 - `edgeone.json`
 

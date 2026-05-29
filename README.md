@@ -116,13 +116,13 @@ Banyan keeps root favicon files and PWA resources on separate paths:
 
 - `static/favicon.ico` and `static/favicon.svg` publish the browser root
   favicon fallbacks at `/favicon.ico` and `/favicon.svg`.
-- `assets/pwa/favicon.svg` is the fingerprinted SVG favicon explicitly linked
+- `assets/site/pwa/favicon.svg` is the fingerprinted SVG favicon explicitly linked
   by pages.
-- `assets/pwa/icon-180.png`, `icon-192.png`, `icon-256.png`, and `icon-512.png`
+- `assets/site/pwa/icon-180.png`, `icon-192.png`, `icon-256.png`, and `icon-512.png`
   are fingerprinted Hugo resources used by the apple-touch icon and web app
   manifest.
 - Sites can override the favicon and PWA icons by providing files with the same
-  names under their root `assets/pwa/` directory.
+  names under their root `assets/site/pwa/` directory.
 
 ## Taxonomies
 
