@@ -1,7 +1,7 @@
 @media (min-width: 75rem) {
     :root {
         --breadcrumb-column-min-inline: 5.5rem;
-        --breadcrumb-column-max-inline: clamp(9rem, calc(var(--page-rail-inline) + 1rem), 12rem);
+        --breadcrumb-column-max-inline: 12rem;
         --breadcrumb-columns-gap-inline: 0.68rem;
         --breadcrumb-main-gap-inline: 0.9rem;
     }
