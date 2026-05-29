@@ -7,6 +7,7 @@ This directory is split by script side effect, not by implementation detail.
 - `browser-regression/`: browser-driven regression scenarios and local static server helpers.
 - `dev/`: local developer entry points, including temp builds and the Hugo dev server wrapper.
 - `adapters/`: opt-in deployment or hosting adapters.
+- `external-resources/`: explicit data-preparation scripts that sync declared remote files into the consuming site.
 
 Most scripts treat `process.cwd()` as the consuming site root. This keeps the
 same script usable from `swaw.com`, `exampleSite`, or another Banyan consumer.
