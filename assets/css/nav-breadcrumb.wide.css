@@ -1,6 +1,7 @@
 @media (min-width: 75rem) {
     :root {
-        --breadcrumb-columns-inline: clamp(6rem, calc(var(--page-rail-inline) - 2rem), 9rem);
+        --breadcrumb-column-min-inline: 5.5rem;
+        --breadcrumb-column-max-inline: clamp(9rem, calc(var(--page-rail-inline) + 1rem), 12rem);
         --breadcrumb-columns-gap-inline: 0.68rem;
         --breadcrumb-main-gap-inline: 0.9rem;
     }
@@ -31,7 +32,7 @@
         grid-row: 1 / span 2;
         display: grid;
         grid-auto-flow: column;
-        grid-auto-columns: minmax(0, var(--breadcrumb-columns-inline));
+        grid-auto-columns: fit-content(var(--breadcrumb-column-max-inline));
         column-gap: var(--breadcrumb-columns-gap-inline);
         align-items: start;
         align-self: start;
@@ -101,7 +102,9 @@
         grid-template-rows: minmax(0, 1fr);
         align-content: start;
         min-width: 0;
+        min-inline-size: var(--breadcrumb-column-min-inline);
         inline-size: 100%;
+        max-inline-size: 100%;
     }
 
     .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-item:not(.breadcrumb-item-menu),
@@ -210,6 +213,9 @@
         align-items: stretch;
         gap: 0.28rem;
         min-width: 0;
+        min-inline-size: 0;
+        inline-size: 100%;
+        max-inline-size: 100%;
         margin-block-start: 0;
         padding: 0;
         background: transparent;
@@ -231,6 +237,8 @@
         width: 100%;
         inline-size: 100%;
         max-width: 100%;
+        max-inline-size: 100%;
+        min-inline-size: 0;
         padding: var(--breadcrumb-row-option-padding-block) var(--breadcrumb-row-option-padding-inline);
         margin-inline: 0;
         line-height: 1.18;
@@ -238,6 +246,7 @@
         color: var(--link);
         text-decoration: underline;
         border-radius: var(--breadcrumb-row-option-radius);
+        white-space: normal;
         overflow-wrap: anywhere;
     }
 
