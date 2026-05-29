@@ -1,0 +1,8 @@
+# External resources are refreshed only when explicitly running:
+#   npm run prepare:external
+# or the shorter alias:
+#   npm run external
+#
+# Example consumer sites can declare remote files here when content needs a
+# checked-in local copy before Hugo builds.
+resources: []

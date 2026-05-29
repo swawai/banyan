@@ -1,8 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-
-import { parse as parseYaml } from 'yaml';
 
 import { validateResource } from './validators.mjs';
 
@@ -15,6 +14,21 @@ const registryPath = path.join(siteRoot, registryRelativePath);
 function fail(message) {
     throw new Error(`[external-resources] ${message}`);
 }
+
+function loadYamlParser() {
+    try {
+        const siteRequire = createRequire(path.join(siteRoot, 'package.json'));
+        const yaml = siteRequire('yaml');
+        if (typeof yaml.parse !== 'function') {
+            fail('Dependency "yaml" does not expose parse().');
+        }
+        return yaml.parse;
+    } catch (error) {
+        fail(`Cannot load dependency "yaml" from the current site. Run npm install in ${siteRoot}.`);
+    }
+}
+
+const parseYaml = loadYamlParser();
 
 async function readRegistry() {
     let parsed;
@@ -140,6 +154,11 @@ async function main() {
     const resources = await readRegistry();
     const requestedIds = process.argv.slice(2).filter(Boolean);
     const selected = selectResources(resources, requestedIds);
+
+    if (selected.length === 0) {
+        console.log(`[external-resources] no resources declared in ${registryRelativePath}`);
+        return;
+    }
 
     for (const resource of selected) {
         await syncResource(resource);

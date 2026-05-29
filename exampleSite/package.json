@@ -5,6 +5,7 @@
   "description": "Example consumer site for the Banyan Hugo theme.",
   "type": "commonjs",
   "scripts": {
+    "prepare:external": "node ../scripts/external-resources/sync.mjs",
     "csp:headers": "node ../scripts/build/patch-csp.mjs",
     "speculation-rules:headers": "node ../scripts/build/emit-speculation-rules-headers.mjs",
     "build": "node ../scripts/build/run-hugo.mjs --gc --cleanDestinationDir --minify && npm run csp:headers && npm run speculation-rules:headers",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "hugo-extended": "^0.157.0",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "yaml": "^2.9.0"
   }
 }

@@ -46,6 +46,7 @@ path = "/site/pwa/*.webmanifest"
 
 [routes.headers]
 Content-Type = "application/manifest+json; charset=utf-8"
+Cache-Control = "public, max-age=31536000, immutable"
 
 [[routes]]
 scope = "asset"
