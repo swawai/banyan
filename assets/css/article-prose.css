@@ -1,10 +1,14 @@
 .prose {
     max-inline-size: min(100%, var(--article-prose-max-inline));
-    line-height: 1.65;
     /* word-break: break-all;
     text-align: justify; */
     overflow-wrap: break-word;
 }
+
+.prose p {
+    margin: 0 0 12px 0;
+}
+
 
 .prose :is(h1, h2, h3, h4, h5, h6) {
     display: block;
@@ -44,9 +48,6 @@
     font-size: 1rem;
 }
 
-.prose p {
-    margin: 0 0 12px 0;
-}
 
 
 .prose h2 + h3 {
@@ -65,21 +66,27 @@
 .prose p:has(img) + h3 { margin-top: 22px; }
 
 .prose :is(blockquote, table) + :is(blockquote, p:has(img), table),
-.prose p:has(img) + :is(blockquote, table) { margin-top: 20px; }
+.prose p:has(img) + :is(blockquote, table) { margin-top: 24px; }
 
 .prose p:has(img) + p:has(img) { margin-top: 24px; }
 
 
-.prose h2 + :is(pre, .highlight) { margin-top: 42px; }
-.prose :is(pre, .highlight) + h2 { margin-top: 46px; }
+
+.prose :is(pre, .highlight) + p:has(img),
+.prose p:has(img) + :is(pre, .highlight) { margin-top: 24px; }
+
+
+.prose h2 + :is(pre, .highlight) { margin-top: 50px; }
+.prose :is(pre, .highlight) + h2 { margin-top: 50px; }
 
 .prose h3 + :is(pre, .highlight),
-.prose :is(pre, .highlight) + h3 { margin-block-start: 20px; }
+.prose :is(pre, .highlight) + h3 { margin-block-start: 22px; }
 
 
 .prose :is(blockquote,table) + :is(pre, .highlight),
-.prose :is(pre, .highlight) + :is(blockquote,table) { margin-top: 18px; }
+.prose :is(pre, .highlight) + :is(blockquote,table) { margin-top: 24px; }
 
+.prose :is(pre, .highlight) + :is(pre, .highlight) { margin-top: 24px; }
 
 /* --- 自定义占位与间隙控制类（通过 theme-owned shortcodes 输出） --- */
 .prose .md-caption {
@@ -87,7 +94,6 @@
     margin-top: -18px;
     margin-bottom: 12px;
     font-size: 12px;
-    line-height: 1.65;
     text-align: left;
     color: var(--caption-color);
 }

@@ -67,7 +67,7 @@ body {
     max-width: 100%;
     margin-inline: 0;
     padding-bottom: var(--page-edge-block-end);
-    line-height: 1.7;
+    line-height: 1.6667;
 }
 
 .page-shell,

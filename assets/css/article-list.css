@@ -16,7 +16,6 @@
 .prose li {
     display: list-item;
     color: inherit;
-    line-height: 1.65;
     word-break: break-all;
 }
 

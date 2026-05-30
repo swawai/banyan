@@ -1,5 +1,5 @@
 .prose blockquote {
-    margin: 14px 0;
+    margin: 18px 0 18px 0;
     padding: 4px 8px 4px;
     border-left: 2px solid var(--quote-border);
     border-radius: 0;
@@ -16,7 +16,7 @@
     margin: 0;
     /* 覆写了上面 P 的外部节奏间距，因为在此组件内部 */
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--quote-text);
 }
 
