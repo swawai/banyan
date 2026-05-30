@@ -1,17 +1,36 @@
 .prose :is(pre, .highlight) {
-    margin: 0 0 12px 0;
+    margin: 18px 0 18px 0;
+}
+
+.prose .highlight {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--code-block-text);
+    background: var(--code-block-bg);
+    border: 1px solid var(--code-block-border);
+    border-radius: 4px;
 }
 
 .prose pre {
     overflow-x: auto;
     overflow-y: hidden;
     max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px 2px;
     color: var(--code-block-text);
     background: var(--code-block-bg);
+    border: 1px solid var(--code-block-border);
+    line-height: 1.55;
     overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: var(--code-scrollbar-thumb) var(--code-scrollbar-track);
+}
+
+.prose .highlight pre {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
 }
 
 .prose pre code {

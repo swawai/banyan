@@ -21,17 +21,17 @@
     --code-inline-text: var(--link-visited);
     --code-inline-bg: var(--quote-bg);
     --code-inline-border: var(--quote-border);
-    --code-block-bg: var(--bg);
-    /* --code-block-border: var(--bg); */
-    --code-block-text: #5F759E;
-    --code-token-string: #885F9E;
+    --code-block-bg: #F8F8F8;
+    --code-block-border: #E3E3E3;
+    --code-block-text: #4F6590;
+    --code-token-string: #7A4F8F;
     --code-token-comment: var(--link-visited);
-    --code-token-keyword: var(--focus);
-    --code-token-type: #759E5F;
-    --code-line-highlight: var(--quote-bg);
+    --code-token-keyword: #8F554C;
+    --code-token-type: #557A45;
+    --code-line-highlight: #EFEFEF;
     --code-line-number: var(--link-visited);
-    --code-scrollbar-track: var(--bg);
-    --code-scrollbar-thumb: var(--quote-bg);
+    --code-scrollbar-track: var(--code-block-bg);
+    --code-scrollbar-thumb: var(--code-block-border);
     --code-scrollbar-thumb-hover: var(--link-visited);
 }
 
@@ -49,17 +49,17 @@
     --code-inline-bg: var(--quote-bg);
     --code-inline-border: var(--quote-border);
     
-    --code-block-bg: var(--bg);
-    /* --code-block-border: var(--bg); */
-    --code-block-text: #7388AC;
-    --code-token-string: #9C79AF;
-    --code-token-comment: var(--quote-border);
-    --code-token-keyword: var(--focus);
-    --code-token-type: #8CAF79;
-    --code-line-highlight: var(--quote-bg);
+    --code-block-bg: #222222;
+    --code-block-border: #3A3A3A;
+    --code-block-text: #8EA2C6;
+    --code-token-string: #B58DCA;
+    --code-token-comment: #A8A8A8;
+    --code-token-keyword: #C08A82;
+    --code-token-type: #9EC889;
+    --code-line-highlight: #2C2C2C;
     --code-line-number: var(--link-visited);
-    --code-scrollbar-track: var(--bg);
-    --code-scrollbar-thumb: var(--quote-bg);
+    --code-scrollbar-track: var(--code-block-bg);
+    --code-scrollbar-thumb: var(--code-block-border);
     --code-scrollbar-thumb-hover: var(--quote-border);
 }
 
