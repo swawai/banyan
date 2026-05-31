@@ -9,6 +9,7 @@
     --link-visited: #5F5F5F;
     --border: #838383; /*弹窗窗口的边框线条*/
     --focus: #9E685F;
+    --focus-text: color-mix(in srgb, var(--focus) 72%, var(--fg));
     --accent-secondary: #5F759E;
     --page-edge-inline: 8px;
     --page-edge-block-start: 12px;

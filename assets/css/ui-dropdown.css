@@ -94,22 +94,23 @@ button.ui-dropdown-option {
 
 .ui-dropdown-option.is-current,
 .ui-dropdown-option.is-current:visited {
-    color: var(--focus);
+    color: var(--focus-text);
 }
 
 .ui-dropdown-option:hover,
 .ui-dropdown-option:focus-visible {
-    color: var(--focus);
+    color: var(--focus-text);
     background: color-mix(in srgb, var(--focus) 8%, transparent);
 }
 
 .ui-dropdown.is-open > .ui-dropdown-trigger {
+    color: var(--focus-text);
     background: color-mix(in srgb, var(--focus) 8%, transparent);
     border-radius: 0.28rem;
 }
 
 .ui-dropdown.is-open > .ui-dropdown-trigger .ui-dropdown-caret {
-    color: var(--focus);
+    color: var(--focus-text);
     transform: rotate(180deg);
 }
 

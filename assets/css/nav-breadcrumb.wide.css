@@ -142,13 +142,13 @@
     html[data-entry-breadcrumb-runtime-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-item:not(.breadcrumb-item-menu) > .breadcrumb-link:hover,
     html[data-entry-breadcrumb-runtime-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-item:not(.breadcrumb-item-menu) > .breadcrumb-link:focus-visible {
         opacity: 1;
-        color: var(--focus);
+        color: var(--focus-text);
         background: var(--breadcrumb-row-option-hover-bg);
     }
 
     html[data-entry-breadcrumb-runtime-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-item:not(.breadcrumb-item-menu) > .breadcrumb-link.is-current,
     html[data-entry-breadcrumb-runtime-pending="true"] .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-item:not(.breadcrumb-item-menu) > .breadcrumb-link.is-current:visited {
-        color: var(--focus);
+        color: var(--focus-text);
         background: var(--breadcrumb-row-option-current-bg);
         box-shadow: inset 0 0 0 1px var(--breadcrumb-row-option-current-ring);
         text-decoration-thickness: 1.5px;
@@ -182,7 +182,7 @@
     .page-shell.page-shell--has-breadcrumb-tail .breadcrumb-link.is-current:visited,
     .page-shell.page-shell--has-breadcrumb-tail .breadcrumb-menu-link.is-current,
     .page-shell.page-shell--has-breadcrumb-tail .breadcrumb-menu-link.is-current:visited {
-        color: var(--focus);
+        color: var(--focus-text);
     }
 
     .page-shell.page-shell--has-breadcrumb-tail .crumb-text {
@@ -252,7 +252,7 @@
 
     .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-menu-option.is-current,
     .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-menu-option.is-current:visited {
-        color: var(--focus);
+        color: var(--focus-text);
         background: var(--breadcrumb-row-option-current-bg);
         box-shadow: inset 0 0 0 1px var(--breadcrumb-row-option-current-ring);
         text-decoration-thickness: 1.5px;
@@ -266,7 +266,7 @@
     .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-menu-option:hover,
     .page-shell.page-shell--has-breadcrumb-tail .slot-row-breadcrumb .breadcrumb-menu-option:focus-visible {
         opacity: 1;
-        color: var(--focus);
+        color: var(--focus-text);
         background: var(--breadcrumb-row-option-hover-bg);
     }
 

@@ -1,10 +1,29 @@
 .prose img {
+    box-sizing: border-box;
     display: block;
     max-width: 100%;
     height: auto;
-    margin: 18px 0 18px 0;
-    padding: 0;
-    border-radius: var(--img-border-radius);
+    margin: 18px 0;
+    padding: 8px;
+    border: 1px solid var(--media-frame-border);
+    border-radius: 6px;
+    background: var(--media-frame-bg);
+    box-shadow: 0 0.35rem 1rem var(--media-frame-shadow);
+}
+
+.prose p:has(> img:only-child),
+.prose p:has(> a:only-child > img:only-child) {
+    margin: 20px 0;
+}
+
+.prose p:has(> img:only-child) > img,
+.prose p:has(> a:only-child > img:only-child) > a > img {
+    margin: 0;
+}
+
+.prose p:has(> a:only-child > img:only-child) > a {
+    display: block;
+    border-bottom: 0;
 }
 
 .prose hr {
@@ -12,5 +31,3 @@
     border: 0;
     border-top: 1px solid var(--border-subtle);
 }
-
-
