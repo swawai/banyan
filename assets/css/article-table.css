@@ -1,7 +1,14 @@
 .prose table {
-    margin: 18px 0 18px 0;
-    width: auto;
-    min-width: 100%;
+    display: block;
+    box-sizing: border-box;
+    margin: 18px 0;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
     color: var(--table-text);
     border-collapse: collapse;
 }
