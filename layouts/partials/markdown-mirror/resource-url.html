@@ -1,0 +1,25 @@
+{{- $page := .page -}}
+{{- $src := trim (printf "%v" (.src | default "")) " \r\n\t" -}}
+{{- $url := "" -}}
+
+{{- $isExternal := or (hasPrefix $src "//") (ne (replaceRE `^[A-Za-z][A-Za-z0-9+.-]*:.*$` "" $src) $src) -}}
+{{- $isRootRelative := hasPrefix $src "/" -}}
+{{- $isAnchor := hasPrefix $src "#" -}}
+{{- if or (eq $src "") $isExternal $isRootRelative $isAnchor -}}
+  {{- $url = $src -}}
+{{- else -}}
+  {{- $resourcePath := replaceRE `[#?].*$` "" $src -}}
+  {{- $explicitPageResource := hasPrefix $resourcePath "./" -}}
+  {{- $resourcePath = strings.TrimPrefix "./" $resourcePath -}}
+  {{- $pagePublished := partial "page-resource/publish.html" (dict "ctx" (dict "Page" $page) "src" $src "required" false) -}}
+  {{- if index $pagePublished "resolved" -}}
+    {{- $url = absURL (index $pagePublished "src") -}}
+  {{- else if not $explicitPageResource -}}
+    {{- with resources.Get $resourcePath -}}
+      {{- $published := . | fingerprint -}}
+      {{- $url = $published.Permalink -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- return $url -}}

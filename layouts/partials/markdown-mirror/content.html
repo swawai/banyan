@@ -1,0 +1,40 @@
+{{- $page := . -}}
+{{- $content := trim (printf "%v" .RawContent) " \r\n\t" -}}
+
+{{- range $match := findRE `!\[[^\]\r\n]*\]\([^\)\r\n]+\)` $content -}}
+  {{- $inner := trim (replaceRE `^!\[[^\]]*\]\((.*)\)$` "$1" $match) " \r\n\t" -}}
+  {{- $dest := "" -}}
+  {{- if hasPrefix $inner "<" -}}
+    {{- $dest = replaceRE `^<([^>]+)>.*$` "$1" $inner -}}
+  {{- else -}}
+    {{- $dest = replaceRE `^([^[:space:]'"]+).*$` "$1" $inner -}}
+  {{- end -}}
+  {{- $dest = trim $dest " \r\n\t" -}}
+  {{- $url := partial "markdown-mirror/resource-url.html" (dict "page" $page "src" $dest) -}}
+  {{- if and (ne $dest "") (ne $url "") (ne $url $dest) -}}
+    {{- $updated := replace $match $dest $url -}}
+    {{- $content = replace $content $match $updated -}}
+  {{- end -}}
+{{- end -}}
+
+{{- range $match := findRE `\{\{<\s*asset\s+[^>]*>\}\}` $content -}}
+  {{- $src := replaceRE `^.*\ssrc="([^"]+)".*$` "$1" $match -}}
+  {{- if eq $src $match -}}{{- $src = "" -}}{{- end -}}
+  {{- $url := partial "markdown-mirror/resource-url.html" (dict "page" $page "src" $src) -}}
+  {{- if and (ne $src "") (ne $url "") -}}
+    {{- $alt := replaceRE `^.*\salt="([^"]+)".*$` "$1" $match -}}
+    {{- if eq $alt $match -}}{{- $alt = "" -}}{{- end -}}
+    {{- $text := replaceRE `^.*\stext="([^"]+)".*$` "$1" $match -}}
+    {{- if eq $text $match -}}{{- $text = "" -}}{{- end -}}
+    {{- $replacement := "" -}}
+    {{- if ne $alt "" -}}
+      {{- $replacement = printf "![%s](%s)" $alt $url -}}
+    {{- else -}}
+      {{- if eq $text "" -}}{{- $text = path.Base $src -}}{{- end -}}
+      {{- $replacement = printf "[%s](%s)" $text $url -}}
+    {{- end -}}
+    {{- $content = replace $content $match $replacement -}}
+  {{- end -}}
+{{- end -}}
+
+{{- return $content -}}

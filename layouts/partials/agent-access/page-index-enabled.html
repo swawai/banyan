@@ -1,0 +1,10 @@
+{{- $page := . -}}
+{{- $description := trim (printf "%v" ($page.Params.description | default "")) " \r\n\t" -}}
+{{- $enabled := and $page.IsPage (ne $description "") (ne $page.Section "fragments") -}}
+{{- if and $enabled (isset $page.Params "agent_index") -}}
+  {{- $raw := lower (trim (printf "%v" (index $page.Params "agent_index")) " \r\n\t") -}}
+  {{- if in (slice "false" "0" "no" "off") $raw -}}
+    {{- $enabled = false -}}
+  {{- end -}}
+{{- end -}}
+{{- return $enabled -}}
