@@ -123,6 +123,14 @@ Cache-Control = "no-cache, max-age=0, must-revalidate"
 mode = "ignore"
 
 [[routes]]
+scope = "asset"
+path = "/*.xml"
+
+[routes.headers]
+# Chrome's built-in XML viewer needs inline styles to render RSS/XML as a tree.
+Content-Security-Policy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
+
+[[routes]]
 scope = "navigation"
 path = "/*"
 

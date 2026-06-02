@@ -62,9 +62,12 @@ function pathMatchesRule(pathname, source) {
     if (source === pathname) {
         return true;
     }
-    if (source.endsWith('/*')) {
-        const prefix = source.slice(0, -1);
-        return pathname.startsWith(prefix);
+    if (source.includes('*')) {
+        const pattern = source
+            .split('*')
+            .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('.*');
+        return new RegExp(`^${pattern}$`).test(pathname);
     }
     return false;
 }
