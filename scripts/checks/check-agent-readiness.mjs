@@ -4,6 +4,9 @@ import path from 'node:path';
 const siteRoot = process.cwd();
 const defaultPublicDir = 'public';
 const assetLikeExtensionPattern = /\.(?:avif|bmp|csv|gif|ico|jpe?g|json|pdf|png|svg|txt|webp|xml|zip)(?:[?#]|$)/i;
+const markdownMirrorHeaderRoute = '/*.md';
+const expectedMarkdownRobotsTag = 'noindex';
+const expectedMarkdownContentType = 'text/markdown';
 const expectedRobotsAgentHints = [
     'ChatGPT-User',
     'OAI-SearchBot',
@@ -202,6 +205,84 @@ function hasPerPageMirrorList(llmsText) {
     return /^\s*Mirrors:/m.test(llmsText);
 }
 
+function parseGeneratedHeaders(body) {
+    const blocks = [];
+    let currentBlock = null;
+
+    for (const rawLine of `${body ?? ''}`.replace(/\r\n/g, '\n').split('\n')) {
+        const line = rawLine.trimEnd();
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+            continue;
+        }
+
+        if (!/^\s/.test(line)) {
+            currentBlock = {
+                headers: new Map(),
+                source: trimmed
+            };
+            blocks.push(currentBlock);
+            continue;
+        }
+
+        if (!currentBlock) {
+            continue;
+        }
+
+        const separatorIndex = trimmed.indexOf(':');
+        if (separatorIndex <= 0) {
+            continue;
+        }
+
+        const key = trimmed.slice(0, separatorIndex).trim();
+        const value = trimmed.slice(separatorIndex + 1).trim();
+        if (key) {
+            currentBlock.headers.set(key.toLowerCase(), value);
+        }
+    }
+
+    return blocks;
+}
+
+function toHeaderMap(headers) {
+    const headerMap = new Map();
+    if (!Array.isArray(headers)) {
+        return headerMap;
+    }
+
+    for (const header of headers) {
+        if (!header || typeof header !== 'object') {
+            continue;
+        }
+        const key = `${header.key ?? ''}`.trim();
+        const value = `${header.value ?? ''}`.trim();
+        if (key) {
+            headerMap.set(key.toLowerCase(), value);
+        }
+    }
+
+    return headerMap;
+}
+
+function headerIncludesToken(value, token) {
+    return `${value ?? ''}`
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .includes(token.toLowerCase());
+}
+
+function inspectMarkdownHeaderMap(headers, sourceLabel, issues) {
+    const robotsTag = headers.get('x-robots-tag') ?? '';
+    const contentType = headers.get('content-type') ?? '';
+
+    if (!headerIncludesToken(robotsTag, expectedMarkdownRobotsTag)) {
+        issues.push(`${sourceLabel} is missing X-Robots-Tag: ${expectedMarkdownRobotsTag}.`);
+    }
+    if (!contentType.toLowerCase().startsWith(expectedMarkdownContentType)) {
+        issues.push(`${sourceLabel} should declare Content-Type: ${expectedMarkdownContentType}.`);
+    }
+}
+
 function resolvePublicPathFromHref(href, { canonicalOrigin, currentRelativePath = '' }) {
     const trimmed = decodeHtmlAttribute(`${href ?? ''}`.trim());
     if (isIgnoredHref(trimmed)) {
@@ -330,6 +411,52 @@ async function inspectRobots(publicRoot, issues) {
         hasRobots: true,
         userAgentCount,
         missingAgentHints
+    };
+}
+
+async function inspectMarkdownMirrorHeaderPolicy(publicRoot, issues) {
+    const headersPath = path.join(publicRoot, '_headers');
+    const edgeonePath = path.join(publicRoot, 'edgeone.json');
+    const headersText = await readUtf8IfExists(headersPath);
+    const edgeoneText = await readUtf8IfExists(edgeonePath);
+    let generatedHeadersRoute = false;
+    let edgeoneRoute = false;
+
+    if (!headersText) {
+        issues.push('Missing generated _headers; Markdown mirror noindex headers cannot be verified.');
+    } else {
+        const route = parseGeneratedHeaders(headersText)
+            .find((block) => block.source === markdownMirrorHeaderRoute);
+        if (!route) {
+            issues.push(`Generated _headers is missing the Markdown mirror route: ${markdownMirrorHeaderRoute}.`);
+        } else {
+            generatedHeadersRoute = true;
+            inspectMarkdownHeaderMap(route.headers, `_headers ${markdownMirrorHeaderRoute}`, issues);
+        }
+    }
+
+    if (!edgeoneText) {
+        issues.push('Missing generated edgeone.json; Markdown mirror noindex headers cannot be verified.');
+    } else {
+        try {
+            const parsed = JSON.parse(edgeoneText);
+            const route = Array.isArray(parsed.headers)
+                ? parsed.headers.find((entry) => entry && entry.source === markdownMirrorHeaderRoute)
+                : null;
+            if (!route) {
+                issues.push(`edgeone.json is missing the Markdown mirror route: ${markdownMirrorHeaderRoute}.`);
+            } else {
+                edgeoneRoute = true;
+                inspectMarkdownHeaderMap(toHeaderMap(route.headers), `edgeone.json ${markdownMirrorHeaderRoute}`, issues);
+            }
+        } catch {
+            issues.push('Generated edgeone.json is not valid JSON.');
+        }
+    }
+
+    return {
+        edgeoneRoute,
+        generatedHeadersRoute
     };
 }
 
@@ -652,6 +779,7 @@ async function main() {
     const issues = [];
     const sourceOutputs = await inspectSourceOutputSettings(issues);
     const robots = await inspectRobots(publicRoot, issues);
+    const markdownHeaderPolicy = await inspectMarkdownMirrorHeaderPolicy(publicRoot, issues);
     const llms = await inspectLlms(publicRoot, issues);
     const languageLlms = await inspectLanguageLlms(publicRoot, llms, issues);
     const htmlAlternates = await inspectHtmlAlternates(publicRoot, llms.canonicalOrigin, issues);
@@ -703,6 +831,8 @@ async function main() {
     console.log(`Mode\t${options.check ? 'report + check' : 'report only'}`);
     console.log(`robots.txt\t${robots.hasRobots ? 'yes' : 'no'}`);
     console.log(`robots user-agent blocks\t${robots.userAgentCount}`);
+    console.log(`Markdown noindex route (_headers)\t${markdownHeaderPolicy.generatedHeadersRoute ? 'yes' : 'no'}`);
+    console.log(`Markdown noindex route (edgeone.json)\t${markdownHeaderPolicy.edgeoneRoute ? 'yes' : 'no'}`);
     console.log(`content Markdown files\t${sourceOutputs.contentFiles}`);
     console.log(`AGENT_MARKDOWN opt-ins\t${sourceOutputs.agentMarkdownOptIns}`);
     console.log(`MARKDOWN-only opt-ins\t${sourceOutputs.markdownOnlyOptIns}`);

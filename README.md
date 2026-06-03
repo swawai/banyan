@@ -62,6 +62,20 @@ not as a place to store theme internals.
 - Minimalist CSS architecture
 - Content-driven taxonomy bundles: recommended `intent` + hierarchical `tags`, with rendering defined in each taxonomy root bundle
 
+## Agent Access
+
+Banyan can publish per-page Markdown mirrors for pages that opt in through the
+`AGENT_MARKDOWN` or `MARKDOWN` output formats. The theme's default cache policy
+adds `X-Robots-Tag: noindex` and `Content-Type: text/markdown; charset=utf-8`
+to `/*.md`, keeping Markdown mirrors fetchable for agents while leaving search
+result landing pages on canonical HTML documents.
+
+Use `AGENT_MARKDOWN` for substantive pages that should be discoverable from
+`llms.txt`: durable articles, product documentation, and site identity pages
+such as `/about/`. Leave utility pages, QR-code/contact handoff pages, taxonomy
+indexes, and fragment content on their default HTML output unless they contain
+standalone knowledge that agents should read directly.
+
 ## Layout Slots
 
 Banyan's current page shell is assembled from a small fixed slot set rather than

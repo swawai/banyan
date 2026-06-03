@@ -131,6 +131,16 @@ path = "/*.xml"
 Content-Security-Policy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
 
 [[routes]]
+scope = "agent-markdown"
+path = "/*.md"
+
+[routes.headers]
+# Markdown mirrors are agent-facing alternates. Keep them fetchable, but keep
+# search result landing pages on the canonical HTML documents.
+Content-Type = "text/markdown; charset=utf-8"
+X-Robots-Tag = "noindex"
+
+[[routes]]
 scope = "navigation"
 path = "/*"
 
