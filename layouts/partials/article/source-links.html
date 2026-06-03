@@ -1,0 +1,33 @@
+{{- $ctx := .ctx | default . -}}
+{{- $links := slice -}}
+{{- if partial "agent-access/page-index-enabled.html" $ctx -}}
+  {{- with $ctx.OutputFormats.Get "AGENT_MARKDOWN" -}}
+    {{- $links = $links | append (dict
+      "href" .Permalink
+      "text" (i18n "article_meta_markdown")
+    ) -}}
+  {{- end -}}
+{{- end -}}
+{{- with partial "content-source/page-url.html" $ctx -}}
+  {{- $links = $links | append (dict
+    "href" .
+    "text" (i18n "article_meta_source")
+    "target" "_blank"
+    "rel" "noopener noreferrer"
+  ) -}}
+{{- end -}}
+{{- if gt (len $links) 0 -}}
+<nav class="post-taxonomy post-taxonomy-resources" aria-label="{{ i18n "article_meta_resources" }}">
+  <span class="label">{{ i18n "article_meta_resources" }}</span>
+  {{- range $index, $link := $links -}}
+    {{- if gt $index 0 -}}<span class="sep" aria-hidden="true">/</span>{{- end -}}
+    {{- partial "link.html" (dict
+      "ctx" $ctx
+      "href" (index $link "href")
+      "text" (index $link "text")
+      "target" (index $link "target")
+      "rel" (index $link "rel")
+    ) -}}
+  {{- end -}}
+</nav>
+{{- end -}}

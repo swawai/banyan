@@ -60,6 +60,13 @@ other = "发布于"
 [label_updated]
 other = "更新于"
 
+[article_meta_resources]
+other = "链接"
+[article_meta_markdown]
+other = "Markdown"
+[article_meta_source]
+other = "源文件"
+
 
 [no_trans_msg]
 other = "本页尚未提供 [{lang}] 版本。\n前往该语言首页吗？"

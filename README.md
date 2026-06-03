@@ -84,6 +84,24 @@ such as `/about/`. Leave utility pages, QR-code/contact handoff pages, taxonomy
 indexes, and fragment content on their default HTML output unless they contain
 standalone knowledge that agents should read directly.
 
+Article meta can expose two lightweight follow-up links:
+
+- `Markdown` appears only when the current page opts into `AGENT_MARKDOWN`.
+- `Source` appears when the language's `/fragments/site-meta` defines
+  `site_meta.content_source` and the current page has a Hugo source file.
+
+Source links use the configured branch instead of the build revision. This keeps
+new pages predictable before their first public commit, while the changelog/build
+surface remains the place for exact deployment provenance:
+
+```yaml
+site_meta:
+  content_source:
+    repository: "https://github.com/owner/repo"
+    branch: "main"
+    content_root: "content"
+```
+
 ## Layout Slots
 
 Banyan's current page shell is assembled from a small fixed slot set rather than

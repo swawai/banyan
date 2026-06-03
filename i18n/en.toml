@@ -60,6 +60,13 @@ other = "Published"
 [label_updated]
 other = "Updated"
 
+[article_meta_resources]
+other = "Links"
+[article_meta_markdown]
+other = "Markdown"
+[article_meta_source]
+other = "Source"
+
 
 [no_trans_msg]
 other = "This page does not yet have a [{lang}] version.\nGo to the [{lang}] homepage?"

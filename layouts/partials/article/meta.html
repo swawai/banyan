@@ -19,7 +19,8 @@
 {{- end -}}
 {{- $hasDates := false -}}
 {{- if $ctx.Date -}}{{- $hasDates = true -}}{{- end -}}
-{{- if or $hasPath $hasTaxonomy $hasDates -}}
+{{- $sourceLinks := partial "article/source-links.html" (dict "ctx" $ctx) -}}
+{{- if or $hasPath $hasTaxonomy $hasDates $sourceLinks -}}
 <div class="article-meta">
   {{- if $hasPath -}}
     {{- $leadItem := index $breadcrumbItems 0 -}}
@@ -41,5 +42,6 @@
   {{- end -}}
   {{- if $hasTaxonomy -}}{{ partial "taxonomy/article-links.html" (dict "ctx" $ctx) }}{{- end -}}
   {{- if $hasDates -}}{{ partial "article/dates.html" $ctx }}{{- end -}}
+  {{- $sourceLinks | safeHTML -}}
 </div>
 {{- end -}}

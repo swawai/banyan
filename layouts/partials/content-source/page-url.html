@@ -1,0 +1,22 @@
+{{- $page := . -}}
+{{- if reflect.IsMap . }}{{ with index . "page" }}{{ $page = . }}{{ end }}{{ end -}}
+{{- $url := "" -}}
+{{- $siteMeta := partial "site-meta.html" $page -}}
+{{- $sourceConfig := index $siteMeta "content_source" | default dict -}}
+{{- if $sourceConfig -}}
+  {{- if not (reflect.IsMap $sourceConfig) -}}
+    {{- errorf "Build failed: site_meta.content_source must be a map/object." -}}
+  {{- end -}}
+  {{- $repository := trim (printf "%v" (index $sourceConfig "repository" | default "")) " \r\n\t" -}}
+  {{- $branch := trim (printf "%v" (index $sourceConfig "branch" | default "main")) " \r\n\t" -}}
+  {{- $contentRoot := trim (printf "%v" (index $sourceConfig "content_root" | default "content")) " \r\n\t/" -}}
+  {{- $filePath := "" -}}
+  {{- with $page.File -}}
+    {{- $filePath = replace .Path "\\" "/" -}}
+  {{- end -}}
+  {{- if and $repository $branch $contentRoot $filePath -}}
+    {{- $repository = strings.TrimSuffix ".git" (strings.TrimSuffix "/" $repository) -}}
+    {{- $url = printf "%s/blob/%s/%s/%s" $repository $branch $contentRoot (strings.TrimPrefix "/" $filePath) -}}
+  {{- end -}}
+{{- end -}}
+{{- return $url -}}
