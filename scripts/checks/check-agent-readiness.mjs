@@ -238,6 +238,47 @@ function markdownPathToHtmlPath(markdownPath) {
     return markdownPath.replace(/index\.md$/, 'index.html');
 }
 
+function extractFrontMatter(text) {
+    if (text.startsWith('---\n') || text.startsWith('---\r\n')) {
+        const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+        return match?.[1] ?? '';
+    }
+    if (text.startsWith('+++\n') || text.startsWith('+++\r\n')) {
+        const match = text.match(/^\+\+\+\r?\n([\s\S]*?)\r?\n\+\+\+\r?\n/);
+        return match?.[1] ?? '';
+    }
+    return '';
+}
+
+function extractFrontMatterOutputList(frontMatter) {
+    const outputs = [];
+
+    const addOutput = (name) => {
+        const normalized = `${name ?? ''}`.trim().toUpperCase();
+        if (normalized) {
+            outputs.push(normalized);
+        }
+    };
+
+    for (const match of frontMatter.matchAll(/^\s*outputs\s*[:=]\s*\[([^\]]*)\]/gmi)) {
+        for (const name of match[1].matchAll(/["']?([A-Za-z0-9_-]+)["']?/g)) {
+            addOutput(name[1]);
+        }
+    }
+
+    const yamlBlockMatch = frontMatter.match(/^\s*outputs\s*:\s*\r?\n((?:\s+-\s*[^\r\n]+\r?\n?)+)/mi);
+    if (yamlBlockMatch) {
+        for (const line of yamlBlockMatch[1].split(/\r?\n/)) {
+            const match = line.match(/^\s+-\s*["']?([A-Za-z0-9_-]+)["']?\s*$/);
+            if (match) {
+                addOutput(match[1]);
+            }
+        }
+    }
+
+    return outputs;
+}
+
 function extractMarkdownAlternates(htmlText) {
     const alternates = [];
 
@@ -285,6 +326,54 @@ async function inspectRobots(publicRoot, issues) {
         hasRobots: true,
         userAgentCount,
         missingAgentHints
+    };
+}
+
+async function inspectSourceOutputSettings(issues) {
+    const contentRoot = path.join(siteRoot, 'content');
+    if (!await fileExists(contentRoot)) {
+        return {
+            contentFiles: 0,
+            agentMarkdownOptIns: 0,
+            markdownOnlyOptIns: 0
+        };
+    }
+
+    const contentFiles = await collectFiles(
+        contentRoot,
+        (_absolutePath, name) => /\.(?:md|markdown)$/i.test(name)
+    );
+    let agentMarkdownOptIns = 0;
+    let markdownOnlyOptIns = 0;
+
+    for (const contentPath of contentFiles) {
+        const relativePath = toPublicRelativePath(siteRoot, contentPath);
+        const text = await fs.readFile(contentPath, 'utf8');
+        const frontMatter = extractFrontMatter(text);
+        const outputList = extractFrontMatterOutputList(frontMatter);
+        const outputs = new Set(outputList);
+        const hasHtml = outputs.has('HTML');
+        const hasMarkdown = outputs.has('MARKDOWN');
+        const hasAgentMarkdown = outputs.has('AGENT_MARKDOWN');
+
+        if (hasAgentMarkdown) {
+            agentMarkdownOptIns += 1;
+        }
+        if (hasMarkdown && !hasAgentMarkdown) {
+            markdownOnlyOptIns += 1;
+        }
+        if (hasMarkdown && hasAgentMarkdown) {
+            issues.push(`Content page configures both MARKDOWN and AGENT_MARKDOWN outputs: ${relativePath}`);
+        }
+        if ((hasMarkdown || hasAgentMarkdown) && outputList[0] !== 'HTML') {
+            issues.push(`Content page opts into a Markdown mirror without keeping HTML as the first output: ${relativePath}`);
+        }
+    }
+
+    return {
+        contentFiles: contentFiles.length,
+        agentMarkdownOptIns,
+        markdownOnlyOptIns
     };
 }
 
@@ -415,6 +504,9 @@ async function inspectMarkdownMirror(publicRoot, markdownPath, canonicalOrigin, 
     if (!/^- Canonical:\s+\S+/m.test(markdownText)) {
         issues.push(`Markdown mirror is missing Canonical metadata: ${markdownPath}`);
     }
+    if (!/^>\s+\S+/m.test(markdownText)) {
+        issues.push(`Advertised Markdown mirror is missing a description blockquote: ${markdownPath}`);
+    }
     if (/{{[<%]/.test(markdownText)) {
         issues.push(`Markdown mirror still contains raw Hugo shortcode syntax: ${markdownPath}`);
     }
@@ -459,6 +551,7 @@ async function main() {
     await fs.access(publicRoot);
 
     const issues = [];
+    const sourceOutputs = await inspectSourceOutputSettings(issues);
     const robots = await inspectRobots(publicRoot, issues);
     const llms = await inspectLlms(publicRoot, issues);
     const htmlAlternates = await inspectHtmlAlternates(publicRoot, llms.canonicalOrigin, issues);
@@ -486,6 +579,12 @@ async function main() {
         }
     }
 
+    for (const [markdownPath, exposingHtmlPaths] of htmlAlternates.alternatesByMarkdownPath) {
+        if (!llms.markdownLinks.has(markdownPath)) {
+            issues.push(`HTML page advertises a Markdown mirror that is not listed in llms.txt: ${exposingHtmlPaths[0]} -> ${markdownPath}`);
+        }
+    }
+
     for (const markdownPath of advertisedMarkdownPaths) {
         await inspectMarkdownMirror(publicRoot, markdownPath, llms.canonicalOrigin, issues);
     }
@@ -497,6 +596,9 @@ async function main() {
     console.log(`Mode\t${options.check ? 'report + check' : 'report only'}`);
     console.log(`robots.txt\t${robots.hasRobots ? 'yes' : 'no'}`);
     console.log(`robots user-agent blocks\t${robots.userAgentCount}`);
+    console.log(`content Markdown files\t${sourceOutputs.contentFiles}`);
+    console.log(`AGENT_MARKDOWN opt-ins\t${sourceOutputs.agentMarkdownOptIns}`);
+    console.log(`MARKDOWN-only opt-ins\t${sourceOutputs.markdownOnlyOptIns}`);
     console.log(`llms.txt\t${llms.hasLlms ? 'yes' : 'no'}`);
     console.log(`Canonical origin\t${llms.canonicalOrigin || '<missing>'}`);
     console.log(`llms local links\t${llms.localLinkCount}`);

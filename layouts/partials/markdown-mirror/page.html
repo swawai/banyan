@@ -1,0 +1,29 @@
+{{- $description := trim (printf "%v" (.Params.description | default "")) " \r\n\t" -}}
+{{- $published := .PublishDate -}}
+{{- if le $published.Unix 0 -}}{{- $published = .Date -}}{{- end -}}
+{{- $updated := .Lastmod -}}
+{{- if le $updated.Unix 0 -}}{{- $updated = $published -}}{{- end -}}
+# {{ .Title | safeHTML }}
+{{ with $description }}
+
+> {{ . | safeHTML }}
+{{ end }}
+
+- Canonical: {{ .Permalink }}
+- Language: {{ .Language.Lang }}
+{{- if gt $published.Unix 0 }}
+- Published: {{ $published.Format "2006-01-02T15:04:05Z07:00" | safeHTML }}
+{{- end }}
+{{- if gt $updated.Unix 0 }}
+- Updated: {{ $updated.Format "2006-01-02T15:04:05Z07:00" | safeHTML }}
+{{- end }}
+{{- if .IsTranslated }}
+- Translations:
+{{- range .AllTranslations }}
+  - {{ .Language.Lang }}: {{ .Permalink }}
+{{- end }}
+{{- end }}
+
+---
+
+{{ partial "markdown-mirror/content.html" . | safeHTML }}

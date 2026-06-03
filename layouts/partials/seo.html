@@ -64,7 +64,7 @@
 <link rel="alternate" type="application/rss+xml" title="{{ site.Title }}" href="{{ .RelPermalink }}">
 {{ end }}
 {{- if partial "agent-access/page-index-enabled.html" . -}}
-{{ with .OutputFormats.Get "MARKDOWN" }}
+{{ with .OutputFormats.Get "AGENT_MARKDOWN" }}
 <link rel="alternate" type="text/markdown" title="{{ $.Title }}" href="{{ .Permalink }}">
 {{ end }}
 {{- end -}}
