@@ -59,8 +59,8 @@
         "sort-name" .sort_name
         "sort-price" .sort_price
         "sort-value" .sort_value)) }}
-    <span class="cell-price">{{ .price_text }}</span>
-    <span class="cell-value">{{ .value_text }}</span>
+    <span class="cell-price" title="{{ .price_text }}">{{ .price_text }}</span>
+    <span class="cell-value" title="{{ .value_text }}">{{ .value_text }}</span>
   {{ else }}
     <span class="cell-title">{{ i18n "products_empty" }}</span>
     <span class="cell-price"></span>

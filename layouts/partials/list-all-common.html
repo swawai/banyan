@@ -75,9 +75,9 @@
         "sort-date" .sort_date
         "sort-size" .sort_size
         "sort-path" .path_value)) }}
-    <span class="cell-date">{{ .date_text }}</span>
-    <span class="cell-count"><span>{{ .size_text }}</span><span class="unit">{{ .size_unit | safeHTML }}</span></span>
-    <span class="cell-path">{{ partial "link.html" (dict "href" .path_href "text" .path_text) }}</span>
+    <span class="cell-date" title="{{ .date_text }}">{{ .date_text }}</span>
+    <span class="cell-count" title="{{ .size_text }} KB"><span>{{ .size_text }}</span><span class="unit">{{ .size_unit | safeHTML }}</span></span>
+    <span class="cell-path">{{ partial "link.html" (dict "href" .path_href "text" .path_text "title" .path_text) }}</span>
   {{ end }}
 </div>
 

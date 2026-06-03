@@ -44,8 +44,11 @@
     "icon" (.icon | default "file")
     "prefetchKind" (.prefetchKind | default "")
     "dataAttrs" (.dataAttrs | default dict)) }}
-  <span class="cell-date">{{ .dateText | default "." }}</span>
-  <span class="cell-count"><span>{{ .countText | default "." }}</span><span class="unit">{{ (.countUnit | default "") | safeHTML }}</span></span>
+  {{ $dateText := .dateText | default "." }}
+  {{ $countText := .countText | default "." }}
+  {{ $countUnitText := replaceRE "&[^;]+;" "" (printf "%v" (.countUnit | default "")) }}
+  <span class="cell-date" title="{{ $dateText }}">{{ $dateText }}</span>
+  <span class="cell-count" title="{{ $countText }}{{ $countUnitText }}"><span>{{ $countText }}</span><span class="unit">{{ (.countUnit | default "") | safeHTML }}</span></span>
 {{ end }}
 
 {{- $entries := slice -}}
