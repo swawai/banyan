@@ -20,6 +20,7 @@
 
 .footer-shortcuts .footer-shortcut {
     display: inline-flex;
+    vertical-align: top;
     align-items: center;
     gap: 6px;
 }
