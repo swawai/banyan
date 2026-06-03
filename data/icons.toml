@@ -46,6 +46,11 @@ viewBox = "0 0 16 16"
 fill = "currentColor"
 body = '<path d="M3 11a2 2 0 1 1 0 4 2 2 0 1 1 0-4M2 6a8 8 0 0 1 8 8H7a5 5 0 0 0-5-5M2 1a13 13 0 0 1 13 13h-3A10 10 0 0 0 2 4"/>'
 
+[wechat]
+viewBox = "0 0 36 32"
+fill = "currentColor"
+body = '<path fill-rule="evenodd" d="M18 3C8.6 3 1 8.8 1 16c0 4 2.3 7.5 5.9 9.9L6 30l5.4-2.6c2 .7 4.2 1.1 6.6 1.1 9.4 0 17-5.6 17-12.5S27.4 3 18 3Zm-5 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>'
+
 [language]
 viewBox = "0 0 24 24"
 fill = "none"

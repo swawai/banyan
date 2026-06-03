@@ -4,34 +4,45 @@
 {{- if $source -}}
 {{- $footerConfig := $source.Params.footer | default dict -}}
 {{- $ariaLabel := index $footerConfig "aria_label" | default "Site footer shortcuts" -}}
-{{- $aboutLabel := index $footerConfig "about_label" | default "About" -}}
-{{- $githubLabel := index $footerConfig "github_label" | default "GitHub" -}}
+{{- $aboutLabel := trim (printf "%v" (index $footerConfig "about_label" | default "")) " \r\n\t" -}}
+{{- $githubLabel := trim (printf "%v" (index $footerConfig "github_label" | default "")) " \r\n\t" -}}
 {{- $githubHref := index $footerConfig "github_href" | default "https://github.com/swawai/banyan" -}}
-{{- $rssLabel := index $footerConfig "rss_label" | default "RSS" -}}
+{{- $wechatLabel := trim (printf "%v" (index $footerConfig "wechat_label" | default "")) " \r\n\t" -}}
+{{- $wechatPageRef := index $footerConfig "wechat_page" | default "/wechat" -}}
+{{- $wechatHref := index $footerConfig "wechat_href" | default "" -}}
+{{- $rssLabel := trim (printf "%v" (index $footerConfig "rss_label" | default "")) " \r\n\t" -}}
 {{- $icpPrefix := index $footerConfig "icp_prefix" | default "" -}}
 {{- $icpNumber := index $footerConfig "icp_number" | default "" -}}
 {{- $brandLabel := index $footerConfig "brand_label" | default "2026 Banyan" -}}
-{{- $showAbout := true -}}
-{{- if isset $footerConfig "about_show" -}}{{- $showAbout = eq (index $footerConfig "about_show") true -}}{{- end -}}
-{{- $showRss := false -}}
-{{- if isset $footerConfig "rss_show" -}}{{- $showRss = eq (index $footerConfig "rss_show") true -}}{{- end -}}
 {{- $home := $ctx.Site.Home -}}
 {{- $aboutHref := "/" -}}
 {{- with $ctx.Site.GetPage "/about" -}}
   {{- $aboutHref = .RelPermalink -}}
+{{- end -}}
+{{- if and $wechatLabel (eq $wechatHref "") -}}
+  {{- with $ctx.Site.GetPage $wechatPageRef -}}
+    {{- $wechatHref = .RelPermalink -}}
+  {{- else -}}
+    {{- errorf "Build failed: footer.wechat_label requires footer.wechat_page %q to resolve, or footer.wechat_href to be set." $wechatPageRef -}}
+  {{- end -}}
 {{- end -}}
 <footer class="footer-shortcuts" aria-label="{{ $ariaLabel }}">
   <p><a class="footer-shortcut" href="{{ $home.RelPermalink }}"><span class="footer-shortcut-mark">©</span><span class="footer-shortcut-text">{{ $brandLabel | safeHTML }}</span></a></p>
   {{- if $icpNumber }}
   <p><a class="footer-shortcut" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"><span class="footer-shortcut-mark">{{ $icpPrefix }}</span><span class="footer-shortcut-text">{{ $icpNumber }}</span></a></p>
   {{- end }}
+  {{- if and $githubLabel $githubHref }}
   <p><a class="footer-shortcut" href="{{ $githubHref }}" target="_blank" rel="noopener noreferrer"><span class="footer-shortcut-mark" aria-hidden="true">{{ partial "icon" (dict "name" "github") }}</span><span class="footer-shortcut-text">{{ $githubLabel }}</span></a></p>
-  {{- if $showRss }}
+  {{- end }}
+  {{- if $wechatLabel }}
+  <p><a class="footer-shortcut" href="{{ $wechatHref }}"><span class="footer-shortcut-mark" aria-hidden="true">{{ partial "icon" (dict "name" "wechat") }}</span><span class="footer-shortcut-text">{{ $wechatLabel }}</span></a></p>
+  {{- end }}
+  {{- if $rssLabel }}
   {{- with $home.OutputFormats.Get "RSS" }}
   <p><a class="footer-shortcut" href="{{ .RelPermalink }}"><span class="footer-shortcut-mark" aria-hidden="true">{{ partial "icon" (dict "name" "rss") }}</span><span class="footer-shortcut-text">{{ $rssLabel }}</span></a></p>
   {{- end }}
   {{- end }}
-  {{- if $showAbout }}
+  {{- if $aboutLabel }}
   <p><a class="footer-shortcut" href="{{ $aboutHref }}"><span class="footer-shortcut-mark" aria-hidden="true">i</span><span class="footer-shortcut-text">{{ $aboutLabel }}</span></a></p>
   {{- end }}
 </footer>
