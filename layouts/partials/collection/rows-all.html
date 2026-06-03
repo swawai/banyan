@@ -11,8 +11,25 @@
 {{- range $sortedPages -}}
   {{- $bytes := len .RawContent -}}
   {{- $kb := div (add $bytes 1023) 1024 -}}
-  {{- $pathValue := path.Clean .File.Dir -}}
-  {{- $pathHref := printf "/%s/" (trim $pathValue "/") -}}
+  {{- $parent := .Parent -}}
+  {{- $pathText := "" -}}
+  {{- $pathHref := "" -}}
+  {{- with $parent -}}
+    {{- $pathText = partial "section/d-logical-path.html" (dict "ctx" .) -}}
+    {{- $pathHref = .RelPermalink -}}
+  {{- end -}}
+  {{- if eq $pathText "" -}}
+    {{- $pathValueFallback := path.Clean .File.Dir -}}
+    {{- if eq .File.TranslationBaseName "index" -}}
+      {{- $pathValueFallback = path.Dir $pathValueFallback -}}
+    {{- end -}}
+    {{- if eq $pathValueFallback "." -}}
+      {{- $pathValueFallback = "" -}}
+    {{- end -}}
+    {{- $pathText = cond (eq $pathValueFallback "") "/" (printf "/%s/" (trim $pathValueFallback "/")) -}}
+    {{- $pathHref = $pathText | relLangURL -}}
+  {{- end -}}
+  {{- $pathValue := trim $pathText "/" -}}
   {{- $rows = $rows | append (dict
     "key" (partial "entry-source/page-entry-key.html" (dict "ctx" .))
     "kind" "page"
@@ -32,7 +49,7 @@
     "sort_path" $pathValue
     "path_value" $pathValue
     "path_href" $pathHref
-    "path_text" (printf "/%s" $pathValue)
+    "path_text" $pathText
   ) -}}
 {{- end -}}
 {{- return $rows -}}
