@@ -1,0 +1,126 @@
+{{- $page := .page -}}
+{{- $languageOnly := .languageOnly | default false -}}
+{{- $currentSite := $page.Site -}}
+{{- $primarySite := index (sort $page.Sites "Language.Weight") 0 -}}
+{{- $isPrimaryLanguage := eq $currentSite.Language.Lang $primarySite.Language.Lang -}}
+{{- $isMultilingual := gt (len $page.Sites) 1 -}}
+{{- $isRootLanguageHome := eq $currentSite.Home.Permalink $primarySite.BaseURL -}}
+{{- $isGlobal := and (not $languageOnly) $isMultilingual $isPrimaryLanguage $isRootLanguageHome -}}
+{{- $scopeSites := slice -}}
+{{- if $isGlobal -}}
+  {{- range sort $page.Sites "Language.Weight" -}}
+    {{- $scopeSites = $scopeSites | append . -}}
+  {{- end -}}
+{{- else -}}
+  {{- $scopeSites = $scopeSites | append $currentSite -}}
+{{- end -}}
+{{- $metaHome := $currentSite.Home -}}
+{{- if $isGlobal -}}{{- $metaHome = $primarySite.Home -}}{{- end -}}
+{{- $siteMeta := partial "site-meta.html" $metaHome -}}
+{{- $siteDescription := trim (printf "%v" (index $siteMeta "description" | default "")) " \r\n\t" -}}
+# {{ $primarySite.Title }}{{ if not $isGlobal }} - {{ $currentSite.Language.LanguageName | default $currentSite.Language.Lang }}{{ end }}
+{{- with $siteDescription }}
+
+> {{ . }}
+{{- end }}
+
+Canonical site: {{ $primarySite.BaseURL }}
+{{- if not $isGlobal }}
+Canonical language home: {{ $currentSite.Home.Permalink }}
+{{- if $isMultilingual }}
+{{- with $primarySite.Home.OutputFormats.Get "LLMS" }}
+Global agent index: {{ .Permalink }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $isGlobal }}
+Sitemap: {{ absURL "sitemap.xml" }}
+{{- else if $isMultilingual }}
+Sitemap: {{ absURL (printf "%s/sitemap.xml" $currentSite.Language.Lang) }}
+{{- else }}
+Sitemap: {{ absURL "sitemap.xml" }}
+{{- end }}
+
+## Agent Notes
+
+- Canonical human-facing pages are HTML.
+{{- if $isGlobal }}
+- This global file is a compact directory of language-specific agent indexes.
+- Language-specific indexes list pages that opt in with the AGENT_MARKDOWN output format.
+{{- else }}
+- Agent Markdown mirrors are generated from the same Hugo Markdown source and linked below when available.
+- Pages listed here opt in with the AGENT_MARKDOWN output format.
+- This language file lists {{ $currentSite.Language.LanguageName | default $currentSite.Language.Lang }} entry points and key content.
+{{- end }}
+
+{{ if $isGlobal }}
+## Languages
+{{ range $site := sort $page.Sites "Language.Weight" }}
+{{- $llmsURL := "" -}}
+{{- with $site.Home.OutputFormats.Get "LLMS_LANG" -}}
+  {{- $llmsURL = .Permalink -}}
+{{- else -}}
+  {{- with $site.Home.OutputFormats.Get "LLMS" -}}{{- $llmsURL = .Permalink -}}{{- end -}}
+{{- end }}
+- {{ $site.Language.LanguageName | default $site.Language.Lang }}: [Home]({{ $site.Home.Permalink }}){{ with $llmsURL }}, [Agent index]({{ . }}){{ end }}
+{{- end }}
+{{- else }}
+## Language
+
+- {{ $currentSite.Language.LanguageName | default $currentSite.Language.Lang }}: [Home]({{ $currentSite.Home.Permalink }})
+{{- end }}
+
+{{- if not $isGlobal }}
+
+## Site Entry Points
+{{ range $site := $scopeSites }}
+{{- $homeDescription := "" -}}
+{{- $homeMeta := partial "site-meta.html" $site.Home -}}
+{{- with index $homeMeta "description" -}}{{- $homeDescription = trim (printf "%v" .) " \r\n\t" -}}{{- end -}}
+{{- $homeLabel := printf "%s Home" ($site.Language.LanguageName | default $site.Language.Lang) }}
+- [{{ $homeLabel }}]({{ $site.Home.Permalink }}){{ with $homeDescription }}: {{ . }}{{ end }}
+{{- with $site.GetPage "/about" }}
+{{- if partial "agent-access/page-index-enabled.html" . }}
+{{- $aboutDescription := trim (printf "%v" (.Params.description | default "")) " \r\n\t" -}}
+{{- $aboutURL := .Permalink -}}
+{{- with .OutputFormats.Get "AGENT_MARKDOWN" -}}{{- $aboutURL = .Permalink -}}{{- end }}
+- [{{ .Title }}]({{ $aboutURL }}){{ with $aboutDescription }}: {{ . }}{{ end }} HTML: {{ .Permalink }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $contentPages := slice -}}
+{{- $seenContentPages := dict -}}
+{{- $seedSites := sort $page.Sites "Language.Weight" -}}
+{{- range $site := $seedSites -}}
+{{- range where $site.Pages "Kind" "page" -}}
+  {{- $entryPage := . -}}
+  {{- range .AllTranslations -}}
+    {{- if eq .Language.Lang $currentSite.Language.Lang -}}
+      {{- $entryPage = . -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if and (eq $entryPage.Language.Lang $currentSite.Language.Lang) (partial "agent-access/page-index-enabled.html" $entryPage) -}}
+    {{- $entryKey := $entryPage.Permalink -}}
+    {{- if not (index $seenContentPages $entryKey) -}}
+      {{- $contentPages = $contentPages | append $entryPage -}}
+      {{- $seenContentPages = merge $seenContentPages (dict $entryKey true) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if gt (len $contentPages) 0 }}
+
+## Key Content Pages
+{{ range sort $contentPages "Lastmod" "desc" }}
+{{- $entryPage := . -}}
+{{- $description := trim (printf "%v" (.Params.description | default "")) " \r\n\t" -}}
+{{- $markdownURL := "" -}}
+{{- with .OutputFormats.Get "AGENT_MARKDOWN" -}}{{- $markdownURL = .Permalink -}}{{- end -}}
+{{- $targetURL := cond (ne $markdownURL "") $markdownURL .Permalink -}}
+{{- $updated := .Lastmod -}}
+{{- if le $updated.Unix 0 -}}{{- $updated = .Date -}}{{- end }}
+- [{{ .Title }}]({{ $targetURL }}){{ with $description }}: {{ . }}{{ end }} HTML: {{ $entryPage.Permalink }}{{ if gt $updated.Unix 0 }} Updated: {{ $updated.Format "2006-01-02" }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}

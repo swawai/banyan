@@ -198,6 +198,10 @@ function extractCanonicalOrigin(llmsText) {
     }
 }
 
+function hasPerPageMirrorList(llmsText) {
+    return /^\s*Mirrors:/m.test(llmsText);
+}
+
 function resolvePublicPathFromHref(href, { canonicalOrigin, currentRelativePath = '' }) {
     const trimmed = decodeHtmlAttribute(`${href ?? ''}`.trim());
     if (isIgnoredHref(trimmed)) {
@@ -386,7 +390,8 @@ async function inspectLlms(publicRoot, issues) {
             hasLlms: false,
             canonicalOrigin: '',
             localLinkCount: 0,
-            markdownLinks: new Set()
+            markdownLinks: new Set(),
+            text: ''
         };
     }
 
@@ -397,8 +402,11 @@ async function inspectLlms(publicRoot, issues) {
     if (!/^## Agent Notes\b/m.test(llmsText)) {
         issues.push('llms.txt is missing the Agent Notes section.');
     }
-    if (!/^## Key Content Pages\b/m.test(llmsText)) {
-        issues.push('llms.txt is missing the Key Content Pages section.');
+    if (hasPerPageMirrorList(llmsText)) {
+        issues.push('llms.txt should not contain per-page Mirrors entries; use language indexes and sitemap hreflang for alternate-language discovery.');
+    }
+    if (!/^## Languages?\b/m.test(llmsText) && !/^## Key Content Pages\b/m.test(llmsText)) {
+        issues.push('llms.txt is missing a Languages or Key Content Pages section.');
     }
 
     const localLinks = new Set();
@@ -433,13 +441,104 @@ async function inspectLlms(publicRoot, issues) {
         }
     }
 
-    if (markdownLinks.size === 0) {
-        issues.push('llms.txt does not link to any Markdown mirrors.');
-    }
-
     return {
         hasLlms: true,
         canonicalOrigin,
+        localLinkCount: localLinks.size,
+        markdownLinks,
+        text: llmsText
+    };
+}
+
+async function inspectLanguageLlms(publicRoot, rootLlms, issues) {
+    const llmsPaths = await collectFiles(
+        publicRoot,
+        (_absolutePath, name) => name.toLowerCase() === 'llms.txt'
+    );
+    const languageLlmsFiles = [];
+    const markdownLinks = new Set();
+    const localLinks = new Set();
+    const rootText = `${rootLlms.text ?? ''}`.trim();
+    const canonicalOrigin = rootLlms.canonicalOrigin;
+
+    for (const llmsPath of llmsPaths) {
+        const relativePath = toPublicRelativePath(publicRoot, llmsPath);
+        if (relativePath === 'llms.txt') {
+            continue;
+        }
+
+        languageLlmsFiles.push(relativePath);
+        const llmsText = await fs.readFile(llmsPath, 'utf8');
+        const trimmedText = llmsText.trim();
+        if (rootText && trimmedText === rootText) {
+            issues.push(`Language llms.txt duplicates the root llms.txt exactly: ${relativePath}`);
+        }
+
+        const fileCanonicalOrigin = extractCanonicalOrigin(llmsText);
+        if (!fileCanonicalOrigin) {
+            issues.push(`${relativePath} is missing a parseable Canonical site URL.`);
+        } else if (canonicalOrigin && fileCanonicalOrigin !== canonicalOrigin) {
+            issues.push(`${relativePath} Canonical site origin differs from root llms.txt: ${fileCanonicalOrigin}`);
+        }
+        if (!/^## Agent Notes\b/m.test(llmsText)) {
+            issues.push(`${relativePath} is missing the Agent Notes section.`);
+        }
+        if (hasPerPageMirrorList(llmsText)) {
+            issues.push(`${relativePath} should not contain per-page Mirrors entries; use language indexes and sitemap hreflang for alternate-language discovery.`);
+        }
+        if (!/^## Site Entry Points\b/m.test(llmsText)) {
+            issues.push(`${relativePath} is missing the Site Entry Points section.`);
+        }
+        if (!/^## Key Content Pages\b/m.test(llmsText)) {
+            issues.push(`${relativePath} is missing the Key Content Pages section.`);
+        }
+
+        const fileMarkdownLinks = new Set();
+        for (const link of extractMarkdownLinks(llmsText)) {
+            const resolved = resolvePublicPathFromHref(link.target, {
+                canonicalOrigin,
+                currentRelativePath: relativePath
+            });
+            if (resolved.kind === 'ignored' || resolved.kind === 'external') {
+                continue;
+            }
+            if (resolved.kind === 'invalid') {
+                issues.push(`${relativePath} contains an invalid link target: ${link.target}`);
+                continue;
+            }
+
+            localLinks.add(resolved.relativePath);
+            if (!await fileExists(path.join(publicRoot, resolved.relativePath))) {
+                issues.push(`${relativePath} points to a missing local file: ${link.target} -> ${resolved.relativePath}`);
+            }
+            if (resolved.relativePath.endsWith('.md')) {
+                markdownLinks.add(resolved.relativePath);
+                fileMarkdownLinks.add(resolved.relativePath);
+            }
+        }
+
+        const sitemapMatch = llmsText.match(/^Sitemap:\s*(\S+)/mi);
+        if (!sitemapMatch) {
+            issues.push(`${relativePath} is missing a Sitemap line.`);
+        } else {
+            const resolved = resolvePublicPathFromHref(sitemapMatch[1], {
+                canonicalOrigin,
+                currentRelativePath: relativePath
+            });
+            if (resolved.kind === 'local' && !await fileExists(path.join(publicRoot, resolved.relativePath))) {
+                issues.push(`${relativePath} Sitemap points to a missing local file: ${resolved.relativePath}`);
+            }
+        }
+
+        if (fileMarkdownLinks.size === 0) {
+            issues.push(`${relativePath} does not link to any Markdown mirrors.`);
+        }
+    }
+
+    return {
+        fileCount: llmsPaths.length,
+        languageFileCount: languageLlmsFiles.length,
+        languageLlmsFiles: languageLlmsFiles.sort(),
         localLinkCount: localLinks.size,
         markdownLinks
     };
@@ -554,6 +653,7 @@ async function main() {
     const sourceOutputs = await inspectSourceOutputSettings(issues);
     const robots = await inspectRobots(publicRoot, issues);
     const llms = await inspectLlms(publicRoot, issues);
+    const languageLlms = await inspectLanguageLlms(publicRoot, llms, issues);
     const htmlAlternates = await inspectHtmlAlternates(publicRoot, llms.canonicalOrigin, issues);
     const markdownPaths = await collectFiles(
         publicRoot,
@@ -562,12 +662,19 @@ async function main() {
     const allMarkdownMirrors = markdownPaths
         .map((markdownPath) => toPublicRelativePath(publicRoot, markdownPath))
         .sort();
-    const advertisedMarkdownPaths = new Set([
+    const llmsMarkdownLinks = new Set([
         ...llms.markdownLinks,
+        ...languageLlms.markdownLinks
+    ]);
+    if (llmsMarkdownLinks.size === 0) {
+        issues.push('No llms.txt file links to any Markdown mirrors.');
+    }
+    const advertisedMarkdownPaths = new Set([
+        ...llmsMarkdownLinks,
         ...htmlAlternates.alternatesByMarkdownPath.keys()
     ]);
 
-    for (const markdownPath of llms.markdownLinks) {
+    for (const markdownPath of llmsMarkdownLinks) {
         const htmlPath = markdownPathToHtmlPath(markdownPath);
         if (!htmlPath) {
             issues.push(`llms.txt Markdown mirror does not use the expected index.md shape: ${markdownPath}`);
@@ -580,8 +687,8 @@ async function main() {
     }
 
     for (const [markdownPath, exposingHtmlPaths] of htmlAlternates.alternatesByMarkdownPath) {
-        if (!llms.markdownLinks.has(markdownPath)) {
-            issues.push(`HTML page advertises a Markdown mirror that is not listed in llms.txt: ${exposingHtmlPaths[0]} -> ${markdownPath}`);
+        if (!llmsMarkdownLinks.has(markdownPath)) {
+            issues.push(`HTML page advertises a Markdown mirror that is not listed in any llms.txt file: ${exposingHtmlPaths[0]} -> ${markdownPath}`);
         }
     }
 
@@ -600,9 +707,15 @@ async function main() {
     console.log(`AGENT_MARKDOWN opt-ins\t${sourceOutputs.agentMarkdownOptIns}`);
     console.log(`MARKDOWN-only opt-ins\t${sourceOutputs.markdownOnlyOptIns}`);
     console.log(`llms.txt\t${llms.hasLlms ? 'yes' : 'no'}`);
+    console.log(`llms.txt files\t${languageLlms.fileCount}`);
+    console.log(`language llms.txt files\t${languageLlms.languageFileCount}`);
+    if (languageLlms.languageLlmsFiles.length > 0) {
+        console.log(`language llms.txt paths\t${languageLlms.languageLlmsFiles.join(', ')}`);
+    }
     console.log(`Canonical origin\t${llms.canonicalOrigin || '<missing>'}`);
     console.log(`llms local links\t${llms.localLinkCount}`);
     console.log(`llms Markdown links\t${llms.markdownLinks.size}`);
+    console.log(`all llms Markdown links\t${llmsMarkdownLinks.size}`);
     console.log(`HTML files\t${htmlAlternates.htmlCount}`);
     console.log(`Markdown mirrors\t${allMarkdownMirrors.length}`);
     console.log(`Advertised Markdown mirrors\t${advertisedMarkdownPaths.size}`);
