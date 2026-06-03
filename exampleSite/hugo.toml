@@ -56,7 +56,7 @@ disableXML = true
 
 [outputs]
 section  = ["HTML","RSS"]
-home     = ["HTML","RSS"]
+home     = ["HTML","RSS","LLMS"]
 taxonomy = ["HTML","RSS"]
 term     = ["HTML","RSS"]
 
@@ -64,11 +64,6 @@ term     = ["HTML","RSS"]
 [languages.en]
 languageName = "English"
 weight = 1
-[languages.en.outputs]
-section  = ["HTML","RSS"]
-home     = ["HTML","RSS"]
-taxonomy = ["HTML","RSS"]
-term     = ["HTML","RSS"]
 [languages.en.params]
 locale = "en_US"
 

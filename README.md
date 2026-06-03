@@ -12,7 +12,10 @@ git clone https://github.com/swawai/banyan.git themes/banyan
 
 ## Setup (Crucial Step)
 
-Due to Hugo's configuration merging rules, structural configurations like `[outputs]`, `[outputFormats]`, and `[taxonomies]` **must** be defined in your site's root configuration file. They will not be inherited from the theme.
+Due to Hugo's configuration merging rules, structural configurations like
+`[outputs]`, `[taxonomies]`, and `[permalinks]` **must** be defined in your
+site's root configuration file. Banyan provides its custom `[outputFormats]`,
+but the root site still needs `[outputs]` entries to enable them.
 
 Use `exampleSite/hugo.toml` as the starter shape for a real site root:
 
@@ -69,6 +72,11 @@ Banyan can publish per-page Markdown mirrors for pages that opt in through the
 adds `X-Robots-Tag: noindex` and `Content-Type: text/markdown; charset=utf-8`
 to `/*.md`, keeping Markdown mirrors fetchable for agents while leaving search
 result landing pages on canonical HTML documents.
+
+In multilingual sites where the default language lives at the root,
+`/llms.txt` is the global agent index. During that render, Banyan also publishes
+the default-language sidecar at `/<default-language>/llms.txt`, matching the
+shape Hugo uses for multilingual sitemaps.
 
 Use `AGENT_MARKDOWN` for substantive pages that should be discoverable from
 `llms.txt`: durable articles, product documentation, and site identity pages

@@ -3,10 +3,10 @@
 # Theme Default Configuration
 # -------------------------------------------------------------------
 # This file provides the baseline properties for the Banyan theme.
-# Note: Structural configurations like [outputs], [outputFormats], 
-# [taxonomies], and [permalinks] are INTENTIONALLY OMITTED here 
-# because Hugo does not inherit them from theme configurations. 
-# Users MUST define those in their root hugo.toml.
+# Note: Structural configurations like [outputs], [taxonomies], and
+# [permalinks] are intentionally omitted here. Sites must define them in their
+# root hugo.toml. Output format definitions are inherited from theme config, but
+# sites still need root [outputs] entries to enable those formats.
 
 baseURL = "http://localhost:1313/"
 languageCode = "en-us"
@@ -40,6 +40,46 @@ languageName = "繁體"
 weight = 3
 [languages.zh-tw.params]
 locale = "zh_TW"
+
+[outputFormats]
+[outputFormats.LLMS]
+mediaType = "text/plain"
+baseName = "llms"
+isPlainText = true
+notAlternative = true
+
+# When a page opts into a Markdown mirror, keep HTML first in front matter:
+# outputs = ["HTML","AGENT_MARKDOWN"] or ["HTML","MARKDOWN"].
+# Hugo uses output order for the primary output; Markdown first can break
+# taxonomy/list entry links by making index.md the page's primary URL.
+[outputFormats.MARKDOWN]
+mediaType = "text/markdown"
+baseName = "index"
+weight = 20
+isPlainText = true
+notAlternative = true
+
+[outputFormats.AGENT_MARKDOWN]
+mediaType = "text/markdown"
+baseName = "index"
+weight = 21
+isPlainText = true
+notAlternative = true
+
+[params.agent_access]
+default_policy = "allow"
+allow_user_agents = [
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "Claude-SearchBot",
+  "Claude-User",
+  "PerplexityBot"
+]
+disallow_user_agents = [
+  "GPTBot",
+  "ClaudeBot",
+  "Google-Extended"
+]
 
 [params.web_app_manifest]
 # link  = emit <link rel="manifest"> in <head> for the most predictable PWA path

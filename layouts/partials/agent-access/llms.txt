@@ -57,8 +57,8 @@ Sitemap: {{ absURL "sitemap.xml" }}
 ## Languages
 {{ range $site := sort $page.Sites "Language.Weight" }}
 {{- $llmsURL := "" -}}
-{{- with $site.Home.OutputFormats.Get "LLMS_LANG" -}}
-  {{- $llmsURL = .Permalink -}}
+{{- if and (eq $site.Language.Lang $primarySite.Language.Lang) (eq $site.Home.Permalink $primarySite.BaseURL) -}}
+  {{- $llmsURL = absURL (printf "%s/llms.txt" $site.Language.Lang) -}}
 {{- else -}}
   {{- with $site.Home.OutputFormats.Get "LLMS" -}}{{- $llmsURL = .Permalink -}}{{- end -}}
 {{- end }}
