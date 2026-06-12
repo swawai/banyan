@@ -33,6 +33,22 @@ Acceptance:
 - The release work does not depend on `themes/banyan/exampleSite` content until
   the example site is intentionally rebuilt.
 
+Current baseline recorded on 2026-06-11:
+
+- Root build: `temp_workspace/public/2606111022-release-audit`.
+- `check-public-html.mjs temp_workspace/public/2606111022-release-audit --check`
+  passed against 96 HTML files.
+- `check-agent-readiness.mjs temp_workspace/public/2606111022-release-audit --check`
+  passed with 21 advertised Markdown mirrors.
+- `report-assets.mjs temp_workspace/public/2606111022-release-audit` reported
+  304 files and 9.20 MiB of output.
+- `npm run check:browser:latest-temp` passed 10/10 browser scenarios.
+- `npm run check:browser:speculation:latest-temp` passed 3/3 speculation
+  scenarios. The current root build has the Speculation-Rules header path
+  disabled, so this verifies the disabled-state contract.
+- Dirty worktree note before release edits: `_ex_repo/` was the only
+  untracked path. The release audit did not depend on `exampleSite` content.
+
 ## Phase 1: Resource Classification
 
 Purpose: decide whether each root resource should be moved, templated, kept as a
@@ -66,10 +82,30 @@ Theme-side candidates:
 
 Delete candidates for a later cleanup:
 
-- Root demo/test content such as `content/d/test.*`,
-  `content/d/products/test.md`, and experimental taxonomy demo bundles. These
-  should live in `exampleSite` or a dedicated fixture, not in the production
-  root site.
+- Root demo/test content such as `content/d/test/index.md` and experimental
+  taxonomy demo bundles. These should live in `exampleSite` or a dedicated
+  fixture, not in the production root site.
+- `content/d/products/test.md` and `content/d/products/test/index.md` are not
+  present in the current root site as of 2026-06-11.
+
+Current root-site classification snapshot on 2026-06-11:
+
+- Keep as site-owned identity/content: root `hugo.toml`, root `package.json`,
+  `content/_index.*.md`, `content/about/index.*.md`, `content/wechat/`,
+  `content/d/products/`, `content/d/wsl/`, `content/d/ai-era-human-existence/`,
+  `content/d/ssh-reverse-port-forward-proxy/`,
+  `content/d/win-run-custom-command-path/`, and the site fragment overrides
+  under `content/fragments/`.
+- Keep as site-owned brand/deployment assets: `assets/site/brand/`,
+  `assets/site/pwa/`, `static/favicon.*`, and root deployment scripts such as
+  `dev.cmd`, `dev.sh`, `prepare-external.cmd`, and `scripts/build.mjs`.
+- Keep generated deployment output out of manual edits: root `edgeone.json`
+  remains a rendered artifact; its source of truth is the cache policy data.
+- Cleanup completed for `content/d/test/index.md`: the page contained mixed
+  Xvenv draft text, placeholder copy, and Markdown/Doocs sample content, so it
+  was removed from root production content on 2026-06-11.
+- Root-site content readiness is tracked in `docs/site-content-inventory.md`.
+  Keep detailed editorial status there instead of in theme-owned docs.
 
 Acceptance:
 
