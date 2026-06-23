@@ -24,7 +24,7 @@ function loadYamlParser() {
         }
         return yaml.parse;
     } catch (error) {
-        fail(`Cannot load dependency "yaml" from the current site. Run npm install in ${siteRoot}.`);
+        fail(`Cannot load dependency "yaml" from the current site. Run bun install in ${siteRoot}.`);
     }
 }
 

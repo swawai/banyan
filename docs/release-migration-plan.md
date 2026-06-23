@@ -42,8 +42,8 @@ Current baseline recorded on 2026-06-11:
   passed with 21 advertised Markdown mirrors.
 - `report-assets.mjs temp_workspace/public/2606111022-release-audit` reported
   304 files and 9.20 MiB of output.
-- `npm run check:browser:latest-temp` passed 10/10 browser scenarios.
-- `npm run check:browser:speculation:latest-temp` passed 3/3 speculation
+- `bun run check:browser:latest-temp` passed 10/10 browser scenarios.
+- `bun run check:browser:speculation:latest-temp` passed 3/3 speculation
   scenarios. The current root build has the Speculation-Rules header path
   disabled, so this verifies the disabled-state contract.
 - Dirty worktree note before release edits: `_ex_repo/` was the only

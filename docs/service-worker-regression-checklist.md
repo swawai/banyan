@@ -83,8 +83,8 @@
 例子：
 
 ```powershell
-.\node_modules\.bin\hugo.cmd --gc --minify --destination temp_workspace/public/<build-a>
-.\node_modules\.bin\hugo.cmd --gc --minify --destination temp_workspace/public/<build-b>
+bunx hugo --gc --minify --destination temp_workspace/public/<build-a>
+bunx hugo --gc --minify --destination temp_workspace/public/<build-b>
 ```
 
 如果要做真实升级链，应该让浏览器先跑 `build-a`，再切换到 `build-b`。

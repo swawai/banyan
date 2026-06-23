@@ -24,8 +24,8 @@
 命令：
 
 ```powershell
-npm run build:browser:temp
-npm run check:browser:latest-temp
+bun run build:browser:temp
+bun run check:browser:latest-temp
 ```
 
 ## 2. `prefetch` / `Speculation-Rules` / CSP 改动
@@ -42,8 +42,8 @@ npm run check:browser:latest-temp
 命令：
 
 ```powershell
-npm run build:browser:temp
-npm run check:browser:speculation:latest-temp
+bun run build:browser:temp
+bun run check:browser:speculation:latest-temp
 ```
 
 ## 3. SW 升级链路改动
@@ -59,10 +59,10 @@ npm run check:browser:speculation:latest-temp
 命令：
 
 ```powershell
-npm run build:browser:temp -- sw-upgrade-before
+bun run build:browser:temp -- sw-upgrade-before
 # 做改动
-npm run build:browser:temp -- sw-upgrade-after
-npm run check:browser:upgrade
+bun run build:browser:temp -- sw-upgrade-after
+bun run check:browser:upgrade
 ```
 
 最关键的判断：
@@ -80,20 +80,20 @@ npm run check:browser:upgrade
 命令：
 
 ```powershell
-npm run build
-npm run check:browser:public
+bun run build
+bun run check:browser:public
 ```
 
 如果改的是 `Speculation-Rules` / CSP，也可以接：
 
 ```powershell
-npm run check:browser:speculation:public
+bun run check:browser:speculation:public
 ```
 
 部署到线上后，再跑真实响应头验收：
 
 ```powershell
-npm run check:security:headers
+bun run check:security:headers
 ```
 
 这条命令默认检查 `https://swaw.com/`，并确认首页安全头和 `/sw.js` 缓存策略真实生效。

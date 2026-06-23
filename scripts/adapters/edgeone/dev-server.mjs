@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
@@ -9,18 +8,13 @@ import { createHugoEnv } from '../../build/hugo-env.mjs';
 // EdgeOne adapter: runs Hugo behind a local proxy for development.
 // The production edgeone.json is synced only by the full build pipeline.
 const siteRoot = path.resolve(process.cwd());
-const localHugoBin = path.join(
-    siteRoot,
-    'node_modules',
-    '.bin',
-    process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
-);
-const hugoCommand = existsSync(localHugoBin) ? localHugoBin : 'hugo';
 const cliArgs = process.argv.slice(2);
-const backendHost = '127.0.0.1';
 const proxyOptions = readProxyOptions(cliArgs, process.env);
 const publicBind = proxyOptions.bind || '127.0.0.1';
 const publicPort = normalizePort(proxyOptions.port);
+const backendHost = publicBind === '0.0.0.0' || publicBind === '::'
+    ? '127.0.0.1'
+    : publicBind;
 
 function consumeOptionValue(args, names) {
     const remaining = [];
@@ -281,27 +275,6 @@ function requestBackendPage(backendPort, method, requestUrl, headers) {
     });
 }
 
-function serializeUpgradeHeaders(headers) {
-    const lines = [];
-
-    for (const [name, value] of Object.entries(headers)) {
-        if (value === undefined) {
-            continue;
-        }
-
-        if (Array.isArray(value)) {
-            for (const entry of value) {
-                lines.push(`${name}: ${entry}`);
-            }
-            continue;
-        }
-
-        lines.push(`${name}: ${value}`);
-    }
-
-    return lines.join('\r\n');
-}
-
 function formatPublicUrl(host, port) {
     const displayHost = host === '0.0.0.0' ? '127.0.0.1' : host;
     if (displayHost.includes(':') && !displayHost.startsWith('[')) {
@@ -326,14 +299,14 @@ async function main() {
         '--baseURL',
         publicBaseUrl,
         '--liveReloadPort',
-        String(publicPort),
+        String(backendPort),
         '--appendPort=false'
     ];
 
-    const child = spawn(hugoCommand, hugoArgs, {
+    const child = spawn(process.execPath, ['x', 'hugo', ...hugoArgs], {
         cwd: siteRoot,
         env: createHugoEnv({ cwd: siteRoot }),
-        shell: process.platform === 'win32',
+        shell: false,
         stdio: 'inherit'
     });
 
@@ -414,29 +387,6 @@ async function main() {
         request.pipe(proxyRequest);
     });
 
-    proxyServer.on('upgrade', (request, socket, head) => {
-        const backendSocket = net.connect(backendPort, backendHost, () => {
-            const requestLine = `${request.method} ${request.url} HTTP/${request.httpVersion}`;
-            const headerBlock = serializeUpgradeHeaders({
-                ...request.headers,
-                host: request.headers.host ?? `${backendHost}:${backendPort}`
-            });
-            backendSocket.write(`${requestLine}\r\n${headerBlock}\r\n\r\n`);
-            if (head.length > 0) {
-                backendSocket.write(head);
-            }
-            socket.pipe(backendSocket).pipe(socket);
-        });
-
-        const closeSockets = () => {
-            socket.destroy();
-            backendSocket.destroy();
-        };
-
-        backendSocket.on('error', closeSockets);
-        socket.on('error', closeSockets);
-    });
-
     await new Promise((resolve, reject) => {
         proxyServer.once('error', reject);
         proxyServer.listen(publicPort, publicBind, resolve);
@@ -445,7 +395,7 @@ async function main() {
     console.log(
         `[dev-proxy] Public ${formatPublicUrl(publicBind, publicPort)} -> Hugo http://${backendHost}:${backendPort}/`
     );
-    console.log('[edgeone-sync] Disabled in dev server; run npm run build to refresh edgeone.json.');
+    console.log('[edgeone-sync] Disabled in dev server; run bun run build to refresh edgeone.json.');
 
     const shutdown = (signal) => {
         proxyServer.close(() => {

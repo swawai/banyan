@@ -16,12 +16,12 @@ const expectedRobotsAgentHints = [
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/checks/check-agent-readiness.mjs [publicDir] [--check]
+  bun themes/banyan/scripts/checks/check-agent-readiness.mjs [publicDir] [--check]
 
 Examples:
-  npm run check:agent
-  npm run check:agent:prod
-  node themes/banyan/scripts/checks/check-agent-readiness.mjs temp_workspace/public/260603-agent-readiness --check
+  bun run check:agent
+  bun run check:agent:prod
+  bun themes/banyan/scripts/checks/check-agent-readiness.mjs temp_workspace/public/260603-agent-readiness --check
 
 Notes:
   - Default mode prints a report and does not fail on readiness issues.

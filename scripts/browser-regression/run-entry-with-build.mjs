@@ -1,7 +1,7 @@
 import { explicitPrimaryBuildEnv, relFromSite, resolveLatestTempBuild } from './paths.mjs';
 
 function failUsage(message) {
-    throw new Error(`${message}\nUsage: node run-entry-with-build.mjs <public|latest-temp> <entry-module>`);
+    throw new Error(`${message}\nUsage: bun run-entry-with-build.mjs <public|latest-temp> <entry-module>`);
 }
 
 const [selectionRaw, entryModule] = process.argv.slice(2);

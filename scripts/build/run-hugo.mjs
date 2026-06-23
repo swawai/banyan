@@ -1,20 +1,13 @@
 import { spawn } from 'node:child_process';
-import path from 'node:path';
 
 import { createHugoEnv } from './hugo-env.mjs';
 
 const siteRoot = process.cwd();
-const hugoBin = path.join(
-    siteRoot,
-    'node_modules',
-    '.bin',
-    process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
-);
 
-const child = spawn(hugoBin, process.argv.slice(2), {
+const child = spawn(process.execPath, ['x', 'hugo', ...process.argv.slice(2)], {
     cwd: siteRoot,
     env: createHugoEnv({ cwd: siteRoot }),
-    shell: process.platform === 'win32',
+    shell: false,
     stdio: 'inherit'
 });
 

@@ -8,13 +8,6 @@ import { createHugoEnv } from '../build/hugo-env.mjs';
 const siteRoot = path.resolve(process.cwd());
 const themeRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const tempPublicRoot = path.join(siteRoot, 'temp_workspace', 'public');
-const localHugoBin = path.join(
-    siteRoot,
-    'node_modules',
-    '.bin',
-    process.platform === 'win32' ? 'hugo.cmd' : 'hugo'
-);
-const hugoCommand = fs.existsSync(localHugoBin) ? localHugoBin : 'hugo';
 const patchCspScript = path.join(themeRoot, 'scripts', 'build', 'patch-csp.mjs');
 const emitSpeculationHeadersScript = path.join(themeRoot, 'scripts', 'build', 'emit-speculation-rules-headers.mjs');
 
@@ -43,16 +36,16 @@ function parseCli(argv) {
 
 function printHelp() {
     console.log(`Usage:
-  node themes/banyan/scripts/dev/build-browser-temp.mjs [note]
+  bun themes/banyan/scripts/dev/build-browser-temp.mjs [note]
 
 Examples:
-  npm run build:browser:temp
-  node themes/banyan/scripts/dev/build-browser-temp.mjs prefetch-debug
+  bun run build:browser:temp
+  bun themes/banyan/scripts/dev/build-browser-temp.mjs prefetch-debug
 
 Notes:
   - Builds a minified Hugo output into temp_workspace/public/<timestamp>-<note>
   - Then patches CSP headers and Speculation-Rules headers in that temp build
-  - Intended to pair with npm run check:browser:latest-temp or check:browser:speculation:latest-temp
+  - Intended to pair with bun run check:browser:latest-temp or check:browser:speculation:latest-temp
 `);
 }
 
@@ -123,11 +116,11 @@ if (options.help) {
 const destinationDir = buildDestination(options.note);
 const destinationRel = relFromSite(destinationDir);
 runProcess(
-    hugoCommand,
-    ['--gc', '--cleanDestinationDir', '--minify', '--destination', destinationRel],
+    process.execPath,
+    ['x', 'hugo', '--gc', '--cleanDestinationDir', '--minify', '--destination', destinationRel],
     {
         env: createHugoEnv({ cwd: siteRoot }),
-        shell: process.platform === 'win32'
+        shell: false
     }
 );
 runProcess(process.execPath, [patchCspScript, destinationRel]);
@@ -136,5 +129,5 @@ runProcess(process.execPath, [emitSpeculationHeadersScript, destinationRel]);
 console.log('');
 console.log(`Temp browser-regression build ready: ${destinationRel}`);
 console.log('Recommended next steps:');
-console.log('  npm run check:browser:latest-temp');
-console.log('  npm run check:browser:speculation:latest-temp');
+console.log('  bun run check:browser:latest-temp');
+console.log('  bun run check:browser:speculation:latest-temp');

@@ -18,22 +18,22 @@
 如果你现在脑子里只想问一句“我到底该跑哪组命令”，先看：
 
 - [`browser-workflows.md`](browser-workflows.md)
-- 或直接运行：`npm run help:browser`
+- 或直接运行：`bun run help:browser`
 
 当前固定入口：
 
-- `npm run build:browser:temp`
-- `npm run check:browser`
-- `npm run check:browser:public`
-- `npm run check:browser:latest-temp`
-- `npm run check:browser:upgrade`
-- `npm run check:browser:security`
-- `npm run check:browser:speculation`
-- `npm run check:browser:speculation:public`
-- `npm run check:browser:speculation:latest-temp`
-- `npm run check:browser:headed`
-- `npm run check:browser:trace`
-- `npm run check:browser:install`
+- `bun run build:browser:temp`
+- `bun run check:browser`
+- `bun run check:browser:public`
+- `bun run check:browser:latest-temp`
+- `bun run check:browser:upgrade`
+- `bun run check:browser:security`
+- `bun run check:browser:speculation`
+- `bun run check:browser:speculation:public`
+- `bun run check:browser:speculation:latest-temp`
+- `bun run check:browser:headed`
+- `bun run check:browser:trace`
+- `bun run check:browser:install`
 
 ## 设计原则
 
@@ -148,21 +148,21 @@ upgrade 场景会：
 1. 日常 temp 回归链
 
 ```powershell
-npm run build:browser:temp
-npm run check:browser:latest-temp
+bun run build:browser:temp
+bun run check:browser:latest-temp
 ```
 
 如果刚改的是 `prefetch` / `Speculation-Rules` / CSP 相关链路，就把第二步换成：
 
 ```powershell
-npm run check:browser:speculation:latest-temp
+bun run check:browser:speculation:latest-temp
 ```
 
 2. 生产候选检查链
 
 ```powershell
-npm run build
-npm run check:browser:public
+bun run build
+bun run check:browser:public
 ```
 
 3. SW upgrade 链
@@ -170,10 +170,10 @@ npm run check:browser:public
 在“改动前”和“改动后”各生成一份 temp build，然后只跑 upgrade 套件：
 
 ```powershell
-npm run build:browser:temp -- sw-upgrade-before
+bun run build:browser:temp -- sw-upgrade-before
 # 做出你的 SW / fragment / update-flow 改动
-npm run build:browser:temp -- sw-upgrade-after
-npm run check:browser:upgrade
+bun run build:browser:temp -- sw-upgrade-after
+bun run check:browser:upgrade
 ```
 
 这里刻意不做“一键生成 before/after 两份 build”的脚本。  
@@ -195,7 +195,7 @@ npm run check:browser:upgrade
 - `temp_workspace/public/` 下各个带 `index.html` 的构建目录
 
 也就是说，它不再“无脑优先 temp build”。  
-如果你刚跑完 `npm run build`，而旧 temp build 反而更早，那么 single-build 场景会优先吃更新的 root `public/`。
+如果你刚跑完 `bun run build`，而旧 temp build 反而更早，那么 single-build 场景会优先吃更新的 root `public/`。
 
 如果你想显式指定 single-build 测试目录，可设置环境变量：
 
@@ -203,7 +203,7 @@ PowerShell:
 
 ```powershell
 $env:BANYAN_BROWSER_BUILD_DIR = 'public'
-npm run check:browser:speculation
+bun run check:browser:speculation
 Remove-Item Env:BANYAN_BROWSER_BUILD_DIR
 ```
 
@@ -211,16 +211,16 @@ Remove-Item Env:BANYAN_BROWSER_BUILD_DIR
 
 ```powershell
 $env:BANYAN_BROWSER_BUILD_DIR = 'temp_workspace/public/2605060013-prefetchdebug-regression'
-npm run check:browser:speculation
+bun run check:browser:speculation
 Remove-Item Env:BANYAN_BROWSER_BUILD_DIR
 ```
 
 如果只是这两类常见显式选择，不必手设环境变量，直接用固定入口即可：
 
-- `npm run check:browser:public`
-- `npm run check:browser:latest-temp`
-- `npm run check:browser:speculation:public`
-- `npm run check:browser:speculation:latest-temp`
+- `bun run check:browser:public`
+- `bun run check:browser:latest-temp`
+- `bun run check:browser:speculation:public`
+- `bun run check:browser:speculation:latest-temp`
 
 ### Upgrade pair
 
@@ -244,7 +244,7 @@ Remove-Item Env:BANYAN_BROWSER_BUILD_DIR
 ```powershell
 $env:BANYAN_BROWSER_UPGRADE_FROM_DIR = 'temp_workspace/public/2605052338-spec-coordination'
 $env:BANYAN_BROWSER_UPGRADE_TO_DIR = 'temp_workspace/public/2605060013-prefetchdebug-regression'
-npm run check:browser
+bun run check:browser
 Remove-Item Env:BANYAN_BROWSER_UPGRADE_FROM_DIR
 Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 ```
@@ -296,7 +296,7 @@ Remove-Item Env:BANYAN_BROWSER_UPGRADE_TO_DIR
 部署后真实响应头验收使用：
 
 ```powershell
-npm run check:security:headers
+bun run check:security:headers
 ```
 
 它不启动本地 browser regression server，而是直接请求目标站点，验证首页安全头和 `/sw.js` 缓存策略。

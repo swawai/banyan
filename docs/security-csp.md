@@ -149,26 +149,26 @@ Strict-Transport-Security: max-age=31536000
 生产构建当前主路径：
 
 ```bash
-npm run build
+bun run build
 ```
 
 它实际执行的是：
 
 1. `hugo --gc --cleanDestinationDir --minify`
-2. `npm run csp:headers`
-3. `npm run speculation-rules:headers`
-4. `npm run sync:edgeone`
+2. `bun run csp:headers`
+3. `bun run speculation-rules:headers`
+4. `bun run sync:edgeone`
 
 如果你只想对某个临时产物目录补策略头，可以直接运行：
 
 ```bash
-node themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
+bun themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
 ```
 
 如果你还想同时补全 speculation header 栈，可继续运行：
 
 ```bash
-node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
+bun themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
 ```
 
 注意：
@@ -180,13 +180,13 @@ node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspa
 部署后验收真实响应头：
 
 ```bash
-npm run check:security:headers
+bun run check:security:headers
 ```
 
 默认检查 `https://swaw.com/` 和 `/sw.js`。如果要检查其他环境，可以传入 base URL：
 
 ```bash
-node themes/banyan/scripts/checks/check-security-headers.mjs https://example.com/
+bun themes/banyan/scripts/checks/check-security-headers.mjs https://example.com/
 ```
 
 这条命令验证的是浏览器真正会收到的响应头，包括：
@@ -202,16 +202,16 @@ node themes/banyan/scripts/checks/check-security-headers.mjs https://example.com
 当前浏览器安全回归入口：
 
 ```bash
-npm run check:browser:security
+bun run check:browser:security
 ```
 
 如果你想单独验证 secondary speculation header 栈，可运行：
 
 ```bash
-npx hugo --gc --cleanDestinationDir --minify --destination temp_workspace/public/<build>
-node themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
-node themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
-npm run check:browser:speculation
+bunx hugo --gc --cleanDestinationDir --minify --destination temp_workspace/public/<build>
+bun themes/banyan/scripts/build/patch-csp.mjs temp_workspace/public/<build>
+bun themes/banyan/scripts/build/emit-speculation-rules-headers.mjs temp_workspace/public/<build>
+bun run check:browser:speculation
 ```
 
 它复用 `themes/banyan/scripts/browser-regression/` 现有 harness，并额外验证：
