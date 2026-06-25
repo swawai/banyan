@@ -326,6 +326,7 @@ function markdownPathToHtmlPath(markdownPath) {
 }
 
 function extractFrontMatter(text) {
+    text = `${text ?? ''}`.replace(/^\uFEFF/, '');
     if (text.startsWith('---\n') || text.startsWith('---\r\n')) {
         const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
         return match?.[1] ?? '';
@@ -387,43 +388,141 @@ function isExternalShareImage(value) {
     return /^https?:\/\//i.test(value);
 }
 
-async function inspectShareImageSetting({ contentPath, frontMatterData, relativePath, issues }) {
-    if (hasOwn(frontMatterData, 'images')) {
-        issues.push(`Content page uses legacy images front matter; use share_image instead: ${relativePath}`);
+async function readSiteLanguageInfo() {
+    const configText = await readUtf8IfExists(path.join(siteRoot, 'hugo.toml'));
+    const defaultLanguage = configText.match(/^\s*defaultContentLanguage\s*=\s*["']([^"']+)["']/mi)?.[1] ?? 'en';
+    const languages = new Set([defaultLanguage]);
+
+    for (const match of configText.matchAll(/^\s*\[languages\.([^\]\s]+)\]\s*$/gmi)) {
+        const language = match[1];
+        if (!language.includes('.')) {
+            languages.add(language);
+        }
     }
 
-    if (!hasOwn(frontMatterData, 'share_image')) {
-        issues.push(`Content page is missing explicit share_image front matter: ${relativePath}`);
-        return { configured: false, disabled: false };
+    return {
+        defaultLanguage,
+        languages: [...languages].sort((a, b) => b.length - a.length)
+    };
+}
+
+function parseContentIdentity(relativePath, languageInfo) {
+    const contentRelativePath = relativePath.replace(/^content\//, '');
+    const dirName = path.posix.dirname(contentRelativePath);
+    const dir = dirName === '.' ? '' : dirName;
+    const fileName = path.posix.basename(contentRelativePath);
+    let stem = fileName.replace(/\.(?:md|markdown)$/i, '');
+    let language = languageInfo.defaultLanguage;
+
+    for (const candidate of languageInfo.languages) {
+        const suffix = `.${candidate}`;
+        if (stem.toLowerCase().endsWith(suffix.toLowerCase())) {
+            language = candidate;
+            stem = stem.slice(0, -suffix.length);
+            break;
+        }
     }
 
-    const shareImage = frontMatterData.share_image;
+    return {
+        contentRelativePath,
+        dir,
+        stem,
+        language
+    };
+}
+
+function contentRecordKey(dir, stem, language) {
+    return `${dir}\u0000${stem}\u0000${language}`;
+}
+
+function parentContentDir(dir) {
+    if (!dir) {
+        return '';
+    }
+    const parent = path.posix.dirname(dir);
+    return parent === '.' ? '' : parent;
+}
+
+function buildContentRecordIndex(records) {
+    const byKey = new Map();
+    for (const record of records) {
+        byKey.set(contentRecordKey(record.identity.dir, record.identity.stem, record.identity.language), record);
+    }
+    return byKey;
+}
+
+function findSectionRecord(recordsByKey, dir, language) {
+    return recordsByKey.get(contentRecordKey(dir, '_index', language)) ?? null;
+}
+
+function resolveShareImageRecord(record, recordsByKey, languageInfo) {
+    const candidates = [record];
+    let dir = record.identity.stem === '_index'
+        ? parentContentDir(record.identity.dir)
+        : record.identity.dir;
+
+    while (dir) {
+        const sectionRecord = findSectionRecord(recordsByKey, dir, record.identity.language);
+        if (sectionRecord) {
+            candidates.push(sectionRecord);
+        }
+        dir = parentContentDir(dir);
+    }
+
+    const homeRecord = findSectionRecord(recordsByKey, '', record.identity.language)
+        ?? findSectionRecord(recordsByKey, '', languageInfo.defaultLanguage);
+    if (homeRecord) {
+        candidates.push(homeRecord);
+    }
+
+    for (const candidate of candidates) {
+        if (hasOwn(candidate.frontMatterData, 'share_image')) {
+            return candidate;
+        }
+    }
+
+    return null;
+}
+
+async function inspectShareImageSetting({ record, recordsByKey, languageInfo, issues }) {
+    if (hasOwn(record.frontMatterData, 'images')) {
+        issues.push(`Content page uses legacy images front matter; use share_image instead: ${record.relativePath}`);
+    }
+
+    const ownerRecord = resolveShareImageRecord(record, recordsByKey, languageInfo);
+    if (!ownerRecord) {
+        issues.push(`Content page cannot resolve share_image from page, section, or language home: ${record.relativePath}`);
+        return { configured: false, disabled: false, inherited: false };
+    }
+
+    const shareImage = ownerRecord.frontMatterData.share_image;
+    const inherited = ownerRecord.relativePath !== record.relativePath;
     if (shareImage === false) {
-        return { configured: false, disabled: true };
+        return { configured: false, disabled: true, inherited };
     }
     if (typeof shareImage !== 'string' || shareImage.trim() === '') {
-        issues.push(`Content page share_image must be false or a non-empty string: ${relativePath}`);
-        return { configured: false, disabled: false };
+        issues.push(`Content page share_image must be false or a non-empty string: ${ownerRecord.relativePath}`);
+        return { configured: false, disabled: false, inherited };
     }
 
     const normalized = shareImage.trim();
     if (isExternalShareImage(normalized)) {
-        return { configured: true, disabled: false };
+        return { configured: true, disabled: false, inherited };
     }
 
     const localPath = normalized.startsWith('/')
         ? path.join(siteRoot, 'static', normalized.replace(/^\/+/, ''))
-        : path.resolve(path.dirname(contentPath), normalized);
+        : path.resolve(path.dirname(ownerRecord.contentPath), normalized);
     if (!await fileExists(localPath)) {
-        issues.push(`Content page share_image points to a missing local file: ${relativePath} -> ${shareImage}`);
+        issues.push(`Content page share_image points to a missing local file: ${ownerRecord.relativePath} -> ${shareImage}`);
     } else {
         const stat = await fs.stat(localPath);
         if (stat.size > maxLocalShareImageBytes) {
-            issues.push(`Content page share_image is too large (${stat.size} bytes > ${maxLocalShareImageBytes} bytes): ${relativePath} -> ${shareImage}`);
+            issues.push(`Content page share_image is too large (${stat.size} bytes > ${maxLocalShareImageBytes} bytes): ${ownerRecord.relativePath} -> ${shareImage}`);
         }
     }
 
-    return { configured: true, disabled: false };
+    return { configured: true, disabled: false, inherited };
 }
 
 function extractMarkdownAlternates(htmlText) {
@@ -530,18 +629,22 @@ async function inspectSourceOutputSettings(issues) {
             agentMarkdownOptIns: 0,
             markdownOnlyOptIns: 0,
             shareImageConfigured: 0,
-            shareImageDisabled: 0
+            shareImageDisabled: 0,
+            shareImageInherited: 0
         };
     }
 
+    const languageInfo = await readSiteLanguageInfo();
     const contentFiles = await collectFiles(
         contentRoot,
         (_absolutePath, name) => /\.(?:md|markdown)$/i.test(name)
     );
+    const records = [];
     let agentMarkdownOptIns = 0;
     let markdownOnlyOptIns = 0;
     let shareImageConfigured = 0;
     let shareImageDisabled = 0;
+    let shareImageInherited = 0;
 
     for (const contentPath of contentFiles) {
         const relativePath = toPublicRelativePath(siteRoot, contentPath);
@@ -550,9 +653,22 @@ async function inspectSourceOutputSettings(issues) {
         const frontMatterData = parseFrontMatterData(frontMatter, relativePath, issues);
         const outputList = extractFrontMatterOutputList(frontMatter);
         const outputs = new Set(outputList);
-        const hasHtml = outputs.has('HTML');
-        const hasMarkdown = outputs.has('MARKDOWN');
-        const hasAgentMarkdown = outputs.has('AGENT_MARKDOWN');
+        records.push({
+            contentPath,
+            relativePath,
+            frontMatterData,
+            outputList,
+            outputs,
+            identity: parseContentIdentity(relativePath, languageInfo)
+        });
+    }
+
+    const recordsByKey = buildContentRecordIndex(records);
+
+    for (const record of records) {
+        const hasHtml = record.outputs.has('HTML');
+        const hasMarkdown = record.outputs.has('MARKDOWN');
+        const hasAgentMarkdown = record.outputs.has('AGENT_MARKDOWN');
 
         if (hasAgentMarkdown) {
             agentMarkdownOptIns += 1;
@@ -561,17 +677,17 @@ async function inspectSourceOutputSettings(issues) {
             markdownOnlyOptIns += 1;
         }
         if (hasMarkdown && hasAgentMarkdown) {
-            issues.push(`Content page configures both MARKDOWN and AGENT_MARKDOWN outputs: ${relativePath}`);
+            issues.push(`Content page configures both MARKDOWN and AGENT_MARKDOWN outputs: ${record.relativePath}`);
         }
-        if ((hasMarkdown || hasAgentMarkdown) && outputList[0] !== 'HTML') {
-            issues.push(`Content page opts into a Markdown mirror without keeping HTML as the first output: ${relativePath}`);
+        if ((hasMarkdown || hasAgentMarkdown) && record.outputList[0] !== 'HTML') {
+            issues.push(`Content page opts into a Markdown mirror without keeping HTML as the first output: ${record.relativePath}`);
         }
 
         if (hasHtml || hasMarkdown || hasAgentMarkdown) {
             const shareImage = await inspectShareImageSetting({
-                contentPath,
-                frontMatterData,
-                relativePath,
+                record,
+                recordsByKey,
+                languageInfo,
                 issues
             });
             if (shareImage.configured) {
@@ -579,6 +695,9 @@ async function inspectSourceOutputSettings(issues) {
             }
             if (shareImage.disabled) {
                 shareImageDisabled += 1;
+            }
+            if (shareImage.inherited) {
+                shareImageInherited += 1;
             }
         }
     }
@@ -588,7 +707,8 @@ async function inspectSourceOutputSettings(issues) {
         agentMarkdownOptIns,
         markdownOnlyOptIns,
         shareImageConfigured,
-        shareImageDisabled
+        shareImageDisabled,
+        shareImageInherited
     };
 }
 
@@ -921,6 +1041,7 @@ async function main() {
     console.log(`AGENT_MARKDOWN opt-ins\t${sourceOutputs.agentMarkdownOptIns}`);
     console.log(`MARKDOWN-only opt-ins\t${sourceOutputs.markdownOnlyOptIns}`);
     console.log(`share_image configured\t${sourceOutputs.shareImageConfigured}`);
+    console.log(`share_image inherited\t${sourceOutputs.shareImageInherited}`);
     console.log(`share_image disabled\t${sourceOutputs.shareImageDisabled}`);
     console.log(`llms.txt\t${llms.hasLlms ? 'yes' : 'no'}`);
     console.log(`llms.txt files\t${languageLlms.fileCount}`);

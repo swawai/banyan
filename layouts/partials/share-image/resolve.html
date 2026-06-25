@@ -1,0 +1,41 @@
+{{- $page := . -}}
+{{- $result := dict "url" "" "disabled" false "configured" false "source" "" -}}
+{{- $found := false -}}
+{{- $candidates := slice $page -}}
+{{- range $page.Ancestors -}}
+  {{- $candidates = $candidates | append . -}}
+{{- end -}}
+{{- $candidates = $candidates | append $page.Site.Home -}}
+
+{{- range $owner := $candidates -}}
+  {{- if and (not $found) (isset $owner.Params "share_image") -}}
+    {{- $found = true -}}
+    {{- $raw := index $owner.Params "share_image" -}}
+    {{- if eq (printf "%T" $raw) "bool" -}}
+      {{- if not $raw -}}
+        {{- $result = dict "url" "" "disabled" true "configured" false "source" "disabled" "owner" $owner -}}
+      {{- else -}}
+        {{- errorf "Build failed: page %q has unsupported share_image=true; use a string path/URL or false." ($owner.File.Path | default $owner.RelPermalink) -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $src := trim (printf "%v" $raw) " \r\n\t" -}}
+      {{- if eq $src "" -}}
+        {{- errorf "Build failed: page %q has an empty share_image; use a string path/URL or false." ($owner.File.Path | default $owner.RelPermalink) -}}
+      {{- end -}}
+
+      {{- $url := "" -}}
+      {{- if or (strings.HasPrefix $src "http://") (strings.HasPrefix $src "https://") -}}
+        {{- $url = $src -}}
+      {{- else if strings.HasPrefix $src "/" -}}
+        {{- $url = absURL $src -}}
+      {{- else -}}
+        {{- $published := partialCached "page-resource/publish.html" (dict "ctx" (dict "Page" $owner) "src" $src) $owner.RelPermalink $src -}}
+        {{- $url = absURL (index $published "src") -}}
+      {{- end -}}
+
+      {{- $result = dict "url" $url "disabled" false "configured" true "source" $src "owner" $owner -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- return $result -}}

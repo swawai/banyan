@@ -4,7 +4,6 @@ date: {{ .Date }}
 draft: true
 slug: "{{ .File.ContentBaseName }}"
 description: ""
-share_image: false
 
 # Agent-friendly Markdown mirror:
 # - AGENT_MARKDOWN: generate /index.md, advertise it in HTML, and list it in llms.txt.

@@ -38,23 +38,8 @@
     {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- $page := . -}}
-{{- $img := "" -}}
-{{- $shareImage := .Params.share_image -}}
-{{- if and $shareImage (ne $shareImage false) -}}
-  {{- $shareImage = printf "%s" $shareImage -}}
-  {{- if or (strings.HasPrefix $shareImage "http://") (strings.HasPrefix $shareImage "https://") -}}
-    {{- $img = $shareImage -}}
-  {{- else if strings.HasPrefix $shareImage "/" -}}
-    {{- $img = absURL $shareImage -}}
-  {{- else -}}
-    {{- with .Resources.GetMatch $shareImage -}}
-      {{- $img = .Permalink -}}
-    {{- else -}}
-      {{- errorf "share_image %q does not match a page resource for %s" $shareImage $page.File.Path -}}
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
+{{- $shareImage := partial "share-image/resolve.html" . -}}
+{{- $img := index $shareImage "url" -}}
 {{- with $img -}}<meta property="og:image" content="{{ . }}">{{ end }}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ .Title }}">
