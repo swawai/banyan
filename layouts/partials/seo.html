@@ -38,12 +38,21 @@
     {{- end -}}
   {{- end -}}
 {{- end -}}
+{{- $page := . -}}
 {{- $img := "" -}}
-{{- with .Params.images -}}
-  {{- $img = index . 0 -}}
-{{- else -}}
-  {{- with .Resources.GetMatch "featured*" -}}
-    {{- $img = .Permalink -}}
+{{- $shareImage := .Params.share_image -}}
+{{- if and $shareImage (ne $shareImage false) -}}
+  {{- $shareImage = printf "%s" $shareImage -}}
+  {{- if or (strings.HasPrefix $shareImage "http://") (strings.HasPrefix $shareImage "https://") -}}
+    {{- $img = $shareImage -}}
+  {{- else if strings.HasPrefix $shareImage "/" -}}
+    {{- $img = absURL $shareImage -}}
+  {{- else -}}
+    {{- with .Resources.GetMatch $shareImage -}}
+      {{- $img = .Permalink -}}
+    {{- else -}}
+      {{- errorf "share_image %q does not match a page resource for %s" $shareImage $page.File.Path -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 {{- with $img -}}<meta property="og:image" content="{{ . }}">{{ end }}

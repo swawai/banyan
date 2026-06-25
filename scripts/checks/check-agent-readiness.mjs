@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { parse as parseYaml } from 'yaml';
 
 const siteRoot = process.cwd();
 const defaultPublicDir = 'public';
@@ -7,6 +8,7 @@ const assetLikeExtensionPattern = /\.(?:avif|bmp|csv|gif|ico|jpe?g|json|pdf|png|
 const markdownMirrorHeaderRoute = '/*.md';
 const expectedMarkdownRobotsTag = 'noindex';
 const expectedMarkdownContentType = 'text/markdown';
+const maxLocalShareImageBytes = 1_000_000;
 const expectedRobotsAgentHints = [
     'ChatGPT-User',
     'OAI-SearchBot',
@@ -335,6 +337,19 @@ function extractFrontMatter(text) {
     return '';
 }
 
+function parseFrontMatterData(frontMatter, relativePath, issues) {
+    if (!frontMatter.trim()) {
+        return {};
+    }
+    try {
+        const parsed = parseYaml(frontMatter);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        issues.push(`Content page front matter is not valid YAML: ${relativePath} (${error instanceof Error ? error.message : String(error)})`);
+        return {};
+    }
+}
+
 function extractFrontMatterOutputList(frontMatter) {
     const outputs = [];
 
@@ -362,6 +377,53 @@ function extractFrontMatterOutputList(frontMatter) {
     }
 
     return outputs;
+}
+
+function hasOwn(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function isExternalShareImage(value) {
+    return /^https?:\/\//i.test(value);
+}
+
+async function inspectShareImageSetting({ contentPath, frontMatterData, relativePath, issues }) {
+    if (hasOwn(frontMatterData, 'images')) {
+        issues.push(`Content page uses legacy images front matter; use share_image instead: ${relativePath}`);
+    }
+
+    if (!hasOwn(frontMatterData, 'share_image')) {
+        issues.push(`Content page is missing explicit share_image front matter: ${relativePath}`);
+        return { configured: false, disabled: false };
+    }
+
+    const shareImage = frontMatterData.share_image;
+    if (shareImage === false) {
+        return { configured: false, disabled: true };
+    }
+    if (typeof shareImage !== 'string' || shareImage.trim() === '') {
+        issues.push(`Content page share_image must be false or a non-empty string: ${relativePath}`);
+        return { configured: false, disabled: false };
+    }
+
+    const normalized = shareImage.trim();
+    if (isExternalShareImage(normalized)) {
+        return { configured: true, disabled: false };
+    }
+
+    const localPath = normalized.startsWith('/')
+        ? path.join(siteRoot, 'static', normalized.replace(/^\/+/, ''))
+        : path.resolve(path.dirname(contentPath), normalized);
+    if (!await fileExists(localPath)) {
+        issues.push(`Content page share_image points to a missing local file: ${relativePath} -> ${shareImage}`);
+    } else {
+        const stat = await fs.stat(localPath);
+        if (stat.size > maxLocalShareImageBytes) {
+            issues.push(`Content page share_image is too large (${stat.size} bytes > ${maxLocalShareImageBytes} bytes): ${relativePath} -> ${shareImage}`);
+        }
+    }
+
+    return { configured: true, disabled: false };
 }
 
 function extractMarkdownAlternates(htmlText) {
@@ -466,7 +528,9 @@ async function inspectSourceOutputSettings(issues) {
         return {
             contentFiles: 0,
             agentMarkdownOptIns: 0,
-            markdownOnlyOptIns: 0
+            markdownOnlyOptIns: 0,
+            shareImageConfigured: 0,
+            shareImageDisabled: 0
         };
     }
 
@@ -476,11 +540,14 @@ async function inspectSourceOutputSettings(issues) {
     );
     let agentMarkdownOptIns = 0;
     let markdownOnlyOptIns = 0;
+    let shareImageConfigured = 0;
+    let shareImageDisabled = 0;
 
     for (const contentPath of contentFiles) {
         const relativePath = toPublicRelativePath(siteRoot, contentPath);
         const text = await fs.readFile(contentPath, 'utf8');
         const frontMatter = extractFrontMatter(text);
+        const frontMatterData = parseFrontMatterData(frontMatter, relativePath, issues);
         const outputList = extractFrontMatterOutputList(frontMatter);
         const outputs = new Set(outputList);
         const hasHtml = outputs.has('HTML');
@@ -499,12 +566,29 @@ async function inspectSourceOutputSettings(issues) {
         if ((hasMarkdown || hasAgentMarkdown) && outputList[0] !== 'HTML') {
             issues.push(`Content page opts into a Markdown mirror without keeping HTML as the first output: ${relativePath}`);
         }
+
+        if (hasHtml || hasMarkdown || hasAgentMarkdown) {
+            const shareImage = await inspectShareImageSetting({
+                contentPath,
+                frontMatterData,
+                relativePath,
+                issues
+            });
+            if (shareImage.configured) {
+                shareImageConfigured += 1;
+            }
+            if (shareImage.disabled) {
+                shareImageDisabled += 1;
+            }
+        }
     }
 
     return {
         contentFiles: contentFiles.length,
         agentMarkdownOptIns,
-        markdownOnlyOptIns
+        markdownOnlyOptIns,
+        shareImageConfigured,
+        shareImageDisabled
     };
 }
 
@@ -836,6 +920,8 @@ async function main() {
     console.log(`content Markdown files\t${sourceOutputs.contentFiles}`);
     console.log(`AGENT_MARKDOWN opt-ins\t${sourceOutputs.agentMarkdownOptIns}`);
     console.log(`MARKDOWN-only opt-ins\t${sourceOutputs.markdownOnlyOptIns}`);
+    console.log(`share_image configured\t${sourceOutputs.shareImageConfigured}`);
+    console.log(`share_image disabled\t${sourceOutputs.shareImageDisabled}`);
     console.log(`llms.txt\t${llms.hasLlms ? 'yes' : 'no'}`);
     console.log(`llms.txt files\t${languageLlms.fileCount}`);
     console.log(`language llms.txt files\t${languageLlms.languageFileCount}`);
